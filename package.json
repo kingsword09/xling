@@ -1,0 +1,13 @@
+{
+  "name": "xling",
+  "version": "0.0.1",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": ["ai"],
+  "author": "Kingsword kingsword09 <kingsword09@gmail.com>",
+  "license": "Apache-2.0",
+  "packageManager": "pnpm@10.20.0"
+}
