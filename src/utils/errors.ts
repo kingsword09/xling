@@ -8,7 +8,7 @@
 export class XlingError extends Error {
   constructor(message: string) {
     super(message);
-    this.name = 'XlingError';
+    this.name = "XlingError";
   }
 }
 
@@ -18,7 +18,7 @@ export class XlingError extends Error {
 export class UnsupportedToolError extends XlingError {
   constructor(tool: string) {
     super(`Unsupported tool: ${tool}`);
-    this.name = 'UnsupportedToolError';
+    this.name = "UnsupportedToolError";
   }
 }
 
@@ -28,7 +28,7 @@ export class UnsupportedToolError extends XlingError {
 export class InvalidScopeError extends XlingError {
   constructor(scope: string) {
     super(`Invalid scope: ${scope}`);
-    this.name = 'InvalidScopeError';
+    this.name = "InvalidScopeError";
   }
 }
 
@@ -38,7 +38,7 @@ export class InvalidScopeError extends XlingError {
 export class ConfigFileNotFoundError extends XlingError {
   constructor(path: string) {
     super(`Config file not found: ${path}`);
-    this.name = 'ConfigFileNotFoundError';
+    this.name = "ConfigFileNotFoundError";
   }
 }
 
@@ -48,17 +48,7 @@ export class ConfigFileNotFoundError extends XlingError {
 export class ConfigParseError extends XlingError {
   constructor(path: string, reason: string) {
     super(`Failed to parse config file ${path}: ${reason}`);
-    this.name = 'ConfigParseError';
-  }
-}
-
-/**
- * 配置键不存在错误
- */
-export class ConfigKeyNotFoundError extends XlingError {
-  constructor(key: string) {
-    super(`Config key not found: ${key}`);
-    this.name = 'ConfigKeyNotFoundError';
+    this.name = "ConfigParseError";
   }
 }
 
@@ -68,7 +58,7 @@ export class ConfigKeyNotFoundError extends XlingError {
 export class ProfileNotFoundError extends XlingError {
   constructor(profile: string) {
     super(`Profile not found: ${profile}`);
-    this.name = 'ProfileNotFoundError';
+    this.name = "ProfileNotFoundError";
   }
 }
 
@@ -78,7 +68,7 @@ export class ProfileNotFoundError extends XlingError {
 export class SettingsVariantNotFoundError extends XlingError {
   constructor(variant: string) {
     super(`Settings variant not found: ${variant}`);
-    this.name = 'SettingsVariantNotFoundError';
+    this.name = "SettingsVariantNotFoundError";
   }
 }
 
@@ -88,7 +78,7 @@ export class SettingsVariantNotFoundError extends XlingError {
 export class FileWriteError extends XlingError {
   constructor(path: string, reason: string) {
     super(`Failed to write file ${path}: ${reason}`);
-    this.name = 'FileWriteError';
+    this.name = "FileWriteError";
   }
 }
 
@@ -98,6 +88,6 @@ export class FileWriteError extends XlingError {
 export class EditorLaunchError extends XlingError {
   constructor(editor: string, reason: string) {
     super(`Failed to launch editor ${editor}: ${reason}`);
-    this.name = 'EditorLaunchError';
+    this.name = "EditorLaunchError";
   }
 }

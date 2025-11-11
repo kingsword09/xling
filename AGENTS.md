@@ -35,7 +35,6 @@ xling/
 │   │       ├── list.ts     # settings:list
 │   │       ├── get.ts      # settings:get
 │   │       ├── set.ts      # settings:set
-│   │       ├── unset.ts    # settings:unset
 │   │       ├── switch.ts   # settings:switch
 │   │       └── inspect.ts  # settings:inspect
 │   ├── domain/             # 领域模型
@@ -127,6 +126,9 @@ bun run format         # 使用 oxfmt 格式化代码
 bun run format:check   # 检查代码格式
 bun run typecheck      # TypeScript 类型检查（tsc --noEmit）
 
+> Lint/format 风格通过 `.oxlintrc.json` 与 `.oxfmtrc.json` 统一配置（参考 [oxlint 官方文档](https://oxc.rs/docs/guide/usage/linter/config.html)）。  
+> 其中强制使用双引号、显式分号，并忽略 `dist/`、`node_modules/` 等生成目录。
+
 # 测试
 bun test               # 运行测试
 bun test:watch         # 监听模式测试
@@ -146,10 +148,6 @@ bun test:coverage      # 测试覆盖率
 # settings:set - 通过 IDE 编辑 Claude 变体
 ./dist/run.js settings:set --tool claude --scope user --name hxi            # 创建/编辑 settings.hxi.json（默认 VS Code）
 ./dist/run.js settings:set --tool claude --scope project --name default --ide cursor --no-json
-
-# settings:unset - 删除键，支持 dry-run
-./dist/run.js settings:unset developerShortcuts.runCommand --tool claude
-./dist/run.js settings:unset developerShortcuts.runCommand --tool claude --dry-run --no-json
 
 # settings:switch - Codex profile / Claude 变体切换
 ./dist/run.js settings:switch oss --tool codex
@@ -203,7 +201,7 @@ constructor() {
 ## 注意事项
 
 - 配置文件操作使用原子写入（临时文件 + 重命名）
-- 支持嵌套键操作（如 `developerShortcuts.runCommand`）
+- settings 相关命令只依赖 `--tool`、`--scope` 等 flag 控制行为，不再提供 `developerShortcuts` 这类键级配置
 - 自动备份现有配置文件（`.bak` 后缀）
 - 所有错误继承自 `XlingError` 基类
 - 使用 Zod 进行运行时类型验证

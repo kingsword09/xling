@@ -2,8 +2,8 @@
  * 输出格式化工具
  */
 
-import Table from 'cli-table3';
-import type { SettingsFileEntry } from '../domain/types.ts';
+import Table from "cli-table3";
+import type { SettingsFileEntry } from "../domain/types.ts";
 
 /**
  * 格式化为 JSON 字符串
@@ -17,7 +17,7 @@ export function formatJson(data: unknown, pretty = true): string {
  */
 export function formatTable(data: Record<string, unknown>): string {
   const table = new Table({
-    head: ['Key', 'Value'],
+    head: ["Key", "Value"],
     colWidths: [30, 50],
     wordWrap: true,
   });
@@ -34,7 +34,7 @@ export function formatTable(data: Record<string, unknown>): string {
  */
 export function formatFilesTable(files: SettingsFileEntry[]): string {
   const table = new Table({
-    head: ['Variant', 'File', 'Status', 'Size', 'Updated'],
+    head: ["Variant", "File", "Status", "Size", "Updated"],
     colWidths: [15, 40, 12, 12, 26],
     wordWrap: true,
   });
@@ -56,44 +56,29 @@ export function formatFilesTable(files: SettingsFileEntry[]): string {
  * 格式化单个值
  */
 function formatValue(value: unknown): string {
-  if (value === null) return 'null';
-  if (value === undefined) return 'undefined';
-  if (typeof value === 'string') return value;
-  if (typeof value === 'number' || typeof value === 'boolean')
+  if (value === null) return "null";
+  if (value === undefined) return "undefined";
+  if (typeof value === "string") return value;
+  if (typeof value === "number" || typeof value === "boolean")
     return String(value);
   if (Array.isArray(value)) return JSON.stringify(value);
-  if (typeof value === 'object') return JSON.stringify(value, null, 2);
+  if (typeof value === "object") return JSON.stringify(value, null, 2);
   return String(value);
-}
-
-/**
- * 生成 diff 预览
- */
-export function generateDiff(
-  oldValue: unknown,
-  newValue: unknown,
-  key: string,
-): string {
-  const lines: string[] = [];
-  lines.push(`Key: ${key}`);
-  lines.push(`- Old: ${formatValue(oldValue)}`);
-  lines.push(`+ New: ${formatValue(newValue)}`);
-  return lines.join('\n');
 }
 
 function formatStatus(file: SettingsFileEntry): string {
   if (file.active) {
-    return file.exists ? 'active' : 'missing';
+    return file.exists ? "active" : "missing";
   }
-  return file.exists ? 'available' : 'missing';
+  return file.exists ? "available" : "missing";
 }
 
 function formatBytes(size?: number): string {
-  if (typeof size !== 'number') {
-    return '-';
+  if (typeof size !== "number") {
+    return "-";
   }
 
-  const units = ['B', 'KB', 'MB', 'GB'];
+  const units = ["B", "KB", "MB", "GB"];
   let value = size;
   let unitIndex = 0;
 
@@ -102,17 +87,18 @@ function formatBytes(size?: number): string {
     unitIndex++;
   }
 
-  const formatted = value >= 10 || value % 1 === 0 ? value.toFixed(0) : value.toFixed(1);
+  const formatted =
+    value >= 10 || value % 1 === 0 ? value.toFixed(0) : value.toFixed(1);
   return `${formatted} ${units[unitIndex]}`;
 }
 
 function formatTimestamp(date?: Date): string {
   if (!date) {
-    return '-';
+    return "-";
   }
 
   return new Intl.DateTimeFormat(undefined, {
-    dateStyle: 'medium',
-    timeStyle: 'short',
+    dateStyle: "medium",
+    timeStyle: "short",
   }).format(date);
 }

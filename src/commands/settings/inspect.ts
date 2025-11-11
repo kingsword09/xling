@@ -3,13 +3,13 @@
  * 检查配置文件状态
  */
 
-import { Command, Flags } from '@oclif/core';
-import { SettingsDispatcher } from '../../services/settings/dispatcher.ts';
-import { formatJson } from '../../utils/format.ts';
-import type { ToolId, Scope, InspectResult } from '../../domain/types.ts';
+import { Command, Flags } from "@oclif/core";
+import { SettingsDispatcher } from "../../services/settings/dispatcher.ts";
+import { formatJson } from "../../utils/format.ts";
+import type { ToolId, Scope, InspectResult } from "../../domain/types.ts";
 
 export default class SettingsInspect extends Command {
-  static summary = 'Inspect configuration file status';
+  static summary = "Inspect configuration file status";
 
   static description = `
     Display information about the configuration file, including:
@@ -21,25 +21,25 @@ export default class SettingsInspect extends Command {
   `;
 
   static examples = [
-    '<%= config.bin %> <%= command.id %> --tool claude --scope user',
-    '<%= config.bin %> <%= command.id %> --tool codex --json',
+    "<%= config.bin %> <%= command.id %> --tool claude --scope user",
+    "<%= config.bin %> <%= command.id %> --tool codex --json",
   ];
 
   static flags = {
     tool: Flags.string({
-      char: 't',
-      description: 'AI CLI tool to manage',
-      options: ['claude', 'codex', 'gemini'],
-      default: 'claude',
+      char: "t",
+      description: "AI CLI tool to manage",
+      options: ["claude", "codex", "gemini"],
+      default: "claude",
     }),
     scope: Flags.string({
-      char: 's',
-      description: 'Configuration scope',
-      options: ['user', 'project', 'local', 'system'],
-      default: 'user',
+      char: "s",
+      description: "Configuration scope",
+      options: ["user", "project", "local", "system"],
+      default: "user",
     }),
     json: Flags.boolean({
-      description: 'Output JSON (default)',
+      description: "Output JSON (default)",
       default: true,
       allowNo: true,
     }),
@@ -53,7 +53,7 @@ export default class SettingsInspect extends Command {
       const result = await dispatcher.execute({
         tool: flags.tool as ToolId,
         scope: flags.scope as Scope,
-        action: 'inspect',
+        action: "inspect",
       });
 
       if (flags.json) {
@@ -63,7 +63,7 @@ export default class SettingsInspect extends Command {
 
       const data = result.data as InspectResult;
       this.log(`Path: ${data.path}`);
-      this.log(`Exists: ${data.exists ? 'Yes' : 'No'}`);
+      this.log(`Exists: ${data.exists ? "Yes" : "No"}`);
 
       if (data.exists) {
         if (data.size !== undefined) {
@@ -73,7 +73,7 @@ export default class SettingsInspect extends Command {
           this.log(`Last Modified: ${data.lastModified.toISOString()}`);
         }
         if (data.content) {
-          this.log('\nContents:');
+          this.log("\nContents:");
           this.log(data.content);
         }
       }

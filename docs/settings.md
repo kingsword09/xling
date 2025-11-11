@@ -95,37 +95,8 @@ xling settings:set --tool claude --scope project --name default --ide cursor --n
 
 `settings:set` 不再支持局部写入；若需修改键值，请直接在打开的文件中编辑后保存。
 
----
-
-### settings:unset
-
-Remove a configuration key.
-
-**Usage:**
-```bash
-xling settings:unset <key> [OPTIONS]
-```
-
-**Arguments:**
-- `key`: Setting key to remove (supports nested keys with dot notation)
-
-**Options:**
-- `-t, --tool <tool>`: AI CLI tool to manage (claude|codex|gemini) [default: claude]
-- `-s, --scope <scope>`: Configuration scope (user|project|local|system) [default: user]
-- `--dry-run`: Preview changes without applying them
-- `--json/--no-json`: JSON output is default; use `--no-json` for plain text
-
-**Examples:**
-```bash
-# Remove model setting
-xling settings:unset defaultModel --tool claude
-
-# Remove nested setting
-xling settings:unset developerShortcuts.runCommand --tool claude
-
-# Preview removal
-xling settings:unset developerShortcuts.runCommand --tool claude --dry-run
-```
+> Note: settings 相关指令仅依赖 `--tool`、`--scope`、`--name`、`--ide` 等 flag；
+> 不再接受 `developerShortcuts.runCommand` 之类的位置参数。
 
 ---
 
@@ -236,20 +207,6 @@ xling settings:get --tool claude --no-json
 xling settings:list --tool claude --scope user --table
 ```
 
----
-
-## Dry Run Mode（删除配置时依然适用）
-
-`settings:unset` 仍然提供 `--dry-run`，方便在删除键之前查看 diff：
-
-```bash
-xling settings:unset developerShortcuts.runCommand --tool claude --dry-run
-```
-
-输出包括当前值与删除后的 diff，便于确认影响范围。
-
----
-
 ## Error Handling
 
 Common errors and solutions:
@@ -259,12 +216,6 @@ Common errors and solutions:
 Error: Config file not found: ~/.claude/settings.json
 ```
 **Solution:** The configuration file doesn't exist. Use `settings:set` to create it.
-
-### Config key not found
-```
-Error: Config key not found: developerShortcuts.runCommand
-```
-**Solution:** The specified key doesn't exist in the configuration.
 
 ### Invalid scope
 ```
@@ -282,7 +233,7 @@ Error: Unsupported tool: unknown
 
 ## Best Practices
 
-1. **Use dry-run first**: Always preview changes with `--dry-run` before applying them
+1. **Flag everything**: 显式传递 `--tool`、`--scope`、`--name`，避免依赖默认值导致误操作
 2. **Backup important configs**: Configuration files are automatically backed up with `.bak` extension
 3. **Use JSON output for scripting**: JSON 是默认格式；仅在需要文本时加 `--no-json`
 4. **Scope appropriately**: 使用 `user` 表示个人配置，`project` 表示仓库配置
@@ -307,11 +258,11 @@ xling settings:set --tool claude --scope user --name hxi
 # 4. After editing, view the raw file
 xling settings:get --tool claude --scope user --no-json
 
-# 5. Remove a deprecated key with dry-run preview
-xling settings:unset developerShortcuts.runCommand --tool claude --dry-run
+# 5. Switch the active variant when ready
+xling settings:switch hxi --tool claude --scope user
 
-# 6. Confirm removal
-xling settings:unset developerShortcuts.runCommand --tool claude
+# 6. Inspect the file again after editing
+xling settings:inspect --tool claude --scope user
 ```
 
 ### Managing Multiple Tools

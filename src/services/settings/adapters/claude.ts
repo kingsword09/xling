@@ -2,23 +2,23 @@
  * Claude Code 适配器
  */
 
-import * as fs from 'fs';
-import * as path from 'path';
+import * as fs from "fs";
+import * as path from "path";
 import type {
   Scope,
   SettingsListData,
   SettingsFileEntry,
   SettingsResult,
   EditOptions,
-} from '../../../domain/types.ts';
-import { BaseAdapter } from './base.ts';
-import * as fsStore from '../fsStore.ts';
+} from "../../../domain/types.ts";
+import { BaseAdapter } from "./base.ts";
+import * as fsStore from "../fsStore.ts";
 import {
   InvalidScopeError,
   SettingsVariantNotFoundError,
-} from '../../../utils/errors.ts';
-import { CLAUDE_SETTINGS_TEMPLATE } from '../templates/claudeDefault.ts';
-import { openInEditor, resolveEditorCommand } from '../../../utils/editor.ts';
+} from "../../../utils/errors.ts";
+import { CLAUDE_SETTINGS_TEMPLATE } from "../templates/claudeDefault.ts";
+import { openInEditor, resolveEditorCommand } from "../../../utils/editor.ts";
 
 /**
  * Claude Code 配置适配器
@@ -29,7 +29,7 @@ import { openInEditor, resolveEditorCommand } from '../../../utils/editor.ts';
  * - local: <cwd>/.claude/settings.local.json
  */
 export class ClaudeAdapter extends BaseAdapter {
-  readonly toolId = 'claude' as const;
+  readonly toolId = "claude" as const;
 
   /**
    * 列出所有 settings.*.json 文件
@@ -60,7 +60,7 @@ export class ClaudeAdapter extends BaseAdapter {
     }
 
     return {
-      type: 'files',
+      type: "files",
       files: this.sortFiles(files),
     };
   }
@@ -70,12 +70,12 @@ export class ClaudeAdapter extends BaseAdapter {
    */
   resolvePath(scope: Scope): string {
     switch (scope) {
-      case 'user':
-        return '~/.claude/settings.json';
-      case 'project':
-        return '.claude/settings.json';
-      case 'local':
-        return '.claude/settings.local.json';
+      case "user":
+        return "~/.claude/settings.json";
+      case "project":
+        return ".claude/settings.json";
+      case "local":
+        return ".claude/settings.local.json";
       default:
         throw new Error(`Unsupported scope for Claude: ${scope}`);
     }
@@ -85,7 +85,7 @@ export class ClaudeAdapter extends BaseAdapter {
    * 验证 scope 是否有效
    */
   validateScope(scope: Scope): boolean {
-    return ['user', 'project', 'local'].includes(scope);
+    return ["user", "project", "local"].includes(scope);
   }
 
   /**
@@ -101,7 +101,7 @@ export class ClaudeAdapter extends BaseAdapter {
 
     const variant = profile.trim();
     if (!variant) {
-      throw new Error('Variant name cannot be empty');
+      throw new Error("Variant name cannot be empty");
     }
 
     const targetPath = fsStore.resolveHome(this.resolvePath(scope));
@@ -142,10 +142,14 @@ export class ClaudeAdapter extends BaseAdapter {
     fsStore.ensureDir(directory);
 
     let targetPath = basePath;
-    let label = 'default';
+    let label = "default";
 
-    if (variantName && variantName !== '' && variantName !== 'default') {
-      const existingPath = this.findVariantPath(directory, variantName, basePath);
+    if (variantName && variantName !== "" && variantName !== "default") {
+      const existingPath = this.findVariantPath(
+        directory,
+        variantName,
+        basePath,
+      );
       if (existingPath) {
         targetPath = existingPath;
       } else {
@@ -195,9 +199,9 @@ export class ClaudeAdapter extends BaseAdapter {
     const filename = path.basename(filePath);
     const match = filename.match(/^settings(?:[._-](.+))?\.json$/);
     if (!match) {
-      return filename.replace(/\.json$/, '');
+      return filename.replace(/\.json$/, "");
     }
-    return match[1] ?? 'default';
+    return match[1] ?? "default";
   }
 
   private isSettingsFile(filename: string): boolean {
@@ -224,12 +228,14 @@ export class ClaudeAdapter extends BaseAdapter {
       }
     };
 
-    if (profile === 'default') {
+    if (profile === "default") {
       pushCandidate(defaultPath);
     }
 
-    if (profile.endsWith('.json')) {
-      pushCandidate(path.isAbsolute(profile) ? profile : path.join(directory, profile));
+    if (profile.endsWith(".json")) {
+      pushCandidate(
+        path.isAbsolute(profile) ? profile : path.join(directory, profile),
+      );
     } else {
       pushCandidate(path.join(directory, `settings.${profile}.json`));
       pushCandidate(path.join(directory, `settings-${profile}.json`));

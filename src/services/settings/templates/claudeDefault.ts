@@ -1,13 +1,13 @@
 export const CLAUDE_SETTINGS_TEMPLATE = {
   workspace: {
-    defaultModel: 'claude-3.5-sonnet',
+    defaultModel: "claude-3.5-sonnet",
     autoComplete: true,
   },
   ai: {
-    model: 'claude-sonnet-4',
+    model: "claude-sonnet-4",
     temperature: 0.7,
   },
   shortcuts: {
-    runCommand: 'bun test',
+    runCommand: "bun test",
   },
 } satisfies Record<string, unknown>;

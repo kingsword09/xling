@@ -3,18 +3,22 @@
  * 列出指定工具的所有配置
  */
 
-import { Command, Flags } from '@oclif/core';
-import { SettingsDispatcher } from '../../services/settings/dispatcher.ts';
-import { formatFilesTable, formatJson, formatTable } from '../../utils/format.ts';
+import { Command, Flags } from "@oclif/core";
+import { SettingsDispatcher } from "../../services/settings/dispatcher.ts";
+import {
+  formatFilesTable,
+  formatJson,
+  formatTable,
+} from "../../utils/format.ts";
 import type {
   ToolId,
   Scope,
   SettingsListData,
   SettingsFileEntry,
-} from '../../domain/types.ts';
+} from "../../domain/types.ts";
 
 export default class SettingsList extends Command {
-  static summary = 'List all settings for a tool';
+  static summary = "List all settings for a tool";
 
   static description = `
     Display all configuration settings for the specified AI CLI tool.
@@ -22,30 +26,30 @@ export default class SettingsList extends Command {
   `;
 
   static examples = [
-    '<%= config.bin %> <%= command.id %> --tool claude --scope user',
-    '<%= config.bin %> <%= command.id %> --tool codex --scope user --table',
-    '<%= config.bin %> -t gemini -s project --no-json',
+    "<%= config.bin %> <%= command.id %> --tool claude --scope user",
+    "<%= config.bin %> <%= command.id %> --tool codex --scope user --table",
+    "<%= config.bin %> -t gemini -s project --no-json",
   ];
 
   static flags = {
     tool: Flags.string({
-      char: 't',
-      description: 'AI CLI tool to manage',
-      options: ['claude', 'codex', 'gemini'],
-      default: 'claude',
+      char: "t",
+      description: "AI CLI tool to manage",
+      options: ["claude", "codex", "gemini"],
+      default: "claude",
     }),
     scope: Flags.string({
-      char: 's',
-      description: 'Configuration scope',
-      options: ['user', 'project', 'local', 'system'],
-      default: 'user',
+      char: "s",
+      description: "Configuration scope",
+      options: ["user", "project", "local", "system"],
+      default: "user",
     }),
     json: Flags.boolean({
-      description: 'Output JSON instead of text summary',
+      description: "Output JSON instead of text summary",
       default: false,
     }),
     table: Flags.boolean({
-      description: 'Render table output instead of JSON',
+      description: "Render table output instead of JSON",
       default: false,
     }),
   };
@@ -58,7 +62,7 @@ export default class SettingsList extends Command {
       const result = await dispatcher.execute({
         tool: flags.tool as ToolId,
         scope: flags.scope as Scope,
-        action: 'list',
+        action: "list",
       });
 
       if (flags.table) {
@@ -79,13 +83,13 @@ export default class SettingsList extends Command {
 
   private renderSummary(data?: SettingsListData): void {
     if (!data) {
-      this.log('No settings found.');
+      this.log("No settings found.");
       return;
     }
 
-    if (data.type === 'files') {
+    if (data.type === "files") {
       if (data.files.length === 0) {
-        this.log('No settings files found.');
+        this.log("No settings files found.");
         return;
       }
       this.log(this.formatFilesSummary(data.files));
@@ -93,7 +97,7 @@ export default class SettingsList extends Command {
     }
 
     if (Object.keys(data.entries).length === 0) {
-      this.log('No settings found.');
+      this.log("No settings found.");
       return;
     }
 
@@ -102,13 +106,13 @@ export default class SettingsList extends Command {
 
   private renderDetailed(data?: SettingsListData): void {
     if (!data) {
-      this.log('No settings found.');
+      this.log("No settings found.");
       return;
     }
 
-    if (data.type === 'files') {
+    if (data.type === "files") {
       if (data.files.length === 0) {
-        this.log('No settings files found.');
+        this.log("No settings files found.");
         return;
       }
       this.log(formatFilesTable(data.files));
@@ -116,7 +120,7 @@ export default class SettingsList extends Command {
     }
 
     if (Object.keys(data.entries).length === 0) {
-      this.log('No settings found.');
+      this.log("No settings found.");
       return;
     }
 
@@ -126,30 +130,30 @@ export default class SettingsList extends Command {
 
   private formatFilesSummary(files: SettingsFileEntry[]): string {
     const lines = files.map((file) => {
-      const prefix = file.active ? '* ' : '- ';
+      const prefix = file.active ? "* " : "- ";
       return (
         `${prefix}${file.variant} -> ${file.path}` +
-        (file.exists ? '' : ' (missing)')
+        (file.exists ? "" : " (missing)")
       );
     });
-    return ['files:'].concat(lines).join('\n');
+    return ["files:"].concat(lines).join("\n");
   }
 
   private formatEntriesSummary(
     entries: Record<string, unknown>,
     filePath: string,
   ): string {
-    const lines = ['entries:'];
+    const lines = ["entries:"];
     for (const [key, value] of Object.entries(entries)) {
       lines.push(`- ${key}: ${this.stringify(value)}`);
     }
     lines.push(`file: ${filePath}`);
-    return lines.join('\n');
+    return lines.join("\n");
   }
 
   private stringify(value: unknown): string {
-    if (value === null || value === undefined) return 'null';
-    if (typeof value === 'object') {
+    if (value === null || value === undefined) return "null";
+    if (typeof value === "object") {
       return JSON.stringify(value);
     }
     return String(value);

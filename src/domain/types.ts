@@ -2,17 +2,10 @@
  * 核心类型定义
  */
 
-export type ToolId = 'claude' | 'codex' | 'gemini';
-export type Scope = 'user' | 'project' | 'local' | 'system';
-export type SettingAction =
-  | 'list'
-  | 'get'
-  | 'set'
-  | 'unset'
-  | 'edit'
-  | 'switch-profile'
-  | 'inspect';
-export type OutputFormat = 'json' | 'table';
+export type ToolId = "claude" | "codex" | "gemini";
+export type Scope = "user" | "project" | "local" | "system";
+export type SettingAction = "list" | "edit" | "switch-profile" | "inspect";
+export type OutputFormat = "json" | "table";
 
 export interface EditOptions {
   name?: string;
@@ -32,12 +25,12 @@ export interface SettingsFileEntry {
 
 export type SettingsListData =
   | {
-      type: 'entries';
+      type: "entries";
       entries: Record<string, unknown>;
       filePath: string;
     }
   | {
-      type: 'files';
+      type: "files";
       files: SettingsFileEntry[];
     };
 
@@ -48,14 +41,10 @@ export interface SettingsPayload {
   tool: ToolId;
   scope: Scope;
   action: SettingAction;
-  key?: string;
-  value?: string;
   profile?: string;
   name?: string;
   ide?: string;
   format?: OutputFormat;
-  dryRun?: boolean;
-  filePath?: string;
 }
 
 /**
@@ -66,7 +55,6 @@ export interface SettingsResult {
   data?: Record<string, unknown> | unknown;
   message?: string;
   filePath?: string;
-  diff?: string;
 }
 
 /**

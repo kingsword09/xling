@@ -3,16 +3,16 @@
  * 负责将请求路由到对应的适配器（DIP 原则）
  */
 
-import type { SettingsAdapter } from '../../domain/interfaces.ts';
+import type { SettingsAdapter } from "../../domain/interfaces.ts";
 import type {
   SettingsPayload,
   SettingsResult,
   ToolId,
-} from '../../domain/types.ts';
-import { ClaudeAdapter } from './adapters/claude.ts';
-import { CodexAdapter } from './adapters/codex.ts';
-import { GeminiAdapter } from './adapters/gemini.ts';
-import { UnsupportedToolError } from '../../utils/errors.ts';
+} from "../../domain/types.ts";
+import { ClaudeAdapter } from "./adapters/claude.ts";
+import { CodexAdapter } from "./adapters/codex.ts";
+import { GeminiAdapter } from "./adapters/gemini.ts";
+import { UnsupportedToolError } from "../../utils/errors.ts";
 
 /**
  * Settings 调度器
@@ -28,9 +28,9 @@ export class SettingsDispatcher {
   constructor() {
     // 注册所有适配器
     this.adapters = new Map<ToolId, SettingsAdapter>();
-    this.adapters.set('claude', new ClaudeAdapter());
-    this.adapters.set('codex', new CodexAdapter());
-    this.adapters.set('gemini', new GeminiAdapter());
+    this.adapters.set("claude", new ClaudeAdapter());
+    this.adapters.set("codex", new CodexAdapter());
+    this.adapters.set("gemini", new GeminiAdapter());
   }
 
   /**
@@ -40,41 +40,15 @@ export class SettingsDispatcher {
     const adapter = this.getAdapter(payload.tool);
 
     switch (payload.action) {
-      case 'list':
+      case "list":
         return {
           success: true,
           data: await adapter.list(payload.scope),
         };
 
-      case 'get':
-        if (!payload.key) {
-          throw new Error('Key is required for get action');
-        }
-        return {
-          success: true,
-          data: await adapter.get(payload.scope, payload.key),
-        };
-
-      case 'set':
-        if (!payload.key || payload.value === undefined) {
-          throw new Error('Key and value are required for set action');
-        }
-        return await adapter.set(
-          payload.scope,
-          payload.key,
-          payload.value,
-          payload.dryRun,
-        );
-
-      case 'unset':
-        if (!payload.key) {
-          throw new Error('Key is required for unset action');
-        }
-        return await adapter.unset(payload.scope, payload.key, payload.dryRun);
-
-      case 'switch-profile':
+      case "switch-profile":
         if (!payload.profile) {
-          throw new Error('Profile is required for switch-profile action');
+          throw new Error("Profile is required for switch-profile action");
         }
         if (!adapter.switchProfile) {
           throw new Error(
@@ -83,16 +57,18 @@ export class SettingsDispatcher {
         }
         return await adapter.switchProfile(payload.scope, payload.profile);
 
-      case 'edit':
+      case "edit":
         if (!adapter.edit) {
-          throw new Error(`Tool ${payload.tool} does not support editing via CLI`);
+          throw new Error(
+            `Tool ${payload.tool} does not support editing via CLI`,
+          );
         }
         return await adapter.edit(payload.scope, {
           name: payload.name,
           ide: payload.ide,
         });
 
-      case 'inspect':
+      case "inspect":
         if (!adapter.inspect) {
           throw new Error(
             `Tool ${payload.tool} does not support inspect action`,

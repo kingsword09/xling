@@ -2,10 +2,13 @@
  * Codex 适配器
  */
 
-import type { Scope, SettingsResult } from '../../../domain/types.ts';
-import { BaseAdapter } from './base.ts';
-import { InvalidScopeError, ProfileNotFoundError } from '../../../utils/errors.ts';
-import * as fsStore from '../fsStore.ts';
+import type { Scope, SettingsResult } from "../../../domain/types.ts";
+import { BaseAdapter } from "./base.ts";
+import {
+  InvalidScopeError,
+  ProfileNotFoundError,
+} from "../../../utils/errors.ts";
+import * as fsStore from "../fsStore.ts";
 
 /**
  * Codex 配置适配器
@@ -16,15 +19,15 @@ import * as fsStore from '../fsStore.ts';
  * 支持 profile 切换
  */
 export class CodexAdapter extends BaseAdapter {
-  readonly toolId = 'codex' as const;
+  readonly toolId = "codex" as const;
 
   /**
    * 解析配置文件路径
    */
   resolvePath(scope: Scope): string {
     switch (scope) {
-      case 'user':
-        return '~/.codex/config.toml';
+      case "user":
+        return "~/.codex/config.toml";
       default:
         throw new Error(`Unsupported scope for Codex: ${scope}`);
     }
@@ -34,7 +37,7 @@ export class CodexAdapter extends BaseAdapter {
    * 验证 scope 是否有效
    */
   validateScope(scope: Scope): boolean {
-    return scope === 'user';
+    return scope === "user";
   }
 
   /**

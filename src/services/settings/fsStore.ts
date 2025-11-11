@@ -2,21 +2,21 @@
  * 文件系统存储工具
  */
 
-import * as fs from 'fs';
-import * as path from 'path';
-import * as os from 'os';
-import * as toml from '@iarna/toml';
+import * as fs from "fs";
+import * as path from "path";
+import * as os from "os";
+import * as toml from "@iarna/toml";
 import {
   ConfigFileNotFoundError,
   ConfigParseError,
   FileWriteError,
-} from '../../utils/errors.ts';
+} from "../../utils/errors.ts";
 
 /**
  * 解析 ~ 为用户主目录
  */
 export function resolveHome(filepath: string): string {
-  if (filepath.startsWith('~/') || filepath === '~') {
+  if (filepath.startsWith("~/") || filepath === "~") {
     return path.join(os.homedir(), filepath.slice(1));
   }
   return filepath;
@@ -43,7 +43,7 @@ export function readJSON(filepath: string): Record<string, unknown> {
   }
 
   try {
-    const content = fs.readFileSync(resolvedPath, 'utf-8');
+    const content = fs.readFileSync(resolvedPath, "utf-8");
     return JSON.parse(content);
   } catch (error) {
     throw new ConfigParseError(resolvedPath, (error as Error).message);
@@ -72,7 +72,7 @@ export function writeJSON(
   try {
     // 原子写入：先写临时文件，再重命名
     const tempPath = `${resolvedPath}.tmp`;
-    fs.writeFileSync(tempPath, JSON.stringify(data, null, 2), 'utf-8');
+    fs.writeFileSync(tempPath, JSON.stringify(data, null, 2), "utf-8");
     fs.renameSync(tempPath, resolvedPath);
   } catch (error) {
     throw new FileWriteError(resolvedPath, (error as Error).message);
@@ -90,7 +90,7 @@ export function readTOML(filepath: string): Record<string, unknown> {
   }
 
   try {
-    const content = fs.readFileSync(resolvedPath, 'utf-8');
+    const content = fs.readFileSync(resolvedPath, "utf-8");
     return toml.parse(content) as Record<string, unknown>;
   } catch (error) {
     throw new ConfigParseError(resolvedPath, (error as Error).message);
@@ -119,7 +119,7 @@ export function writeTOML(
   try {
     // 原子写入
     const tempPath = `${resolvedPath}.tmp`;
-    fs.writeFileSync(tempPath, toml.stringify(data as any), 'utf-8');
+    fs.writeFileSync(tempPath, toml.stringify(data as any), "utf-8");
     fs.renameSync(tempPath, resolvedPath);
   } catch (error) {
     throw new FileWriteError(resolvedPath, (error as Error).message);
@@ -141,10 +141,10 @@ export function deepMerge(
       const targetValue = result[key];
 
       if (
-        typeof sourceValue === 'object' &&
+        typeof sourceValue === "object" &&
         sourceValue !== null &&
         !Array.isArray(sourceValue) &&
-        typeof targetValue === 'object' &&
+        typeof targetValue === "object" &&
         targetValue !== null &&
         !Array.isArray(targetValue)
       ) {
@@ -158,84 +158,6 @@ export function deepMerge(
     }
   }
 
-  return result;
-}
-
-/**
- * 获取嵌套键的值
- * 例如: getNestedValue(obj, 'developerShortcuts.runCommand')
- */
-export function getNestedValue(
-  obj: Record<string, unknown>,
-  key: string,
-): unknown {
-  const keys = key.split('.');
-  let current: unknown = obj;
-
-  for (const k of keys) {
-    if (typeof current === 'object' && current !== null && k in current) {
-      current = (current as Record<string, unknown>)[k];
-    } else {
-      return undefined;
-    }
-  }
-
-  return current;
-}
-
-/**
- * 设置嵌套键的值
- * 例如: setNestedValue(obj, 'developerShortcuts.runCommand', 'bun test')
- */
-export function setNestedValue(
-  obj: Record<string, unknown>,
-  key: string,
-  value: unknown,
-): Record<string, unknown> {
-  const keys = key.split('.');
-  const result = { ...obj };
-  let current: Record<string, unknown> = result;
-
-  for (let i = 0; i < keys.length - 1; i++) {
-    const k = keys[i];
-    if (
-      !(k in current) ||
-      typeof current[k] !== 'object' ||
-      current[k] === null
-    ) {
-      current[k] = {};
-    }
-    current = current[k] as Record<string, unknown>;
-  }
-
-  current[keys[keys.length - 1]] = value;
-  return result;
-}
-
-/**
- * 删除嵌套键
- */
-export function deleteNestedKey(
-  obj: Record<string, unknown>,
-  key: string,
-): Record<string, unknown> {
-  const keys = key.split('.');
-  const result = { ...obj };
-  let current: Record<string, unknown> = result;
-
-  for (let i = 0; i < keys.length - 1; i++) {
-    const k = keys[i];
-    if (
-      !(k in current) ||
-      typeof current[k] !== 'object' ||
-      current[k] === null
-    ) {
-      return result; // Key doesn't exist
-    }
-    current = current[k] as Record<string, unknown>;
-  }
-
-  delete current[keys[keys.length - 1]];
   return result;
 }
 

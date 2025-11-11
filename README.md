@@ -86,15 +86,8 @@ xling settings:set --tool claude --scope project --name default --ide cursor --n
 `settings:set` 现专注于整文件编辑：传 `--name`（默认 `default`）即可创建/打开
 `settings.<name>.json`，并使用 `--ide` 指定编辑器（默认 VS Code 的 `code`）。
 
-### Unset Setting
-
-```bash
-# Remove a setting
-xling settings:unset developerShortcuts.runCommand --tool claude
-
-# Preview removal with diff
-xling settings:unset developerShortcuts.runCommand --tool claude --dry-run --no-json
-```
+> Note: 所有 `settings:*` 命令仅依赖 `--tool`、`--scope`、`--name` 等 flag；不再提供
+> `developerShortcuts.runCommand` 这类键级参数。
 
 ### Switch Profiles or Claude Variants
 
@@ -209,6 +202,10 @@ This project uses [tsdown](https://tsdown.vercel.app/) for fast TypeScript compi
 - **Linting**: [oxlint](https://oxc.rs/) - Rust-based linter, 50-100x faster than ESLint
 - **Formatting**: [oxfmt](https://oxc.rs/) - Fast formatter compatible with Prettier config
 - **Type Checking**: TypeScript compiler for strict type safety
+
+`oxlint` is configured via `.oxlintrc.json` (schema documented in the [official guide](https://oxc.rs/docs/guide/usage/linter/config.html)).  
+The config enables Node + ES2022 globals, ignores generated artifacts, and enforces stylistic rules such as double quotes, explicit semicolons, and `prefer-const`.  
+`oxfmt` mirrors the same style choices through `.oxfmtrc.json` (notably `singleQuote: false`) so formatting and linting stay in sync.
 
 ## Testing
 

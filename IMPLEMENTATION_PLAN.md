@@ -9,7 +9,7 @@
 ### 核心原则应用
 
 - **KISS**: 单一 `settings` 命令入口，适配器隐藏工具差异
-- **YAGNI**: 仅实现 list/get/set/unset/switch-profile，不做过度设计
+- **YAGNI**: 仅实现 list/edit/switch-profile/inspect，不做过度设计
 - **DRY**: 共享路径解析和序列化工具
 - **SOLID**:
   - **SRP**: 每个适配器只负责一个工具的配置管理
@@ -31,8 +31,8 @@ xling/
 │   │       ├── list.ts           # settings:list 子命令
 │   │       ├── get.ts            # settings:get 子命令
 │   │       ├── set.ts            # settings:set 子命令
-│   │       ├── unset.ts          # settings:unset 子命令
-│   │       └── switch.ts         # settings:switch 子命令
+│   │       ├── switch.ts         # settings:switch 子命令
+│   │       └── inspect.ts        # settings:inspect 子命令
 │   ├── domain/
 │   │   ├── types.ts              # 共享类型定义
 │   │   ├── interfaces.ts         # SettingsAdapter 接口
@@ -189,27 +189,24 @@ bun add -d @types/node vitest oclif @oclif/test
 ```typescript
 export type ToolId = 'claude' | 'codex' | 'gemini';
 export type Scope = 'user' | 'project' | 'local' | 'system';
-export type SettingAction = 'list' | 'get' | 'set' | 'unset' | 'switch-profile' | 'inspect';
+export type SettingAction = 'list' | 'edit' | 'switch-profile' | 'inspect';
 export type OutputFormat = 'json' | 'table';
 
 export interface SettingsPayload {
   tool: ToolId;
   scope: Scope;
   action: SettingAction;
-  key?: string;
-  value?: string;
   profile?: string;
+  name?: string;
+  ide?: string;
   format?: OutputFormat;
-  dryRun?: boolean;
-  filePath?: string;
 }
 
 export interface SettingsResult {
   success: boolean;
-  data?: Record<string, unknown>;
+  data?: Record<string, unknown> | unknown;
   message?: string;
   filePath?: string;
-  diff?: string;
 }
 ```
 
@@ -220,13 +217,9 @@ export interface SettingsAdapter {
   readonly toolId: ToolId;
 
   list(scope: Scope): Promise<Record<string, unknown>>;
-  get(scope: Scope, key: string): Promise<unknown>;
-  set(scope: Scope, key: string, value: unknown, dryRun?: boolean): Promise<SettingsResult>;
-  unset(scope: Scope, key: string, dryRun?: boolean): Promise<SettingsResult>;
-
-  // 可选方法
-  switchProfile?(profile: string): Promise<SettingsResult>;
+  edit?(scope: Scope, options: EditOptions): Promise<SettingsResult>;
   inspect?(scope: Scope): Promise<{ path: string; exists: boolean; content?: string }>;
+  switchProfile?(scope: Scope, profile: string): Promise<SettingsResult>;
 
   // 工具特定方法
   resolvePath(scope: Scope): string;
@@ -309,7 +302,7 @@ export class ClaudeAdapter extends BaseAdapter {
 
 **技术难点**:
 - 处理分层配置的优先级
-- 支持嵌套键（如 `developerShortcuts.runCommand`）
+- 仅通过 flag 控制行为，避免键级写入带来的复杂度
 
 #### 任务 4.3: Codex 适配器 (src/services/settings/adapters/codex.ts)
 
@@ -532,22 +525,11 @@ export default class SettingsGet extends Command {
 #### 任务 6.4: Settings Set 命令 (src/commands/settings/set.ts)
 
 ```typescript
-import {Args, Command, Flags} from '@oclif/core'
+import {Command, Flags} from '@oclif/core'
 import {SettingsDispatcher} from '../../services/settings/dispatcher.js'
 
 export default class SettingsSet extends Command {
-  static summary = 'Set a setting value'
-
-  static args = {
-    key: Args.string({
-      description: 'Setting key to set',
-      required: true,
-    }),
-    value: Args.string({
-      description: 'Setting value',
-      required: true,
-    }),
-  }
+  static summary = 'Open settings files in your IDE'
 
   static flags = {
     tool: Flags.string({
@@ -562,37 +544,40 @@ export default class SettingsSet extends Command {
       options: ['user', 'project', 'local', 'system'],
       default: 'user',
     }),
-    'dry-run': Flags.boolean({
-      description: 'Preview changes without applying',
-      default: false,
+    name: Flags.string({
+      description: 'Claude variant name (settings.<name>.json)',
+    }),
+    ide: Flags.string({
+      description: 'Editor command or alias (default: code)',
+      default: 'code',
+    }),
+    json: Flags.boolean({
+      description: 'Output JSON (default)',
+      default: true,
+      allowNo: true,
     }),
   }
 
   async run(): Promise<void> {
-    const {args, flags} = await this.parse(SettingsSet)
+    const {flags} = await this.parse(SettingsSet)
 
-    try {
-      const dispatcher = new SettingsDispatcher()
-      const result = await dispatcher.execute({
-        tool: flags.tool as any,
-        scope: flags.scope as any,
-        action: 'set',
-        key: args.key,
-        value: args.value,
-        dryRun: flags['dry-run'],
-      })
+    const dispatcher = new SettingsDispatcher()
+    const result = await dispatcher.execute({
+      tool: flags.tool as any,
+      scope: flags.scope as any,
+      action: 'edit',
+      name: flags.name,
+      ide: flags.ide,
+    })
 
-      if (flags['dry-run']) {
-        this.warn('DRY RUN - No changes applied')
-        if (result.diff) {
-          this.log('\nPreview:')
-          this.log(result.diff)
-        }
-      } else {
-        this.log(`✓ Set ${args.key} = ${args.value}`)
-      }
-    } catch (error) {
-      this.error(error as Error, {exit: 1})
+    if (flags.json) {
+      this.log(JSON.stringify(result, null, 2))
+      return
+    }
+
+    this.log(result.message ?? 'Opened settings file')
+    if (result.filePath) {
+      this.log(`File: ${result.filePath}`)
     }
   }
 }
@@ -670,20 +655,17 @@ xling settings:list --tool claude --scope user
 # 列出配置（表格输出）
 xling settings:list --tool claude --scope user --table
 
-# 获取特定配置项
+# 查看完整配置文件（JSON）
 xling settings:get --tool claude --scope user
 
-# 设置 Gemini CLI 的模型
-xling settings:set model gemini-1.5-pro --tool gemini --scope user
-
-# 预览修改（不实际写入）
-xling settings:set --tool claude --scope project --name default
-
-# 创建/编辑 Claude 变体并在 VS Code 打开
+# 在 VS Code 打开 Claude 变体
 xling settings:set --tool claude --scope user --name hxi
 
-# 删除配置项
-xling settings:unset developerShortcuts.runCommand --tool claude --scope project
+# 在 Cursor 打开项目级配置
+xling settings:set --tool claude --scope project --ide cursor --no-json
+
+# 查看配置文件状态
+xling settings:inspect --tool codex --no-json
 
 # 切换 Codex 的 profile
 xling settings:switch oss --tool codex
