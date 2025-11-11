@@ -1,0 +1,11 @@
+{
+  "theme": "dark",
+  "editor": {
+    "fontSize": 14,
+    "fontFamily": "Monaco"
+  },
+  "ai": {
+    "model": "claude-sonnet-4",
+    "temperature": 0.7
+  }
+}

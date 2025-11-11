@@ -1,3 +1,7 @@
+# xling
+
+Unified CLI for managing AI tool settings across Claude Code, Codex, and Gemini CLI.
+
 ## What's in a Name? The Story of `xling`
 
 The name `xling` was carefully chosen to represent the project's philosophy, blending modern tech symbolism with a rich, dual-meaning core.
@@ -17,3 +21,207 @@ At the heart of the name is `ling`, a concept with two harmonious faces rooted i
 2.  **灵 (líng)**: This translates to "intelligence," "spirit," or "agility." It embodies the AI engine that gives `xling` its smarts, allowing it to understand natural language, anticipate intent, and perform complex tasks with a touch of magic.
 
 Together, `xling` is more than just a tool; it's an intelligent partner that amplifies your ability to command your digital world.
+
+## Features
+
+- **Unified Interface**: Manage settings for multiple AI CLI tools with a single command
+- **Multiple Scopes**: Support for user, project, local, and system-level configurations
+- **Profile Switching**: Switch between different configuration profiles (Codex)
+- **Dry Run Mode**: Preview changes before applying them
+- **JSON Output**: Machine-readable output for scripting
+- **Type Safe**: Built with TypeScript for reliability
+
+## Installation
+
+```bash
+# Install dependencies
+bun install
+
+# Build the project
+bun run build
+
+# Link globally (optional)
+npm link
+```
+
+## Usage
+
+### List Settings
+
+```bash
+# List all settings for Claude Code (user scope)
+xling settings:list --tool claude --scope user
+
+# List settings in JSON format
+xling settings:list --tool codex --json
+```
+
+### Get Setting
+
+```bash
+# Get a specific setting
+xling settings:get theme --tool claude
+
+# Get nested setting
+xling settings:get editor.fontSize --tool claude
+```
+
+### Set Setting
+
+```bash
+# Set a setting
+xling settings:set theme dark --tool claude
+
+# Set nested setting
+xling settings:set editor.fontSize 16 --tool claude
+
+# Preview changes without applying (dry run)
+xling settings:set theme light --tool claude --dry-run
+```
+
+### Unset Setting
+
+```bash
+# Remove a setting
+xling settings:unset theme --tool claude
+
+# Preview removal
+xling settings:unset theme --tool claude --dry-run
+```
+
+### Switch Profile (Codex only)
+
+```bash
+# Switch to a different profile
+xling settings:switch oss --tool codex
+```
+
+### Inspect Configuration
+
+```bash
+# View configuration file information
+xling settings:inspect --tool claude --scope user
+```
+
+## Supported Tools
+
+### Claude Code
+
+- **Scopes**: user, project, local
+- **Config Files**:
+  - User: `~/.claude/settings.json`
+  - Project: `.claude/settings.json`
+  - Local: `.claude/settings.local.json`
+
+### Codex
+
+- **Scopes**: user
+- **Config Files**:
+  - User: `~/.codex/config.toml`
+- **Features**: Profile switching
+
+### Gemini CLI
+
+- **Scopes**: user, project, system
+- **Config Files**:
+  - User: `~/.gemini/settings.json`
+  - Project: `.gemini/settings.json`
+  - System: Platform-dependent
+
+## Architecture
+
+The project follows SOLID principles:
+
+- **Single Responsibility**: Each adapter handles one tool
+- **Open/Closed**: Easy to add new tools without modifying existing code
+- **Liskov Substitution**: All adapters implement the same interface
+- **Interface Segregation**: Clean, focused interfaces
+- **Dependency Inversion**: Commands depend on abstractions, not implementations
+
+### Directory Structure
+
+```
+xling/
+├── bin/
+│   └── run.js              # CLI entry point
+├── src/
+│   ├── commands/           # oclif commands
+│   │   └── settings/
+│   ├── domain/             # Types and interfaces
+│   ├── services/           # Business logic
+│   │   └── settings/
+│   │       ├── adapters/   # Tool adapters
+│   │       ├── fsStore.ts  # File system operations
+│   │       └── dispatcher.ts
+│   └── utils/              # Utilities
+└── test/                   # Tests and fixtures
+```
+
+## Development
+
+```bash
+# Install dependencies
+bun install
+
+# Build (using tsdown)
+bun run build
+
+# Watch mode (tsdown --watch)
+bun run dev
+
+# Code quality
+bun run lint           # Lint with oxlint
+bun run lint:fix       # Auto-fix lint issues
+bun run format         # Format with oxfmt
+bun run format:check   # Check formatting
+bun run typecheck      # Type check with tsc
+
+# Run tests
+bun test
+bun test:watch
+bun test:coverage
+```
+
+### Toolchain
+
+**Build System**
+
+This project uses [tsdown](https://tsdown.vercel.app/) for fast TypeScript compilation and bundling:
+
+- **Fast builds**: Powered by rolldown (Rust-based bundler)
+- **ESM output**: Generates `.js` files for modern Node.js
+- **Type definitions**: Automatically generates `.d.ts` files
+- **Source maps**: Includes source maps for debugging
+- **Tree shaking**: Optimized bundle size
+
+**Code Quality**
+
+- **Linting**: [oxlint](https://oxc.rs/) - Rust-based linter, 50-100x faster than ESLint
+- **Formatting**: [oxfmt](https://oxc.rs/) - Fast formatter compatible with Prettier config
+- **Type Checking**: TypeScript compiler for strict type safety
+
+## Testing
+
+```bash
+# Run all tests
+bun test
+
+# Run with coverage
+bun test:coverage
+```
+
+## Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## License
+
+Apache-2.0
+
+## Author
+
+Kingsword <kingsword09@gmail.com>

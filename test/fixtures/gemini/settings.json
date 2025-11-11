@@ -1,0 +1,9 @@
+{
+  "model": "gemini-1.5-pro",
+  "temperature": 0.8,
+  "maxTokens": 2048,
+  "general": {
+    "language": "en",
+    "timezone": "UTC"
+  }
+}

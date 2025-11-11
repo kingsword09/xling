@@ -1,0 +1,77 @@
+/**
+ * settings:inspect 命令
+ * 检查配置文件状态
+ */
+
+import { Command, Flags } from '@oclif/core';
+import { SettingsDispatcher } from '../../services/settings/dispatcher.ts';
+import type { ToolId, Scope, InspectResult } from '../../domain/types.ts';
+
+export default class SettingsInspect extends Command {
+  static summary = 'Inspect configuration file status';
+
+  static description = `
+    Display information about the configuration file, including:
+    - File path
+    - Existence status
+    - File size
+    - Last modified date
+    - File contents (if exists)
+  `;
+
+  static examples = [
+    '<%= config.bin %> <%= command.id %> --tool claude --scope user',
+    '<%= config.bin %> <%= command.id %> --tool codex --json',
+  ];
+
+  static flags = {
+    tool: Flags.string({
+      char: 't',
+      description: 'AI CLI tool to manage',
+      options: ['claude', 'codex', 'gemini'],
+      default: 'claude',
+    }),
+    scope: Flags.string({
+      char: 's',
+      description: 'Configuration scope',
+      options: ['user', 'project', 'local', 'system'],
+      default: 'user',
+    }),
+  };
+
+  async run(): Promise<void> {
+    const { flags } = await this.parse(SettingsInspect);
+
+    try {
+      const dispatcher = new SettingsDispatcher();
+      const result = await dispatcher.execute({
+        tool: flags.tool as ToolId,
+        scope: flags.scope as Scope,
+        action: 'inspect',
+      });
+
+      if (this.jsonEnabled()) {
+        this.logJson(result);
+      } else {
+        const data = result.data as InspectResult;
+        this.log(`Path: ${data.path}`);
+        this.log(`Exists: ${data.exists ? 'Yes' : 'No'}`);
+
+        if (data.exists) {
+          if (data.size !== undefined) {
+            this.log(`Size: ${data.size} bytes`);
+          }
+          if (data.lastModified) {
+            this.log(`Last Modified: ${data.lastModified.toISOString()}`);
+          }
+          if (data.content) {
+            this.log('\nContents:');
+            this.log(data.content);
+          }
+        }
+      }
+    } catch (error) {
+      this.error((error as Error).message, { exit: 1 });
+    }
+  }
+}

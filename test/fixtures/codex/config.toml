@@ -1,0 +1,13 @@
+model = "gpt-5-codex"
+model_provider = "openai"
+approval_policy = "auto"
+
+[profiles.oss]
+model = "gpt-5"
+model_provider = "openai"
+approval_policy = "manual"
+
+[profiles.production]
+model = "gpt-5-codex"
+model_provider = "openai"
+approval_policy = "auto"
