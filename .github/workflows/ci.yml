@@ -15,14 +15,11 @@ concurrency:
 jobs:
   validate:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write  # Required for pushing tags
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
         with:
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Check if release commit
         id: check_release
@@ -60,29 +57,3 @@ jobs:
       - name: Test
         if: steps.check_release.outputs.is_release != 'true'
         run: bun test
-
-      - name: Create and push tag
-        if: steps.check_release.outputs.is_release == 'true' && github.event_name == 'push' && github.ref == 'refs/heads/main'
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-
-          VERSION="${{ steps.check_release.outputs.version }}"
-
-          # Check if tag already exists
-          if git rev-parse "$VERSION" >/dev/null 2>&1; then
-            echo "Tag $VERSION already exists, skipping"
-            exit 0
-          fi
-
-          # Verify version matches package.json
-          PKG_VERSION=$(node -p "require('./package.json').version")
-          if [ "v${PKG_VERSION}" != "$VERSION" ]; then
-            echo "::error::Version mismatch: commit says $VERSION but package.json has v${PKG_VERSION}"
-            exit 1
-          fi
-
-          # Create and push tag
-          git tag "$VERSION"
-          git push origin "$VERSION"
-          echo "Created and pushed tag $VERSION"
