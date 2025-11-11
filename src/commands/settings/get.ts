@@ -27,8 +27,7 @@ export default class SettingsGet extends Command {
 
   static args = {
     name: Args.string({
-      description:
-        "Claude variant name (optional). Example: settings:get hxi",
+      description: "Claude variant name (optional). Example: settings:get hxi",
       required: false,
     }),
   };
@@ -78,7 +77,7 @@ export default class SettingsGet extends Command {
       this.error((error as Error).message, { exit: 1 });
     }
   }
- 
+
   private async inspectViaDispatcher(tool: ToolId, scope: Scope) {
     const dispatcher = new SettingsDispatcher();
     const result = await dispatcher.execute({
@@ -106,7 +105,8 @@ export default class SettingsGet extends Command {
     const basePath = adapter.resolvePath(scope);
     const resolvedBase = fsStore.resolveHome(basePath);
     const directory = path.dirname(resolvedBase);
-    const variantPath = this.findVariantPath(directory, normalized) ??
+    const variantPath =
+      this.findVariantPath(directory, normalized) ??
       path.join(directory, `settings.${normalized}.json`);
 
     if (!fs.existsSync(variantPath)) {
@@ -127,10 +127,7 @@ export default class SettingsGet extends Command {
   }
 
   private findVariantPath(directory: string, name: string): string | null {
-    const candidates = [
-      `settings.${name}.json`,
-      `settings-${name}.json`,
-    ];
+    const candidates = [`settings.${name}.json`, `settings-${name}.json`];
 
     for (const candidate of candidates) {
       const fullPath = path.join(directory, candidate);

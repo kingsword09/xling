@@ -1,0 +1,78 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - name: Check commit message
+        id: check
+        run: |
+          if [[ ! "${{ github.event.head_commit.message }}" =~ ^chore:\ release\ v[0-9]+\.[0-9]+\.[0-9]+ ]]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "Skipping release - commit message does not match pattern 'chore: release vX.Y.Z'"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout repository
+        if: steps.check.outputs.skip != 'true'
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        if: steps.check.outputs.skip != 'true'
+        uses: actions/setup-node@v5
+        with:
+          node-version: 20
+
+      - name: Setup Bun
+        if: steps.check.outputs.skip != 'true'
+        uses: oven-sh/setup-bun@v1
+
+      - name: Install dependencies
+        if: steps.check.outputs.skip != 'true'
+        run: bun install --frozen-lockfile
+
+      - name: Build
+        if: steps.check.outputs.skip != 'true'
+        run: bun run build
+
+      - name: Determine version
+        if: steps.check.outputs.skip != 'true'
+        id: version
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          EXPECTED="chore: release v${VERSION}"
+          COMMIT_MSG=$(git log -1 --pretty=%B | head -n 1)
+          if [ "$COMMIT_MSG" != "$EXPECTED" ]; then
+            echo "::error::Commit message must be '$EXPECTED' (got '$COMMIT_MSG')"
+            exit 1
+          fi
+          echo "version=v${VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Create Git tag
+        if: steps.check.outputs.skip != 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag ${{ steps.version.outputs.version }}
+          git push origin ${{ steps.version.outputs.version }}
+
+      - name: Generate changelog and create release
+        if: steps.check.outputs.skip != 'true'
+        run: bunx --bun changelogithub
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
