@@ -1,10 +1,10 @@
 {
-  "$schema": "https://docs.rs/oxc/latest/oxc/formatter/struct.FormatterOptions.html",
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
   "useTabs": false,
   "indentWidth": 2,
   "lineWidth": 100,
   "trailingComma": "all",
   "semi": true,
-  "singleQuote": true,
+  "singleQuote": false,
   "arrowParens": "always"
 }

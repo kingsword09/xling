@@ -11,3 +11,15 @@ approval_policy = "manual"
 model = "gpt-5-codex"
 model_provider = "openai"
 approval_policy = "auto"
+
+[model_providers.primary]
+name = "primary"
+base_url = "https://api.primary.example/v1"
+wire_api = "responses"
+env_key = "PRIMARY_API_KEY"
+
+[model_providers.backup]
+name = "backup"
+base_url = "https://api.backup.example/v1"
+wire_api = "responses"
+env_key = "BACKUP_API_KEY"

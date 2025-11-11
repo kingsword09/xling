@@ -15,7 +15,11 @@
     "emitDeclarationOnly": true,
     "allowImportingTsExtensions": true,
     "sourceMap": true,
-    "types": ["node"]
+    "types": ["node"],
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"]
+    }
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist", "test"]

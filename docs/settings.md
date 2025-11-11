@@ -18,134 +18,97 @@ xling settings:list [OPTIONS]
 **Options:**
 - `-t, --tool <tool>`: AI CLI tool to manage (claude|codex|gemini) [default: claude]
 - `-s, --scope <scope>`: Configuration scope (user|project|local|system) [default: user]
-- `--json`: Output in JSON format
+- `--json`: Output structured JSON（默认关闭）
+- `--table`: Render a table instead of the summary view
 
 **Examples:**
 ```bash
 # List Claude Code user settings
 xling settings:list --tool claude --scope user
 
-# List Codex settings in JSON format
-xling settings:list --tool codex --json
+# List Codex settings as table
+xling settings:list --tool codex --table
 
 # List Gemini project settings
 xling settings:list -t gemini -s project
 ```
 
+**Claude Variant Discovery:** When `--tool claude`, this command lists every
+`settings*.json` file (e.g., `settings.hxi.json`) alongside the active
+`settings.json`, making it easier to inspect which variants are available before
+switching.
+
+**Codex Provider View:** When `--tool codex`, the command narrows output to the
+`model_providers` table inside `~/.codex/config.toml`, so you can review provider
+aliases, base URLs, wire API types, and env key bindings without scrolling through
+the rest of the file.
+
+默认输出为 YAML 风格的简洁列表，便于快速确认有哪些配置文件；需要更多细节时再
+加 `--table` 或 `--json`。
+
 ---
 
 ### settings:get
 
-Retrieve the value of a specific configuration key.
+Display the full configuration file for the selected tool/scope.
 
 **Usage:**
 ```bash
-xling settings:get <key> [OPTIONS]
+xling settings:get [OPTIONS]
 ```
-
-**Arguments:**
-- `key`: Setting key to retrieve (supports nested keys with dot notation)
 
 **Options:**
 - `-t, --tool <tool>`: AI CLI tool to manage (claude|codex|gemini) [default: claude]
 - `-s, --scope <scope>`: Configuration scope (user|project|local|system) [default: user]
-- `--json`: Output in JSON format
+- `--json/--no-json`: JSON output is default; use `--no-json` for plain text
 
 **Examples:**
 ```bash
-# Get theme setting
-xling settings:get theme --tool claude
+# Show Claude user settings (JSON)
+xling settings:get --tool claude --scope user
 
-# Get nested setting
-xling settings:get editor.fontSize --tool claude
-
-# Get model setting from Codex
-xling settings:get model --tool codex --json
+# Plain text output for Codex
+xling settings:get --tool codex --no-json
 ```
 
 ---
 
 ### settings:set
 
-Set the value of a configuration key.
+Open Claude settings files in your IDE.
 
 **Usage:**
 ```bash
-xling settings:set <key> <value> [OPTIONS]
+xling settings:set [OPTIONS]
 ```
-
-**Arguments:**
-- `key`: Setting key to set (supports nested keys with dot notation)
-- `value`: Setting value (automatically parsed as JSON if possible)
 
 **Options:**
 - `-t, --tool <tool>`: AI CLI tool to manage (claude|codex|gemini) [default: claude]
 - `-s, --scope <scope>`: Configuration scope (user|project|local|system) [default: user]
-- `--dry-run`: Preview changes without applying them
-- `--json`: Output in JSON format
-
-**Value Parsing:**
-- Strings: `"hello"` or `hello`
-- Numbers: `42` or `3.14`
-- Booleans: `true` or `false`
-- Arrays: `["a","b","c"]`
-- Objects: `{"key":"value"}`
+- `--name <variant>`: Claude variant to edit (default: `default`, i.e., `settings.json`)
+- `--ide <cmd>`: Editor command/alias (default: `code` → VS Code)
+- `--json/--no-json`: JSON output is default; use `--no-json` for plain text
 
 **Examples:**
 ```bash
-# Set theme to dark
-xling settings:set theme dark --tool claude
+# Create/edit settings.hxi.json in VS Code
+xling settings:set --tool claude --scope user --name hxi
 
-# Set nested setting
-xling settings:set editor.fontSize 16 --tool claude
-
-# Set boolean value
-xling settings:set enabled true --tool gemini
-
-# Preview changes without applying
-xling settings:set theme light --tool claude --dry-run
-
-# Set complex value
-xling settings:set colors '{"primary":"#000","secondary":"#fff"}' --tool claude
+# Open default settings in Cursor
+xling settings:set --tool claude --scope project --name default --ide cursor --no-json
 ```
 
----
+`settings:set` 不再支持局部写入；若需修改键值，请直接在打开的文件中编辑后保存。
 
-### settings:unset
-
-Remove a configuration key.
-
-**Usage:**
-```bash
-xling settings:unset <key> [OPTIONS]
-```
-
-**Arguments:**
-- `key`: Setting key to remove (supports nested keys with dot notation)
-
-**Options:**
-- `-t, --tool <tool>`: AI CLI tool to manage (claude|codex|gemini) [default: claude]
-- `-s, --scope <scope>`: Configuration scope (user|project|local|system) [default: user]
-- `--dry-run`: Preview changes without applying them
-- `--json`: Output in JSON format
-
-**Examples:**
-```bash
-# Remove theme setting
-xling settings:unset theme --tool claude
-
-# Remove nested setting
-xling settings:unset editor.fontSize --tool claude
-
-# Preview removal
-xling settings:unset theme --tool claude --dry-run
-```
+> Note: settings 相关指令仅依赖 `--tool`、`--scope`、`--name`、`--ide` 等 flag；
+> 不再接受 `developerShortcuts.runCommand` 之类的位置参数。
 
 ---
 
 ### settings:switch
 
-Switch to a different configuration profile (Codex only).
+Switch to a different configuration profile (Codex) or activate a
+`settings.<variant>.json` file for Claude.
 
 **Usage:**
 ```bash
@@ -157,18 +120,24 @@ xling settings:switch <profile> [OPTIONS]
 
 **Options:**
 - `-t, --tool <tool>`: AI CLI tool to manage (claude|codex|gemini) [default: codex]
-- `--json`: Output in JSON format
+- `-s, --scope <scope>`: Configuration scope (user|project|local|system) [default: user]
+- `--json/--no-json`: JSON output is default; use `--no-json` for plain text
 
 **Examples:**
 ```bash
-# Switch to OSS profile
+# Switch to OSS profile (Codex)
 xling settings:switch oss --tool codex
 
-# Switch to production profile
-xling settings:switch production --tool codex
+# Activate settings.hxi.json (Claude user scope)
+xling settings:switch hxi --tool claude --scope user
 ```
 
-**Note:** This command is only supported by Codex. Profiles must be defined in `~/.codex/config.toml` under the `[profiles.<name>]` section.
+**Notes:**
+- Codex profiles must be defined in `~/.codex/config.toml` under the
+  `[profiles.<name>]` section.
+- Claude switching copies the requested `settings.<variant>.json` (or
+  `settings-<variant>.json`) over the active `settings.json` for the selected
+  scope.
 
 ---
 
@@ -184,7 +153,7 @@ xling settings:inspect [OPTIONS]
 **Options:**
 - `-t, --tool <tool>`: AI CLI tool to manage (claude|codex|gemini) [default: claude]
 - `-s, --scope <scope>`: Configuration scope (user|project|local|system) [default: user]
-- `--json`: Output in JSON format
+- `--json/--no-json`: JSON output is default; use `--no-json` for plain text
 
 **Output:**
 - File path
@@ -198,8 +167,8 @@ xling settings:inspect [OPTIONS]
 # Inspect Claude Code user settings
 xling settings:inspect --tool claude --scope user
 
-# Inspect Codex config in JSON format
-xling settings:inspect --tool codex --json
+# Inspect Codex config with human-readable output
+xling settings:inspect --tool codex --no-json
 ```
 
 ---
@@ -227,58 +196,21 @@ xling settings:inspect --tool codex --json
 
 ---
 
-## Nested Keys
-
-All commands support nested keys using dot notation:
-
-```bash
-# Set nested value
-xling settings:set theme.dark.background "#000000" --tool claude
-
-# Get nested value
-xling settings:get theme.dark.background --tool claude
-
-# Remove nested value
-xling settings:unset theme.dark.background --tool claude
-```
-
----
-
 ## JSON Output
 
-All commands support `--json` flag for machine-readable output:
+大多数命令（除 `settings:list`）默认输出 JSON；`settings:list` 默认为 YAML 风格摘要。
+使用 `--no-json` 获取文本输出，或在 list 上添加 `--table` 查看详细表格。
 
 ```bash
-# List settings in JSON
-xling settings:list --tool claude --json
+# Default JSON output
+xling settings:list --tool claude
 
-# Get setting in JSON
-xling settings:get theme --tool claude --json
+# Disable JSON
+xling settings:get --tool claude --no-json
 
-# Set setting with JSON output
-xling settings:set theme dark --tool claude --json
+# Table output for quick inspection
+xling settings:list --tool claude --scope user --table
 ```
-
----
-
-## Dry Run Mode
-
-Preview changes before applying them:
-
-```bash
-# Preview setting change
-xling settings:set theme dark --tool claude --dry-run
-
-# Preview removal
-xling settings:unset theme --tool claude --dry-run
-```
-
-The output will show:
-- Current value
-- New value
-- Diff preview
-
----
 
 ## Error Handling
 
@@ -289,12 +221,6 @@ Common errors and solutions:
 Error: Config file not found: ~/.claude/settings.json
 ```
 **Solution:** The configuration file doesn't exist. Use `settings:set` to create it.
-
-### Config key not found
-```
-Error: Config key not found: theme
-```
-**Solution:** The specified key doesn't exist in the configuration.
 
 ### Invalid scope
 ```
@@ -312,11 +238,11 @@ Error: Unsupported tool: unknown
 
 ## Best Practices
 
-1. **Use dry-run first**: Always preview changes with `--dry-run` before applying them
+1. **Flag everything**: 显式传递 `--tool`、`--scope`、`--name`，避免依赖默认值导致误操作
 2. **Backup important configs**: Configuration files are automatically backed up with `.bak` extension
-3. **Use JSON output for scripting**: The `--json` flag provides consistent, parseable output
-4. **Scope appropriately**: Use `user` for personal settings, `project` for team settings
-5. **Nested keys**: Use dot notation for organizing related settings
+3. **Use JSON output for scripting**: JSON 是默认格式；仅在需要文本时加 `--no-json`
+4. **Scope appropriately**: 使用 `user` 表示个人配置，`project` 表示仓库配置
+5. **IDE 编辑优先**: 通过 `settings:set --name ...` 打开文件整体修改，避免零散写入
 
 ---
 
@@ -328,34 +254,32 @@ Error: Unsupported tool: unknown
 # 1. Inspect current configuration
 xling settings:inspect --tool claude --scope user
 
-# 2. List all settings
+# 2. List available variants (YAML summary)
 xling settings:list --tool claude --scope user
 
-# 3. Get a specific setting
-xling settings:get theme --tool claude
+# 3. Open a variant in VS Code
+xling settings:set --tool claude --scope user --name hxi
 
-# 4. Preview a change
-xling settings:set theme dark --tool claude --dry-run
+# 4. After editing, view the raw file
+xling settings:get --tool claude --scope user --no-json
 
-# 5. Apply the change
-xling settings:set theme dark --tool claude
+# 5. Switch the active variant when ready
+xling settings:switch hxi --tool claude --scope user
 
-# 6. Verify the change
-xling settings:get theme --tool claude
+# 6. Inspect the file again after editing
+xling settings:inspect --tool claude --scope user
 ```
 
 ### Managing Multiple Tools
 
 ```bash
-# Set theme for all tools
-xling settings:set theme dark --tool claude
-xling settings:set theme dark --tool codex
-xling settings:set theme dark --tool gemini
+# Open user-level configs for each tool
+xling settings:get --tool claude --scope user
+xling settings:get --tool codex --scope user
+xling settings:get --tool gemini --scope user
 
-# List settings for all tools
-xling settings:list --tool claude
-xling settings:list --tool codex
-xling settings:list --tool gemini
+# Edit Claude project overrides
+xling settings:set --tool claude --scope project --name default
 ```
 
 ### Working with Profiles (Codex)
