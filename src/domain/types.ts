@@ -12,6 +12,11 @@ export interface EditOptions {
   ide?: string;
 }
 
+export interface SwitchOptions {
+  preview?: boolean;
+  backup?: boolean;
+}
+
 export interface SettingsFileEntry {
   filename: string;
   variant: string;
@@ -45,6 +50,7 @@ export interface SettingsPayload {
   name?: string;
   ide?: string;
   format?: OutputFormat;
+  switchOptions?: SwitchOptions;
 }
 
 /**
@@ -55,6 +61,8 @@ export interface SettingsResult {
   data?: Record<string, unknown> | unknown;
   message?: string;
   filePath?: string;
+  diff?: string;
+  preview?: boolean;
 }
 
 /**

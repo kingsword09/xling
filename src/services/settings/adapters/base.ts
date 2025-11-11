@@ -11,6 +11,7 @@ import type {
   SettingsListData,
   SettingsResult,
   EditOptions,
+  SwitchOptions,
 } from "@/domain/types.ts";
 import { InvalidScopeError } from "@/utils/errors.ts";
 import * as fsStore from "@/services/settings/fsStore.ts";
@@ -51,6 +52,7 @@ export abstract class BaseAdapter implements SettingsAdapter {
   async switchProfile(
     _scope: Scope,
     _profile: string,
+    _options?: SwitchOptions,
   ): Promise<SettingsResult> {
     throw new Error(`Tool ${this.toolId} does not support profile switching`);
   }
@@ -102,7 +104,11 @@ export abstract class BaseAdapter implements SettingsAdapter {
   /**
    * 写入配置文件（子类可覆盖）
    */
-  protected writeConfig(path: string, data: Record<string, unknown>): void {
-    fsStore.writeJSON(path, data);
+  protected writeConfig(
+    path: string,
+    data: Record<string, unknown>,
+    backup = true,
+  ): void {
+    fsStore.writeJSON(path, data, backup);
   }
 }

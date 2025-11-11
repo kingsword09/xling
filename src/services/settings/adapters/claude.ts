@@ -10,6 +10,7 @@ import type {
   SettingsFileEntry,
   SettingsResult,
   EditOptions,
+  SwitchOptions,
 } from "@/domain/types.ts";
 import { BaseAdapter } from "./base.ts";
 import * as fsStore from "@/services/settings/fsStore.ts";
@@ -19,6 +20,7 @@ import {
 } from "@/utils/errors.ts";
 import { CLAUDE_SETTINGS_TEMPLATE } from "@/services/settings/templates/claudeDefault.ts";
 import { openInEditor, resolveEditorCommand } from "@/utils/editor.ts";
+import { formatDiff } from "@/utils/format.ts";
 
 /**
  * Claude Code 配置适配器
@@ -94,6 +96,7 @@ export class ClaudeAdapter extends BaseAdapter {
   override async switchProfile(
     scope: Scope,
     profile: string,
+    options?: SwitchOptions,
   ): Promise<SettingsResult> {
     if (!this.validateScope(scope)) {
       throw new InvalidScopeError(scope);
@@ -112,8 +115,44 @@ export class ClaudeAdapter extends BaseAdapter {
       throw new SettingsVariantNotFoundError(variant);
     }
 
-    const config = this.readConfig(sourcePath);
-    this.writeConfig(targetPath, config);
+    const nextConfig = this.readConfig(sourcePath);
+
+    let currentConfig: Record<string, unknown> = {};
+    try {
+      currentConfig = this.readConfig(targetPath);
+    } catch {
+      currentConfig = {};
+    }
+
+    const diff = formatDiff(currentConfig, nextConfig);
+
+    if (options?.preview) {
+      return {
+        success: true,
+        preview: true,
+        filePath: targetPath,
+        diff: diff ?? undefined,
+        data: {
+          from: sourcePath,
+          to: targetPath,
+          hasChanges: Boolean(diff),
+        },
+        message: diff
+          ? "Preview generated. Review diff before applying."
+          : "Current settings already match the selected variant.",
+      };
+    }
+
+    if (!diff) {
+      return {
+        success: true,
+        message: "Current settings already match the selected variant.",
+        filePath: targetPath,
+      };
+    }
+
+    const shouldBackup = options?.backup ?? false;
+    this.writeConfig(targetPath, nextConfig, shouldBackup);
 
     return {
       success: true,

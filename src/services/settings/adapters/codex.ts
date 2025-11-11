@@ -6,6 +6,7 @@ import type {
   Scope,
   SettingsResult,
   SettingsListData,
+  SwitchOptions,
 } from "@/domain/types.ts";
 import { BaseAdapter } from "./base.ts";
 import { InvalidScopeError, ProfileNotFoundError } from "@/utils/errors.ts";
@@ -63,7 +64,11 @@ export class CodexAdapter extends BaseAdapter {
   /**
    * 切换 profile
    */
-  async switchProfile(scope: Scope, profile: string): Promise<SettingsResult> {
+  async switchProfile(
+    scope: Scope,
+    profile: string,
+    _options?: SwitchOptions,
+  ): Promise<SettingsResult> {
     if (!this.validateScope(scope)) {
       throw new InvalidScopeError(scope);
     }
