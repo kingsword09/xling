@@ -2,9 +2,18 @@
   "name": "xling",
   "version": "0.0.1",
   "description": "Unified CLI for managing AI tool settings",
+  "homepage": "https://github.com/kingsword09/xling/tree/main#readme",
+  "bugs": {
+    "url": "https://github.com/kingsword09/xling/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kingsword09/xling.git"
+  },
   "type": "module",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
   "bin": {
     "xling": "./dist/run.js"
   },
@@ -18,7 +27,8 @@
     "lint:fix": "oxlint --fix src",
     "format": "oxfmt src",
     "format:check": "oxfmt --check src",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "bun run build"
   },
   "keywords": [
     "ai",
@@ -32,13 +42,16 @@
   "license": "Apache-2.0",
   "packageManager": "pnpm@10.20.0",
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=20.19.0"
   },
   "oclif": {
     "bin": "xling",
     "dirname": "xling",
     "commands": "./dist/commands",
     "topicSeparator": ":"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "devDependencies": {
     "@oclif/test": "^4.1.14",
