@@ -8,7 +8,7 @@ export default defineConfig({
   sourcemap: true,
   outDir: "dist",
   platform: "node",
-  target: "node18",
+  target: "node20",
   outExtensions: () => ({ js: ".js" }),
   external: ["@oclif/core", "@iarna/toml", "zod", "cli-table3"],
   shims: true, // 确保 __dirname 和 __filename 可用

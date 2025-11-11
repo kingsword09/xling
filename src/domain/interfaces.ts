@@ -9,6 +9,7 @@ import type {
   InspectResult,
   SettingsListData,
   EditOptions,
+  SwitchOptions,
 } from "./types.ts";
 
 /**
@@ -29,7 +30,11 @@ export interface SettingsAdapter {
   /**
    * 切换 profile（可选，仅 Codex 支持）
    */
-  switchProfile?(scope: Scope, profile: string): Promise<SettingsResult>;
+  switchProfile?(
+    scope: Scope,
+    profile: string,
+    options?: SwitchOptions,
+  ): Promise<SettingsResult>;
 
   /**
    * 打开配置文件供编辑（可选）

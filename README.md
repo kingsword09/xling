@@ -101,7 +101,17 @@ xling settings:switch oss --tool codex
 
 # Activate settings.hxi.json for Claude user scope
 xling settings:switch hxi --tool claude --scope user
+
+# Apply without prompt (Claude)
+xling settings:switch hxi --tool claude --scope user --force
+
+# Force and keep a .bak backup
+xling settings:switch hxi --tool claude --scope user --force --backup
 ```
+
+Claude switches现在默认进行交互式 diff 预览：命令会先打印彩色统一 diff，
+然后提示 `overwrite / backup / cancel`。若要非交互执行，使用 `--force`，并可
+通过 `--backup` 强制保留 `.bak`。Codex 保持原行为，直接切换 profile。
 
 ### Inspect Configuration
 

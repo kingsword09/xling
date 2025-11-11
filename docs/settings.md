@@ -130,6 +130,9 @@ xling settings:switch oss --tool codex
 
 # Activate settings.hxi.json (Claude user scope)
 xling settings:switch hxi --tool claude --scope user
+
+# Apply without prompt and keep a .bak backup
+xling settings:switch hxi --tool claude --scope user --force --backup
 ```
 
 **Notes:**
@@ -138,6 +141,8 @@ xling settings:switch hxi --tool claude --scope user
 - Claude switching copies the requested `settings.<variant>.json` (or
   `settings-<variant>.json`) over the active `settings.json` for the selected
   scope.
+- Claude switches默认输出 diff 并提示 `overwrite / backup / cancel`。如需
+  无交互执行，使用 `--force`，并可加 `--backup` 以保存 `.bak`。
 
 ---
 

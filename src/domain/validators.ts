@@ -35,6 +35,12 @@ export const SettingsPayloadSchema = z.object({
   name: z.string().optional(),
   ide: z.string().optional(),
   format: z.enum(["json", "table"]).optional(),
+  switchOptions: z
+    .object({
+      preview: z.boolean().optional(),
+      backup: z.boolean().optional(),
+    })
+    .optional(),
 });
 
 /**

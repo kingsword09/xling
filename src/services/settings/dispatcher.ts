@@ -55,7 +55,11 @@ export class SettingsDispatcher {
             `Tool ${payload.tool} does not support profile switching`,
           );
         }
-        return await adapter.switchProfile(payload.scope, payload.profile);
+        return await adapter.switchProfile(
+          payload.scope,
+          payload.profile,
+          payload.switchOptions,
+        );
 
       case "edit":
         if (!adapter.edit) {
