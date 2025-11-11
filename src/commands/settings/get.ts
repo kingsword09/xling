@@ -3,9 +3,13 @@
  * 获取指定配置项的值
  */
 
-import { Command, Flags } from "@oclif/core";
+import fs from "node:fs";
+import path from "node:path";
+import { Args, Command, Flags } from "@oclif/core";
 import { SettingsDispatcher } from "@/services/settings/dispatcher.ts";
 import { formatJson } from "@/utils/format.ts";
+import * as fsStore from "@/services/settings/fsStore.ts";
+import { ClaudeAdapter } from "@/services/settings/adapters/claude.ts";
 import type { ToolId, Scope, InspectResult } from "@/domain/types.ts";
 
 export default class SettingsGet extends Command {
@@ -21,7 +25,13 @@ export default class SettingsGet extends Command {
     "<%= config.bin %> <%= command.id %> --tool codex --no-json",
   ];
 
-  static args = {};
+  static args = {
+    name: Args.string({
+      description:
+        "Claude variant name (optional). Example: settings:get hxi",
+      required: false,
+    }),
+  };
 
   static flags = {
     tool: Flags.string({
@@ -36,30 +46,24 @@ export default class SettingsGet extends Command {
       options: ["user", "project", "local", "system"],
       default: "user",
     }),
-    json: Flags.boolean({
-      description: "Output JSON (default)",
-      default: true,
-      allowNo: true,
-    }),
   };
 
   async run(): Promise<void> {
-    const { flags } = await this.parse(SettingsGet);
+    const { args, flags } = await this.parse(SettingsGet);
 
     try {
-      const dispatcher = new SettingsDispatcher();
-      const result = await dispatcher.execute({
-        tool: flags.tool as ToolId,
-        scope: flags.scope as Scope,
-        action: "inspect",
-      });
+      const tool = flags.tool as ToolId;
+      const scope = flags.scope as Scope;
+      const data =
+        tool === "claude" && args.name
+          ? await this.inspectClaudeVariant(scope, args.name)
+          : await this.inspectViaDispatcher(tool, scope);
 
       if (flags.json) {
-        this.log(formatJson(result));
+        this.log(formatJson({ success: true, data }));
         return;
       }
 
-      const data = result.data as InspectResult;
       if (!data.exists) {
         this.warn(`Config file not found: ${data.path}`);
         return;
@@ -73,5 +77,67 @@ export default class SettingsGet extends Command {
     } catch (error) {
       this.error((error as Error).message, { exit: 1 });
     }
+  }
+ 
+  private async inspectViaDispatcher(tool: ToolId, scope: Scope) {
+    const dispatcher = new SettingsDispatcher();
+    const result = await dispatcher.execute({
+      tool,
+      scope,
+      action: "inspect",
+    });
+    return result.data as InspectResult;
+  }
+
+  private async inspectClaudeVariant(
+    scope: Scope,
+    name: string,
+  ): Promise<InspectResult> {
+    const adapter = new ClaudeAdapter();
+    if (!adapter.validateScope(scope)) {
+      throw new Error(`Invalid scope for Claude: ${scope}`);
+    }
+
+    const normalized = name.trim();
+    if (!normalized || normalized === "default") {
+      return this.inspectViaDispatcher("claude", scope);
+    }
+
+    const basePath = adapter.resolvePath(scope);
+    const resolvedBase = fsStore.resolveHome(basePath);
+    const directory = path.dirname(resolvedBase);
+    const variantPath = this.findVariantPath(directory, normalized) ??
+      path.join(directory, `settings.${normalized}.json`);
+
+    if (!fs.existsSync(variantPath)) {
+      return {
+        path: variantPath,
+        exists: false,
+      };
+    }
+
+    const stats = fs.statSync(variantPath);
+    return {
+      path: variantPath,
+      exists: true,
+      content: fs.readFileSync(variantPath, "utf-8"),
+      size: stats.size,
+      lastModified: stats.mtime,
+    };
+  }
+
+  private findVariantPath(directory: string, name: string): string | null {
+    const candidates = [
+      `settings.${name}.json`,
+      `settings-${name}.json`,
+    ];
+
+    for (const candidate of candidates) {
+      const fullPath = path.join(directory, candidate);
+      if (fs.existsSync(fullPath)) {
+        return fullPath;
+      }
+    }
+    return null;
   }
 }

@@ -194,12 +194,14 @@ export class ClaudeAdapter extends BaseAdapter {
       } else {
         targetPath = path.join(directory, `settings.${variantName}.json`);
         if (!fs.existsSync(targetPath)) {
-          fsStore.writeJSON(targetPath, { ...CLAUDE_SETTINGS_TEMPLATE }, false);
+          const seed = this.buildSeedConfig(basePath);
+          fsStore.writeJSON(targetPath, seed, false);
         }
       }
       label = variantName;
     } else if (!fs.existsSync(targetPath)) {
-      fsStore.writeJSON(targetPath, { ...CLAUDE_SETTINGS_TEMPLATE }, false);
+      const seed = this.buildSeedConfig(basePath);
+      fsStore.writeJSON(targetPath, seed, false);
     }
 
     await openInEditor(resolvedEditor, targetPath);
@@ -241,6 +243,18 @@ export class ClaudeAdapter extends BaseAdapter {
       return filename.replace(/\.json$/, "");
     }
     return match[1] ?? "default";
+  }
+
+  private buildSeedConfig(basePath: string): Record<string, unknown> {
+    try {
+      if (fs.existsSync(basePath)) {
+        const content = fs.readFileSync(basePath, "utf-8");
+        return JSON.parse(content);
+      }
+    } catch {
+      // ignore, fallback to template
+    }
+    return { ...CLAUDE_SETTINGS_TEMPLATE };
   }
 
   private isSettingsFile(filename: string): boolean {

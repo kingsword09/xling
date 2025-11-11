@@ -60,16 +60,22 @@ xling settings:get [OPTIONS]
 **Options:**
 - `-t, --tool <tool>`: AI CLI tool to manage (claude|codex|gemini) [default: claude]
 - `-s, --scope <scope>`: Configuration scope (user|project|local|system) [default: user]
-- `--json/--no-json`: JSON output is default; use `--no-json` for plain text
+- `--json`: Output structured JSON instead of the raw file contents
 
 **Examples:**
 ```bash
-# Show Claude user settings (JSON)
+# Show Claude user settings (plain text)
 xling settings:get --tool claude --scope user
 
+# Inspect a Claude variant (e.g., settings.hxi.json)
+xling settings:get hxi --tool claude --scope user
+
 # Plain text output for Codex
-xling settings:get --tool codex --no-json
+xling settings:get --tool codex
 ```
+
+当传入位置参数时，仅对 `--tool claude` 生效，会按照
+`settings.<name>.json` / `settings-<name>.json` 的约定读取对应变体。
 
 ---
 

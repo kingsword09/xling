@@ -70,11 +70,14 @@ xling settings:list --tool codex --table
 ### Get Settings File
 
 ```bash
-# Show Claude user settings (JSON default)
+# Show Claude user settings (plain text default)
 xling settings:get --tool claude --scope user
 
-# Plain text output
-xling settings:get --tool codex --no-json
+# Inspect a Claude variant (settings.hxi.json)
+xling settings:get hxi --tool claude --scope user
+
+# Show Codex config (plain text)
+xling settings:get --tool codex
 ```
 
 ### Edit Settings (Claude)
