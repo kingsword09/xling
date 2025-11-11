@@ -145,7 +145,15 @@ export default class SettingsList extends Command {
   ): string {
     const lines = ["entries:"];
     for (const [key, value] of Object.entries(entries)) {
-      lines.push(`- ${key}: ${this.stringify(value)}`);
+      const formatted = this.stringify(value);
+      if (formatted.includes("\n")) {
+        lines.push(`- ${key}:`);
+        for (const line of formatted.split("\n")) {
+          lines.push(`  ${line}`);
+        }
+      } else {
+        lines.push(`- ${key}: ${formatted}`);
+      }
     }
     lines.push(`file: ${filePath}`);
     return lines.join("\n");
@@ -154,7 +162,7 @@ export default class SettingsList extends Command {
   private stringify(value: unknown): string {
     if (value === null || value === undefined) return "null";
     if (typeof value === "object") {
-      return JSON.stringify(value);
+      return JSON.stringify(value, null, 2);
     }
     return String(value);
   }

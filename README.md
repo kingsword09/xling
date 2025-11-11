@@ -59,6 +59,10 @@ xling settings:list --tool codex --table
 > Claude-specific: `settings:list --tool claude` now enumerates every
 > `settings*.json` file (for example `settings.hxi.json`) in the selected scope
 > so you can quickly discover switchable variants.
+>
+> Codex-specific: `settings:list --tool codex` surfaces only the `model_providers`
+> block from `~/.codex/config.toml`, helping you audit provider names, base URLs,
+> and env key bindings at a glance.
 
 `settings:list` 默认输出 YAML 风格的简洁概览；如需表格/JSON，请加 `--table` 或
 `--json`。其余命令仍以 JSON 为默认输出，可通过 `--no-json` 获取文本格式。
@@ -202,10 +206,6 @@ This project uses [tsdown](https://tsdown.vercel.app/) for fast TypeScript compi
 - **Linting**: [oxlint](https://oxc.rs/) - Rust-based linter, 50-100x faster than ESLint
 - **Formatting**: [oxfmt](https://oxc.rs/) - Fast formatter compatible with Prettier config
 - **Type Checking**: TypeScript compiler for strict type safety
-
-`oxlint` is configured via `.oxlintrc.json` (schema documented in the [official guide](https://oxc.rs/docs/guide/usage/linter/config.html)).  
-The config enables Node + ES2022 globals, ignores generated artifacts, and enforces stylistic rules such as double quotes, explicit semicolons, and `prefer-const`.  
-`oxfmt` mirrors the same style choices through `.oxfmtrc.json` (notably `singleQuote: false`) so formatting and linting stay in sync.
 
 ## Testing
 

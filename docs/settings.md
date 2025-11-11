@@ -38,6 +38,11 @@ xling settings:list -t gemini -s project
 `settings.json`, making it easier to inspect which variants are available before
 switching.
 
+**Codex Provider View:** When `--tool codex`, the command narrows output to the
+`model_providers` table inside `~/.codex/config.toml`, so you can review provider
+aliases, base URLs, wire API types, and env key bindings without scrolling through
+the rest of the file.
+
 默认输出为 YAML 风格的简洁列表，便于快速确认有哪些配置文件；需要更多细节时再
 加 `--table` 或 `--json`。
 
