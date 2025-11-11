@@ -10,15 +10,15 @@ import type {
   SettingsFileEntry,
   SettingsResult,
   EditOptions,
-} from "../../../domain/types.ts";
+} from "@/domain/types.ts";
 import { BaseAdapter } from "./base.ts";
-import * as fsStore from "../fsStore.ts";
+import * as fsStore from "@/services/settings/fsStore.ts";
 import {
   InvalidScopeError,
   SettingsVariantNotFoundError,
-} from "../../../utils/errors.ts";
-import { CLAUDE_SETTINGS_TEMPLATE } from "../templates/claudeDefault.ts";
-import { openInEditor, resolveEditorCommand } from "../../../utils/editor.ts";
+} from "@/utils/errors.ts";
+import { CLAUDE_SETTINGS_TEMPLATE } from "@/services/settings/templates/claudeDefault.ts";
+import { openInEditor, resolveEditorCommand } from "@/utils/editor.ts";
 
 /**
  * Claude Code 配置适配器

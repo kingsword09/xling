@@ -4,9 +4,9 @@
  */
 
 import { Command, Flags } from "@oclif/core";
-import { SettingsDispatcher } from "../../services/settings/dispatcher.ts";
-import { formatJson } from "../../utils/format.ts";
-import type { ToolId, Scope, InspectResult } from "../../domain/types.ts";
+import { SettingsDispatcher } from "@/services/settings/dispatcher.ts";
+import { formatJson } from "@/utils/format.ts";
+import type { ToolId, Scope, InspectResult } from "@/domain/types.ts";
 
 export default class SettingsInspect extends Command {
   static summary = "Inspect configuration file status";

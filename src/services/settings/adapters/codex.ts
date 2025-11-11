@@ -6,13 +6,10 @@ import type {
   Scope,
   SettingsResult,
   SettingsListData,
-} from "../../../domain/types.ts";
+} from "@/domain/types.ts";
 import { BaseAdapter } from "./base.ts";
-import {
-  InvalidScopeError,
-  ProfileNotFoundError,
-} from "../../../utils/errors.ts";
-import * as fsStore from "../fsStore.ts";
+import { InvalidScopeError, ProfileNotFoundError } from "@/utils/errors.ts";
+import * as fsStore from "@/services/settings/fsStore.ts";
 
 /**
  * Codex 配置适配器

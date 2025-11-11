@@ -4,9 +4,9 @@
  */
 
 import { Command, Flags } from "@oclif/core";
-import { SettingsDispatcher } from "../../services/settings/dispatcher.ts";
-import { formatJson } from "../../utils/format.ts";
-import type { ToolId, Scope } from "../../domain/types.ts";
+import { SettingsDispatcher } from "@/services/settings/dispatcher.ts";
+import { formatJson } from "@/utils/format.ts";
+import type { ToolId, Scope } from "@/domain/types.ts";
 
 export default class SettingsSet extends Command {
   static summary = "Open settings files in your IDE (Claude only)";

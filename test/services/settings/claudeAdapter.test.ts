@@ -3,11 +3,11 @@ import os from "os";
 import path from "path";
 import { describe, expect, test, vi } from "vitest";
 
-import type { Scope } from "../../../src/domain/types.ts";
-import { ClaudeAdapter } from "../../../src/services/settings/adapters/claude.ts";
-import { openInEditor } from "../../../src/utils/editor.ts";
+import type { Scope } from "@/domain/types.ts";
+import { ClaudeAdapter } from "@/services/settings/adapters/claude.ts";
+import { openInEditor } from "@/utils/editor.ts";
 
-vi.mock("../../../src/utils/editor.ts", () => {
+vi.mock("@/utils/editor.ts", () => {
   return {
     openInEditor: vi.fn(() => Promise.resolve()),
     resolveEditorCommand: (value?: string) => {

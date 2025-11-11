@@ -3,7 +3,7 @@
  */
 
 import Table from "cli-table3";
-import type { SettingsFileEntry } from "../domain/types.ts";
+import type { SettingsFileEntry } from "@/domain/types.ts";
 
 /**
  * 格式化为 JSON 字符串

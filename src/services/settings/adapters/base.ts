@@ -3,15 +3,17 @@
  * 实现通用逻辑，减少重复代码（DRY 原则）
  */
 
-import type { SettingsAdapter } from "../../../domain/interfaces.ts";
+import type { SettingsAdapter } from "@/domain/interfaces.ts";
 import type {
   ToolId,
   Scope,
   InspectResult,
   SettingsListData,
-} from "../../../domain/types.ts";
-import { InvalidScopeError } from "../../../utils/errors.ts";
-import * as fsStore from "../fsStore.ts";
+  SettingsResult,
+  EditOptions,
+} from "@/domain/types.ts";
+import { InvalidScopeError } from "@/utils/errors.ts";
+import * as fsStore from "@/services/settings/fsStore.ts";
 
 /**
  * 抽象基类
@@ -44,6 +46,16 @@ export abstract class BaseAdapter implements SettingsAdapter {
   }
 
   /**
+   * 默认 switchProfile 会抛出，子类可覆盖
+   */
+  async switchProfile(
+    _scope: Scope,
+    _profile: string,
+  ): Promise<SettingsResult> {
+    throw new Error(`Tool ${this.toolId} does not support profile switching`);
+  }
+
+  /**
    * 检查配置文件
    */
   async inspect(scope: Scope): Promise<InspectResult> {
@@ -71,6 +83,13 @@ export abstract class BaseAdapter implements SettingsAdapter {
       size: fileInfo?.size,
       lastModified: fileInfo?.lastModified,
     };
+  }
+
+  /**
+   * 默认 edit 会抛出，子类可覆盖
+   */
+  async edit(scope: Scope, _options: EditOptions): Promise<SettingsResult> {
+    throw new Error(`Tool ${this.toolId} does not support edit for ${scope}`);
   }
 
   /**

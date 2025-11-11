@@ -2,7 +2,7 @@
  * Gemini CLI 适配器
  */
 
-import type { Scope } from "../../../domain/types.ts";
+import type { Scope } from "@/domain/types.ts";
 import { BaseAdapter } from "./base.ts";
 import * as os from "os";
 import * as path from "path";

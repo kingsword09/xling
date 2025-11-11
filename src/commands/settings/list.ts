@@ -4,18 +4,14 @@
  */
 
 import { Command, Flags } from "@oclif/core";
-import { SettingsDispatcher } from "../../services/settings/dispatcher.ts";
-import {
-  formatFilesTable,
-  formatJson,
-  formatTable,
-} from "../../utils/format.ts";
+import { SettingsDispatcher } from "@/services/settings/dispatcher.ts";
+import { formatFilesTable, formatJson, formatTable } from "@/utils/format.ts";
 import type {
   ToolId,
   Scope,
   SettingsListData,
   SettingsFileEntry,
-} from "../../domain/types.ts";
+} from "@/domain/types.ts";
 
 export default class SettingsList extends Command {
   static summary = "List all settings for a tool";

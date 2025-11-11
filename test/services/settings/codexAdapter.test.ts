@@ -3,9 +3,9 @@ import os from "os";
 import path from "path";
 import { describe, expect, test } from "vitest";
 
-import type { Scope } from "../../../src/domain/types.ts";
-import { CodexAdapter } from "../../../src/services/settings/adapters/codex.ts";
-import { readTOML } from "../../../src/services/settings/fsStore.ts";
+import type { Scope } from "@/domain/types.ts";
+import { CodexAdapter } from "@/services/settings/adapters/codex.ts";
+import { readTOML } from "@/services/settings/fsStore.ts";
 
 class TestCodexAdapter extends CodexAdapter {
   constructor(private readonly configPath: string) {

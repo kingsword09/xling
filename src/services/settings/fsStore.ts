@@ -10,7 +10,7 @@ import {
   ConfigFileNotFoundError,
   ConfigParseError,
   FileWriteError,
-} from "../../utils/errors.ts";
+} from "@/utils/errors.ts";
 
 /**
  * 解析 ~ 为用户主目录

@@ -3,16 +3,16 @@
  * 负责将请求路由到对应的适配器（DIP 原则）
  */
 
-import type { SettingsAdapter } from "../../domain/interfaces.ts";
+import type { SettingsAdapter } from "@/domain/interfaces.ts";
 import type {
   SettingsPayload,
   SettingsResult,
   ToolId,
-} from "../../domain/types.ts";
+} from "@/domain/types.ts";
 import { ClaudeAdapter } from "./adapters/claude.ts";
 import { CodexAdapter } from "./adapters/codex.ts";
 import { GeminiAdapter } from "./adapters/gemini.ts";
-import { UnsupportedToolError } from "../../utils/errors.ts";
+import { UnsupportedToolError } from "@/utils/errors.ts";
 
 /**
  * Settings 调度器
