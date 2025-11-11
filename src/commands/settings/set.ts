@@ -3,36 +3,25 @@
  * 设置配置项的值
  */
 
-import { Args, Command, Flags } from '@oclif/core';
+import { Command, Flags } from '@oclif/core';
 import { SettingsDispatcher } from '../../services/settings/dispatcher.ts';
+import { formatJson } from '../../utils/format.ts';
 import type { ToolId, Scope } from '../../domain/types.ts';
 
 export default class SettingsSet extends Command {
-  static summary = 'Set a setting value';
+  static summary = 'Open settings files in your IDE (Claude only)';
 
   static description = `
-    Set the value of a specific configuration key.
-    Supports nested keys using dot notation (e.g., theme.dark.background).
-    Values are automatically parsed as JSON if possible, otherwise treated as strings.
+    Create or open Claude settings variants in your preferred editor.
+    Provide --name to edit settings.<name>.json (default: settings.json).
   `;
 
   static examples = [
-    '<%= config.bin %> <%= command.id %> theme dark --tool claude',
-    '<%= config.bin %> <%= command.id %> model gpt-4 --tool codex',
-    '<%= config.bin %> <%= command.id %> theme.dark.background "#000000" --tool claude',
-    '<%= config.bin %> <%= command.id %> enabled true --tool gemini --dry-run',
+    '<%= config.bin %> <%= command.id %> --tool claude --scope user --name hxi',
+    '<%= config.bin %> <%= command.id %> --tool claude --scope project --name default --ide cursor',
   ];
 
-  static args = {
-    key: Args.string({
-      description: 'Setting key to set',
-      required: true,
-    }),
-    value: Args.string({
-      description: 'Setting value',
-      required: true,
-    }),
-  };
+  static args = {};
 
   static flags = {
     tool: Flags.string({
@@ -47,40 +36,46 @@ export default class SettingsSet extends Command {
       options: ['user', 'project', 'local', 'system'],
       default: 'user',
     }),
-    'dry-run': Flags.boolean({
-      description: 'Preview changes without applying',
-      default: false,
+    name: Flags.string({
+      description:
+        'Claude variant name (e.g., hxi). Creates settings.<name>.json if missing and opens it in the IDE.',
+    }),
+    ide: Flags.string({
+      description: 'Editor command or alias (default: code for VS Code)',
+      default: 'code',
+    }),
+    json: Flags.boolean({
+      description: 'Output JSON (default)',
+      default: true,
+      allowNo: true,
     }),
   };
 
   async run(): Promise<void> {
-    const { args, flags } = await this.parse(SettingsSet);
+    const { flags } = await this.parse(SettingsSet);
 
     try {
+      if (flags.tool !== 'claude') {
+        this.error('Editing settings files is currently only supported for Claude.', {
+          exit: 1,
+        });
+      }
+
       const dispatcher = new SettingsDispatcher();
       const result = await dispatcher.execute({
         tool: flags.tool as ToolId,
         scope: flags.scope as Scope,
-        action: 'set',
-        key: args.key,
-        value: args.value,
-        dryRun: flags['dry-run'],
+        action: 'edit',
+        name: flags.name,
+        ide: flags.ide,
       });
 
-      if (this.jsonEnabled()) {
-        this.logJson(result);
+      if (flags.json) {
+        this.log(formatJson(result));
       } else {
-        if (flags['dry-run']) {
-          this.warn('DRY RUN - No changes applied');
-          if (result.diff) {
-            this.log('\nPreview:');
-            this.log(result.diff);
-          }
-        } else {
-          this.log(`✓ Set ${args.key} = ${args.value}`);
-          if (result.filePath) {
-            this.log(`  File: ${result.filePath}`);
-          }
+        this.log(result.message ?? 'Opened settings file');
+        if (result.filePath) {
+          this.log(`File: ${result.filePath}`);
         }
       }
     } catch (error) {

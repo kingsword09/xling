@@ -2,7 +2,14 @@
  * 适配器接口定义
  */
 
-import type { ToolId, Scope, SettingsResult, InspectResult } from './types.ts';
+import type {
+  ToolId,
+  Scope,
+  SettingsResult,
+  InspectResult,
+  SettingsListData,
+  EditOptions,
+} from './types.ts';
 
 /**
  * Settings 适配器接口
@@ -17,7 +24,7 @@ export interface SettingsAdapter {
   /**
    * 列出指定 scope 的所有配置
    */
-  list(scope: Scope): Promise<Record<string, unknown>>;
+  list(scope: Scope): Promise<SettingsListData>;
 
   /**
    * 获取指定 key 的配置值
@@ -42,7 +49,12 @@ export interface SettingsAdapter {
   /**
    * 切换 profile（可选，仅 Codex 支持）
    */
-  switchProfile?(profile: string): Promise<SettingsResult>;
+  switchProfile?(scope: Scope, profile: string): Promise<SettingsResult>;
+
+  /**
+   * 打开配置文件供编辑（可选）
+   */
+  edit?(scope: Scope, options: EditOptions): Promise<SettingsResult>;
 
   /**
    * 检查配置文件状态

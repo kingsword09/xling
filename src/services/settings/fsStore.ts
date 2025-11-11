@@ -163,7 +163,7 @@ export function deepMerge(
 
 /**
  * 获取嵌套键的值
- * 例如: getNestedValue(obj, 'theme.dark.background')
+ * 例如: getNestedValue(obj, 'developerShortcuts.runCommand')
  */
 export function getNestedValue(
   obj: Record<string, unknown>,
@@ -185,7 +185,7 @@ export function getNestedValue(
 
 /**
  * 设置嵌套键的值
- * 例如: setNestedValue(obj, 'theme.dark.background', '#000')
+ * 例如: setNestedValue(obj, 'developerShortcuts.runCommand', 'bun test')
  */
 export function setNestedValue(
   obj: Record<string, unknown>,

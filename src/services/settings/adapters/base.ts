@@ -9,7 +9,8 @@ import type {
   Scope,
   SettingsResult,
   InspectResult,
-} from '../../../domain/types.js';
+  SettingsListData,
+} from '../../../domain/types.ts';
 import {
   InvalidScopeError,
   ConfigKeyNotFoundError,
@@ -33,13 +34,19 @@ export abstract class BaseAdapter implements SettingsAdapter {
   /**
    * 列出所有配置
    */
-  async list(scope: Scope): Promise<Record<string, unknown>> {
+  async list(scope: Scope): Promise<SettingsListData> {
     if (!this.validateScope(scope)) {
       throw new InvalidScopeError(scope);
     }
 
     const path = this.resolvePath(scope);
-    return this.readConfig(path);
+    const config = this.readConfig(path);
+
+    return {
+      type: 'entries',
+      entries: config,
+      filePath: path,
+    };
   }
 
   /**

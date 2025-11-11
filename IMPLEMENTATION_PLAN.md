@@ -71,7 +71,7 @@ xling/
 - 内置参数解析、命令测试、自动文档生成
 - 优秀的 TypeScript 支持，类型安全
 - 支持子命令和复杂的参数/选项配置
-- 内置 `--json` 标志支持，便于脚本化
+- 大多数命令默认 JSON 输出（`settings:list` 默认摘要视图，仍可加 `--json`）
 - 提供 `this.log()`, `this.warn()`, `this.error()` 等便捷方法
 
 **核心特性**:
@@ -309,7 +309,7 @@ export class ClaudeAdapter extends BaseAdapter {
 
 **技术难点**:
 - 处理分层配置的优先级
-- 支持嵌套键（如 `theme.dark.background`）
+- 支持嵌套键（如 `developerShortcuts.runCommand`）
 
 #### 任务 4.3: Codex 适配器 (src/services/settings/adapters/codex.ts)
 
@@ -423,7 +423,7 @@ export default class SettingsList extends Command {
 
   static examples = [
     '<%= config.bin %> <%= command.id %> --tool claude --scope user',
-    '<%= config.bin %> <%= command.id %> --tool codex --scope user --json',
+    '<%= config.bin %> <%= command.id %> --tool codex --scope user --table',
   ]
 
   static flags = {
@@ -602,7 +602,7 @@ export default class SettingsSet extends Command {
 **验收标准**:
 - 所有参数正确解析
 - 错误处理友好（使用 oclif 的 `this.error()`）
-- 输出格式正确（支持 `--json` 标志）
+- 输出格式正确（除 list 外默认 JSON，均支持 `--no-json` / `--table` / `--json`）
 - 命令帮助自动生成
 
 ---
@@ -667,20 +667,23 @@ export default class SettingsSet extends Command {
 # 列出 Claude Code 的用户级配置
 xling settings:list --tool claude --scope user
 
-# 列出配置（JSON 格式）
-xling settings:list --tool claude --scope user --json
+# 列出配置（表格输出）
+xling settings:list --tool claude --scope user --table
 
 # 获取特定配置项
-xling settings:get theme --tool claude --scope user
+xling settings:get --tool claude --scope user
 
 # 设置 Gemini CLI 的模型
 xling settings:set model gemini-1.5-pro --tool gemini --scope user
 
 # 预览修改（不实际写入）
-xling settings:set theme dark --tool claude --scope project --dry-run
+xling settings:set --tool claude --scope project --name default
+
+# 创建/编辑 Claude 变体并在 VS Code 打开
+xling settings:set --tool claude --scope user --name hxi
 
 # 删除配置项
-xling settings:unset theme --tool claude --scope project
+xling settings:unset developerShortcuts.runCommand --tool claude --scope project
 
 # 切换 Codex 的 profile
 xling settings:switch oss --tool codex
@@ -702,7 +705,7 @@ xling --help
 | 自动文档生成 | ✅ | ❌ |
 | TypeScript 支持 | ✅ 原生支持 | ✅ 通过 @types |
 | 测试工具 | ✅ @oclif/test | ❌ 需自行配置 |
-| JSON 输出 | ✅ 内置 --json | ❌ 需自行实现 |
+| JSON 输出 | ✅ 默认 JSON（list 支持 `--json` 切换） | ❌ 需自行实现 |
 | 子命令 | ✅ 文件系统路由 | ✅ 手动注册 |
 | 学习曲线 | 中等 | 简单 |
 | 适用场景 | 复杂 CLI 工具 | 简单脚本 |

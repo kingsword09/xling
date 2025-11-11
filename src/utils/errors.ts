@@ -73,11 +73,31 @@ export class ProfileNotFoundError extends XlingError {
 }
 
 /**
+ * Settings 变体不存在错误
+ */
+export class SettingsVariantNotFoundError extends XlingError {
+  constructor(variant: string) {
+    super(`Settings variant not found: ${variant}`);
+    this.name = 'SettingsVariantNotFoundError';
+  }
+}
+
+/**
  * 文件写入错误
  */
 export class FileWriteError extends XlingError {
   constructor(path: string, reason: string) {
     super(`Failed to write file ${path}: ${reason}`);
     this.name = 'FileWriteError';
+  }
+}
+
+/**
+ * 编辑器启动错误
+ */
+export class EditorLaunchError extends XlingError {
+  constructor(editor: string, reason: string) {
+    super(`Failed to launch editor ${editor}: ${reason}`);
+    this.name = 'EditorLaunchError';
   }
 }

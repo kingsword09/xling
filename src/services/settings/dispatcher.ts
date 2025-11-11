@@ -81,7 +81,16 @@ export class SettingsDispatcher {
             `Tool ${payload.tool} does not support profile switching`,
           );
         }
-        return await adapter.switchProfile(payload.profile);
+        return await adapter.switchProfile(payload.scope, payload.profile);
+
+      case 'edit':
+        if (!adapter.edit) {
+          throw new Error(`Tool ${payload.tool} does not support editing via CLI`);
+        }
+        return await adapter.edit(payload.scope, {
+          name: payload.name,
+          ide: payload.ide,
+        });
 
       case 'inspect':
         if (!adapter.inspect) {

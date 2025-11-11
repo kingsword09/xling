@@ -4,7 +4,7 @@
 
 import type { Scope, SettingsResult } from '../../../domain/types.ts';
 import { BaseAdapter } from './base.ts';
-import { ProfileNotFoundError } from '../../../utils/errors.ts';
+import { InvalidScopeError, ProfileNotFoundError } from '../../../utils/errors.ts';
 import * as fsStore from '../fsStore.ts';
 
 /**
@@ -40,8 +40,12 @@ export class CodexAdapter extends BaseAdapter {
   /**
    * 切换 profile
    */
-  async switchProfile(profile: string): Promise<SettingsResult> {
-    const path = this.resolvePath('user');
+  async switchProfile(scope: Scope, profile: string): Promise<SettingsResult> {
+    if (!this.validateScope(scope)) {
+      throw new InvalidScopeError(scope);
+    }
+
+    const path = this.resolvePath(scope);
     const config = this.readConfig(path);
 
     // 检查 profile 是否存在

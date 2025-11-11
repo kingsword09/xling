@@ -5,6 +5,7 @@
 
 import { Command, Flags } from '@oclif/core';
 import { SettingsDispatcher } from '../../services/settings/dispatcher.ts';
+import { formatJson } from '../../utils/format.ts';
 import type { ToolId, Scope, InspectResult } from '../../domain/types.ts';
 
 export default class SettingsInspect extends Command {
@@ -37,6 +38,11 @@ export default class SettingsInspect extends Command {
       options: ['user', 'project', 'local', 'system'],
       default: 'user',
     }),
+    json: Flags.boolean({
+      description: 'Output JSON (default)',
+      default: true,
+      allowNo: true,
+    }),
   };
 
   async run(): Promise<void> {
@@ -50,24 +56,25 @@ export default class SettingsInspect extends Command {
         action: 'inspect',
       });
 
-      if (this.jsonEnabled()) {
-        this.logJson(result);
-      } else {
-        const data = result.data as InspectResult;
-        this.log(`Path: ${data.path}`);
-        this.log(`Exists: ${data.exists ? 'Yes' : 'No'}`);
+      if (flags.json) {
+        this.log(formatJson(result));
+        return;
+      }
 
-        if (data.exists) {
-          if (data.size !== undefined) {
-            this.log(`Size: ${data.size} bytes`);
-          }
-          if (data.lastModified) {
-            this.log(`Last Modified: ${data.lastModified.toISOString()}`);
-          }
-          if (data.content) {
-            this.log('\nContents:');
-            this.log(data.content);
-          }
+      const data = result.data as InspectResult;
+      this.log(`Path: ${data.path}`);
+      this.log(`Exists: ${data.exists ? 'Yes' : 'No'}`);
+
+      if (data.exists) {
+        if (data.size !== undefined) {
+          this.log(`Size: ${data.size} bytes`);
+        }
+        if (data.lastModified) {
+          this.log(`Last Modified: ${data.lastModified.toISOString()}`);
+        }
+        if (data.content) {
+          this.log('\nContents:');
+          this.log(data.content);
         }
       }
     } catch (error) {

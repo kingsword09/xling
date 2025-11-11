@@ -1,6 +1,6 @@
 ## 项目基础约定
 
-- **运行时**：本项目默认使用 Bun（>= 1.1）。所有开发、构建、测试脚本统一通过 `bun` 命令执行。
+- **运行时**：本项目默认使用 Bun（>= 1.3.2）。所有开发、构建、测试脚本统一通过 `bun` 命令执行。
 - **语言**：业务逻辑全部使用 TypeScript；如需 JavaScript 辅助脚本需在文档中注明原因。
 - **构建工具**：使用 tsdown 进行 TypeScript 编译，基于 rolldown 提供快速构建和打包。
 - **代码检查**：使用 oxlint 进行代码质量检查，基于 Rust 的高性能 linter。
@@ -14,7 +14,8 @@
 2. 在仓库根目录执行 `bun install` 安装依赖。
 3. 运行 `bun run build` 编译 TypeScript 代码。
 4. 运行 `./bin/run.js --help` 验证 CLI 工具正常工作。
-5. 运行 `bun test` 或 `bun test --watch` 确认测试通过。
+5. 运行 `bun lint` 和 `bun fmt` 格式化代码。
+6. 运行 `bun test` 或 `bun test --watch` 确认测试通过。
 
 ## 开发约定
 
@@ -56,7 +57,7 @@ xling/
 │       └── format.ts       # 格式化工具
 ├── test/                   # 测试和 fixtures
 └── dist/                   # 编译输出（tsdown）
-    ├── bin.js              # 编译后的 CLI 入口（可执行）
+    ├── run.js              # 编译后的 CLI 入口（可执行）
     ├── commands/           # 编译后的命令
     ├── services/           # 编译后的服务
     └── ...
@@ -131,11 +132,32 @@ bun test               # 运行测试
 bun test:watch         # 监听模式测试
 bun test:coverage      # 测试覆盖率
 
-# 使用 CLI
-./dist/bin.js --help                              # 查看帮助
-./dist/bin.js settings:list --tool claude        # 列出配置
-./dist/bin.js settings:get theme --tool claude   # 获取配置
-./dist/bin.js settings:set theme dark --tool claude  # 设置配置
+# 使用 CLI（示例）
+./dist/run.js --help                                       # 查看帮助/全局命令
+
+# settings:list - 默认摘要，--table/--json 切换
+./dist/run.js settings:list --tool claude --scope user
+./dist/run.js settings:list --tool codex --table
+
+# settings:get - 查看完整配置文件，可 --no-json 文本模式
+./dist/run.js settings:get --tool claude --scope user
+./dist/run.js settings:get --tool codex --no-json
+
+# settings:set - 通过 IDE 编辑 Claude 变体
+./dist/run.js settings:set --tool claude --scope user --name hxi            # 创建/编辑 settings.hxi.json（默认 VS Code）
+./dist/run.js settings:set --tool claude --scope project --name default --ide cursor --no-json
+
+# settings:unset - 删除键，支持 dry-run
+./dist/run.js settings:unset developerShortcuts.runCommand --tool claude
+./dist/run.js settings:unset developerShortcuts.runCommand --tool claude --dry-run --no-json
+
+# settings:switch - Codex profile / Claude 变体切换
+./dist/run.js settings:switch oss --tool codex
+./dist/run.js settings:switch hxi --tool claude --scope user
+
+# settings:inspect - 查看文件状态（默认 JSON，可 --no-json）
+./dist/run.js settings:inspect --tool claude --scope user
+./dist/run.js settings:inspect --tool codex --no-json
 ```
 
 ## 扩展指南
@@ -181,7 +203,7 @@ constructor() {
 ## 注意事项
 
 - 配置文件操作使用原子写入（临时文件 + 重命名）
-- 支持嵌套键操作（如 `theme.dark.background`）
+- 支持嵌套键操作（如 `developerShortcuts.runCommand`）
 - 自动备份现有配置文件（`.bak` 后缀）
 - 所有错误继承自 `XlingError` 基类
 - 使用 Zod 进行运行时类型验证

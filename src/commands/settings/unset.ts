@@ -5,6 +5,7 @@
 
 import { Args, Command, Flags } from '@oclif/core';
 import { SettingsDispatcher } from '../../services/settings/dispatcher.ts';
+import { formatJson } from '../../utils/format.ts';
 import type { ToolId, Scope } from '../../domain/types.ts';
 
 export default class SettingsUnset extends Command {
@@ -12,13 +13,13 @@ export default class SettingsUnset extends Command {
 
   static description = `
     Remove a specific configuration key.
-    Supports nested keys using dot notation (e.g., theme.dark.background).
+    Supports nested keys using dot notation (e.g., workspace.defaultModel).
   `;
 
   static examples = [
-    '<%= config.bin %> <%= command.id %> theme --tool claude',
+    '<%= config.bin %> <%= command.id %> ai.model --tool claude',
     '<%= config.bin %> <%= command.id %> model --tool codex --scope user',
-    '<%= config.bin %> <%= command.id %> theme.dark.background --tool claude --dry-run',
+    '<%= config.bin %> <%= command.id %> workspace.defaultModel --tool claude --dry-run',
   ];
 
   static args = {
@@ -45,6 +46,11 @@ export default class SettingsUnset extends Command {
       description: 'Preview changes without applying',
       default: false,
     }),
+    json: Flags.boolean({
+      description: 'Output JSON (default)',
+      default: true,
+      allowNo: true,
+    }),
   };
 
   async run(): Promise<void> {
@@ -60,20 +66,21 @@ export default class SettingsUnset extends Command {
         dryRun: flags['dry-run'],
       });
 
-      if (this.jsonEnabled()) {
-        this.logJson(result);
+      if (flags.json) {
+        this.log(formatJson(result));
+        return;
+      }
+
+      if (flags['dry-run']) {
+        this.warn('DRY RUN - No changes applied');
+        if (result.diff) {
+          this.log('\nPreview:');
+          this.log(result.diff);
+        }
       } else {
-        if (flags['dry-run']) {
-          this.warn('DRY RUN - No changes applied');
-          if (result.diff) {
-            this.log('\nPreview:');
-            this.log(result.diff);
-          }
-        } else {
-          this.log(`✓ Removed ${args.key}`);
-          if (result.filePath) {
-            this.log(`  File: ${result.filePath}`);
-          }
+        this.log(`✓ Removed ${args.key}`);
+        if (result.filePath) {
+          this.log(`  File: ${result.filePath}`);
         }
       }
     } catch (error) {

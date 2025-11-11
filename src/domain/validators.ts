@@ -50,7 +50,7 @@ export function validatePayload(payload: unknown) {
 
 /**
  * 验证配置 key 格式
- * 支持嵌套键，如 "theme.dark.background"
+ * 支持嵌套键，如 "developerShortcuts.runCommand"
  */
 export function validateKey(key: string): boolean {
   // 允许字母、数字、下划线、连字符和点号

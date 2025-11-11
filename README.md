@@ -52,48 +52,58 @@ npm link
 # List all settings for Claude Code (user scope)
 xling settings:list --tool claude --scope user
 
-# List settings in JSON format
-xling settings:list --tool codex --json
+# List Codex settings in table format
+xling settings:list --tool codex --table
 ```
 
-### Get Setting
+> Claude-specific: `settings:list --tool claude` now enumerates every
+> `settings*.json` file (for example `settings.hxi.json`) in the selected scope
+> so you can quickly discover switchable variants.
+
+`settings:list` 默认输出 YAML 风格的简洁概览；如需表格/JSON，请加 `--table` 或
+`--json`。其余命令仍以 JSON 为默认输出，可通过 `--no-json` 获取文本格式。
+
+### Get Settings File
 
 ```bash
-# Get a specific setting
-xling settings:get theme --tool claude
+# Show Claude user settings (JSON default)
+xling settings:get --tool claude --scope user
 
-# Get nested setting
-xling settings:get editor.fontSize --tool claude
+# Plain text output
+xling settings:get --tool codex --no-json
 ```
 
-### Set Setting
+### Edit Settings (Claude)
 
 ```bash
-# Set a setting
-xling settings:set theme dark --tool claude
+# Create/edit settings.hxi.json in VS Code (default)
+xling settings:set --tool claude --scope user --name hxi
 
-# Set nested setting
-xling settings:set editor.fontSize 16 --tool claude
-
-# Preview changes without applying (dry run)
-xling settings:set theme light --tool claude --dry-run
+# Open default settings in Cursor
+xling settings:set --tool claude --scope project --name default --ide cursor --no-json
 ```
+
+`settings:set` 现专注于整文件编辑：传 `--name`（默认 `default`）即可创建/打开
+`settings.<name>.json`，并使用 `--ide` 指定编辑器（默认 VS Code 的 `code`）。
 
 ### Unset Setting
 
 ```bash
 # Remove a setting
-xling settings:unset theme --tool claude
+xling settings:unset developerShortcuts.runCommand --tool claude
 
-# Preview removal
-xling settings:unset theme --tool claude --dry-run
+# Preview removal with diff
+xling settings:unset developerShortcuts.runCommand --tool claude --dry-run --no-json
 ```
 
-### Switch Profile (Codex only)
+### Switch Profiles or Claude Variants
 
 ```bash
 # Switch to a different profile
 xling settings:switch oss --tool codex
+
+# Activate settings.hxi.json for Claude user scope
+xling settings:switch hxi --tool claude --scope user
 ```
 
 ### Inspect Configuration

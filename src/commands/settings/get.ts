@@ -3,30 +3,25 @@
  * 获取指定配置项的值
  */
 
-import { Args, Command, Flags } from '@oclif/core';
+import { Command, Flags } from '@oclif/core';
 import { SettingsDispatcher } from '../../services/settings/dispatcher.ts';
-import type { ToolId, Scope } from '../../domain/types.ts';
+import { formatJson } from '../../utils/format.ts';
+import type { ToolId, Scope, InspectResult } from '../../domain/types.ts';
 
 export default class SettingsGet extends Command {
-  static summary = 'Get a specific setting value';
+  static summary = 'View the full configuration file';
 
   static description = `
-    Retrieve the value of a specific configuration key.
-    Supports nested keys using dot notation (e.g., theme.dark.background).
+    Print the entire configuration file for the selected tool/scope.
+    Use --json for structured output or --no-json for plain text.
   `;
 
   static examples = [
-    '<%= config.bin %> <%= command.id %> theme --tool claude',
-    '<%= config.bin %> <%= command.id %> model --tool codex --scope user',
-    '<%= config.bin %> <%= command.id %> theme.dark.background --tool claude --json',
+    '<%= config.bin %> <%= command.id %> --tool claude --scope user',
+    '<%= config.bin %> <%= command.id %> --tool codex --no-json',
   ];
 
-  static args = {
-    key: Args.string({
-      description: 'Setting key to retrieve',
-      required: true,
-    }),
-  };
+  static args = {};
 
   static flags = {
     tool: Flags.string({
@@ -41,29 +36,39 @@ export default class SettingsGet extends Command {
       options: ['user', 'project', 'local', 'system'],
       default: 'user',
     }),
+    json: Flags.boolean({
+      description: 'Output JSON (default)',
+      default: true,
+      allowNo: true,
+    }),
   };
 
   async run(): Promise<void> {
-    const { args, flags } = await this.parse(SettingsGet);
+    const { flags } = await this.parse(SettingsGet);
 
     try {
       const dispatcher = new SettingsDispatcher();
       const result = await dispatcher.execute({
         tool: flags.tool as ToolId,
         scope: flags.scope as Scope,
-        action: 'get',
-        key: args.key,
+        action: 'inspect',
       });
 
-      if (this.jsonEnabled()) {
-        this.logJson(result);
+      if (flags.json) {
+        this.log(formatJson(result));
+        return;
+      }
+
+      const data = result.data as InspectResult;
+      if (!data.exists) {
+        this.warn(`Config file not found: ${data.path}`);
+        return;
+      }
+
+      if (data.content) {
+        this.log(data.content);
       } else {
-        const value = result.data;
-        if (typeof value === 'object' && value !== null) {
-          this.log(JSON.stringify(value, null, 2));
-        } else {
-          this.log(String(value));
-        }
+        this.log('File is empty.');
       }
     } catch (error) {
       this.error((error as Error).message, { exit: 1 });

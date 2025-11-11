@@ -5,8 +5,13 @@
 
 import { Command, Flags } from '@oclif/core';
 import { SettingsDispatcher } from '../../services/settings/dispatcher.ts';
-import { formatTable } from '../../utils/format.ts';
-import type { ToolId, Scope } from '../../domain/types.ts';
+import { formatFilesTable, formatJson, formatTable } from '../../utils/format.ts';
+import type {
+  ToolId,
+  Scope,
+  SettingsListData,
+  SettingsFileEntry,
+} from '../../domain/types.ts';
 
 export default class SettingsList extends Command {
   static summary = 'List all settings for a tool';
@@ -18,8 +23,8 @@ export default class SettingsList extends Command {
 
   static examples = [
     '<%= config.bin %> <%= command.id %> --tool claude --scope user',
-    '<%= config.bin %> <%= command.id %> --tool codex --scope user --json',
-    '<%= config.bin %> <%= command.id %> -t gemini -s project',
+    '<%= config.bin %> <%= command.id %> --tool codex --scope user --table',
+    '<%= config.bin %> -t gemini -s project --no-json',
   ];
 
   static flags = {
@@ -35,6 +40,14 @@ export default class SettingsList extends Command {
       options: ['user', 'project', 'local', 'system'],
       default: 'user',
     }),
+    json: Flags.boolean({
+      description: 'Output JSON instead of text summary',
+      default: false,
+    }),
+    table: Flags.boolean({
+      description: 'Render table output instead of JSON',
+      default: false,
+    }),
   };
 
   async run(): Promise<void> {
@@ -48,18 +61,97 @@ export default class SettingsList extends Command {
         action: 'list',
       });
 
-      if (this.jsonEnabled()) {
-        this.logJson(result);
-      } else {
-        const data = result.data as Record<string, unknown>;
-        if (Object.keys(data).length === 0) {
-          this.log('No settings found.');
-        } else {
-          this.log(formatTable(data));
-        }
+      if (flags.table) {
+        this.renderDetailed(result.data as SettingsListData | undefined);
+        return;
       }
+
+      if (flags.json) {
+        this.log(formatJson(result));
+        return;
+      }
+
+      this.renderSummary(result.data as SettingsListData | undefined);
     } catch (error) {
       this.error((error as Error).message, { exit: 1 });
     }
+  }
+
+  private renderSummary(data?: SettingsListData): void {
+    if (!data) {
+      this.log('No settings found.');
+      return;
+    }
+
+    if (data.type === 'files') {
+      if (data.files.length === 0) {
+        this.log('No settings files found.');
+        return;
+      }
+      this.log(this.formatFilesSummary(data.files));
+      return;
+    }
+
+    if (Object.keys(data.entries).length === 0) {
+      this.log('No settings found.');
+      return;
+    }
+
+    this.log(this.formatEntriesSummary(data.entries, data.filePath));
+  }
+
+  private renderDetailed(data?: SettingsListData): void {
+    if (!data) {
+      this.log('No settings found.');
+      return;
+    }
+
+    if (data.type === 'files') {
+      if (data.files.length === 0) {
+        this.log('No settings files found.');
+        return;
+      }
+      this.log(formatFilesTable(data.files));
+      return;
+    }
+
+    if (Object.keys(data.entries).length === 0) {
+      this.log('No settings found.');
+      return;
+    }
+
+    this.log(formatTable(data.entries));
+    this.log(`File: ${data.filePath}`);
+  }
+
+  private formatFilesSummary(files: SettingsFileEntry[]): string {
+    const lines = files.map((file) => {
+      const prefix = file.active ? '* ' : '- ';
+      return (
+        `${prefix}${file.variant} -> ${file.path}` +
+        (file.exists ? '' : ' (missing)')
+      );
+    });
+    return ['files:'].concat(lines).join('\n');
+  }
+
+  private formatEntriesSummary(
+    entries: Record<string, unknown>,
+    filePath: string,
+  ): string {
+    const lines = ['entries:'];
+    for (const [key, value] of Object.entries(entries)) {
+      lines.push(`- ${key}: ${this.stringify(value)}`);
+    }
+    lines.push(`file: ${filePath}`);
+    return lines.join('\n');
+  }
+
+  private stringify(value: unknown): string {
+    if (value === null || value === undefined) return 'null';
+    if (typeof value === 'object') {
+      return JSON.stringify(value);
+    }
+    return String(value);
   }
 }
