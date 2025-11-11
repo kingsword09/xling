@@ -36,7 +36,7 @@ export default class SettingsSwitch extends Command {
       char: "t",
       description: "AI CLI tool to manage",
       options: ["claude", "codex", "gemini"],
-      default: "codex",
+      default: "claude",
     }),
     scope: Flags.string({
       char: "s",

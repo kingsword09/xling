@@ -141,9 +141,10 @@ bun test:coverage      # 测试覆盖率
 ./dist/run.js settings:list --tool claude --scope user
 ./dist/run.js settings:list --tool codex --table
 
-# settings:get - 查看完整配置文件，可 --no-json 文本模式
+# settings:get - 查看完整配置文件，可 --json 输出结构化数据
 ./dist/run.js settings:get --tool claude --scope user
-./dist/run.js settings:get --tool codex --no-json
+./dist/run.js settings:get hxi --tool claude --scope user
+./dist/run.js settings:get --tool codex
 
 # settings:set - 通过 IDE 编辑 Claude 变体
 ./dist/run.js settings:set --tool claude --scope user --name hxi            # 创建/编辑 settings.hxi.json（默认 VS Code）
