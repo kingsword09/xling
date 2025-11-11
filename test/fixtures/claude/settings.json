@@ -1,13 +1,44 @@
 {
-  "workspace": {
-    "defaultModel": "claude-3.5-sonnet",
-    "autoComplete": true
+  "permissions": {
+    "allow": ["Bash(npm run lint)", "Bash(npm run test:*)", "Read(~/.zshrc)"],
+    "deny": [
+      "Bash(curl:*)",
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Read(./secrets/**)"
+    ]
   },
-  "ai": {
-    "model": "claude-sonnet-4",
-    "temperature": 0.7
+  "env": {
+    "CLAUDE_CODE_ENABLE_TELEMETRY": "1",
+    "OTEL_METRICS_EXPORTER": "otlp"
   },
-  "shortcuts": {
-    "runCommand": "bun test"
+  "companyAnnouncements": [
+    "Welcome to Acme Corp! Review our code guidelines at docs.acme.com",
+    "Reminder: Code reviews required for all PRs",
+    "New security policy in effect"
+  ],
+  "sandbox": {
+    "enabled": true,
+    "autoAllowBashIfSandboxed": true,
+    "excludedCommands": ["docker"],
+    "network": {
+      "allowUnixSockets": ["/var/run/docker.sock"],
+      "allowLocalBinding": true
+    }
+  },
+  "enabledPlugins": {
+    "formatter@company-tools": true,
+    "deployer@company-tools": true,
+    "analyzer@security-plugins": false
+  },
+  "extraKnownMarketplaces": {
+    "company-tools": {
+      "source": "github",
+      "repo": "company/claude-plugins"
+    },
+    "security-plugins": {
+      "source": "git",
+      "url": "https://git.company.com/security/plugins.git"
+    }
   }
 }
