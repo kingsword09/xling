@@ -6,14 +6,15 @@
 import { Command, Flags, Interfaces } from "@oclif/core";
 import { GitDispatcher } from "@/services/git/dispatcher.ts";
 import type { GitWorktreeRequest } from "@/domain/git.ts";
+import { spawn } from "node:child_process";
 
 export default class Wts extends Command {
-  static summary = "Get worktree path for switching";
+  static summary = "Switch to a git worktree (opens subshell by default)";
 
   static description = `
-    Output the path of a worktree for easy switching.
-    Defaults to main branch if not specified.
-    Use with: cd $(xling git:wts -b <branch>)
+    Find a matching worktree, then start a subshell rooted there.
+    Defaults to the main branch if no branch/directory is provided.
+    Use --path-only for scripting (outputs the path for cd $(...)).
   `;
 
   static examples: Command.Example[] = [
@@ -36,6 +37,10 @@ export default class Wts extends Command {
       char: "b",
       description: "Branch or worktree directory name (defaults to main)",
     }),
+    "path-only": Flags.boolean({
+      description: "Only print the worktree path (useful for cd $(...))",
+      default: false,
+    }),
   };
 
   async run(): Promise<void> {
@@ -55,9 +60,55 @@ export default class Wts extends Command {
       });
 
       // Only output the path for cd $()
-      this.log(result.message);
+      const detailsPath = result.details?.path;
+      const targetPath =
+        typeof detailsPath === "string" ? detailsPath : result.message;
+
+      if (flags["path-only"]) {
+        this.log(targetPath);
+        return;
+      }
+
+      this.log(
+        `Switching to worktree at ${targetPath}. Exit the shell to return.`,
+      );
+      await this.openShell(targetPath);
     } catch (error) {
       this.error((error as Error).message, { exit: 1 });
     }
+  }
+
+  private resolveShell(): { command: string; args: string[] } {
+    if (process.platform === "win32") {
+      const command = process.env.COMSPEC || "cmd.exe";
+      return { command, args: [] };
+    }
+    const command = process.env.SHELL || "bash";
+    return { command, args: [] };
+  }
+
+  private async openShell(cwd: string): Promise<void> {
+    const { command, args } = this.resolveShell();
+
+    await new Promise<void>((resolve, reject) => {
+      const child = spawn(command, args, {
+        cwd,
+        stdio: "inherit",
+      });
+
+      child.on("error", (error) => {
+        reject(
+          new Error(`Failed to launch shell "${command}": ${error.message}`),
+        );
+      });
+
+      child.on("exit", (code) => {
+        if (code === 0) {
+          resolve();
+        } else {
+          reject(new Error(`Shell exited with code ${code}`));
+        }
+      });
+    });
   }
 }
