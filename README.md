@@ -25,6 +25,7 @@ Together, `xling` is more than just a tool; it's an intelligent partner that amp
 ## Features
 
 - **Unified Interface**: Manage settings for multiple AI CLI tools with a single command
+- **Quick Launcher**: Just type `xling x` to start Claude Code instantly with yolo mode
 - **Multiple Scopes**: Support for user, project, local, and system-level configurations
 - **Profile Switching**: Switch between different configuration profiles (Codex)
 - **Dry Run Mode**: Preview changes before applying them
@@ -45,6 +46,52 @@ npm link
 ```
 
 ## Usage
+
+### Quick Start - The `x` Command
+
+The fastest way to start your AI tools! Just type `xling x` to launch Claude Code with yolo mode.
+
+**Claude Code is launched by default** - the ultimate convenience!
+
+```bash
+# 🚀 Fastest way - Start Claude Code instantly
+xling x
+
+# Continue last conversation/session
+xling x -c
+
+# Resume from conversation/session list
+xling x -r
+
+# Pass arguments to Claude
+xling x -- chat "Hello, how are you?"
+
+# Start without yolo mode
+xling x --no-yolo
+
+# Start Codex instead
+xling x --tool codex
+# or use the short flag
+xling x -t codex
+
+# Continue last Codex session
+xling x -t codex -c
+
+# Start Codex in a specific directory
+xling x -t codex -C /path/to/project
+```
+
+**Resume Options:**
+- `-c` or `--continue`: Continue the last conversation/session
+  - Claude Code: `claude -c`
+  - Codex: `codex resume --last`
+- `-r` or `--resume`: Show a list to choose from
+  - Claude Code: `claude -r`
+  - Codex: `codex resume`
+
+**Yolo mode flags:**
+- Claude Code: `--dangerously-skip-permissions`
+- Codex: `--dangerously-bypass-approvals-and-sandbox`
 
 ### List Settings
 

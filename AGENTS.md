@@ -29,8 +29,10 @@
 ```
 xling/
 ├── src/
-│   ├── bin.ts               # CLI 入口点（编译到 dist/bin.js）
+│   ├── run.ts              # CLI 入口点（编译到 dist/run.js）
 │   ├── commands/           # oclif 命令（文件系统路由）
+│   │   ├── x/              # x 命令（快速启动）
+│   │   │   └── index.ts    # x 命令
 │   │   └── settings/       # settings 命令组
 │   │       ├── list.ts     # settings:list
 │   │       ├── get.ts      # settings:get
@@ -42,18 +44,25 @@ xling/
 │   │   ├── interfaces.ts   # 接口定义
 │   │   └── validators.ts   # 验证器
 │   ├── services/           # 业务逻辑
-│   │   └── settings/
-│   │       ├── adapters/   # 工具适配器
+│   │   ├── launch/         # Launch 服务
+│   │   │   ├── adapters/   # 工具启动适配器
+│   │   │   │   ├── base.ts     # 抽象基类
+│   │   │   │   ├── claude.ts   # Claude Code 启动适配器
+│   │   │   │   └── codex.ts    # Codex 启动适配器
+│   │   │   └── dispatcher.ts   # Launch 调度器
+│   │   └── settings/       # Settings 服务
+│   │       ├── adapters/   # 工具配置适配器
 │   │       │   ├── base.ts     # 抽象基类
 │   │       │   ├── claude.ts   # Claude Code 适配器
 │   │       │   ├── codex.ts    # Codex 适配器
 │   │       │   └── gemini.ts   # Gemini CLI 适配器
 │   │       ├── fsStore.ts      # 文件系统操作
-│   │       └── dispatcher.ts   # 调度器
+│   │       └── dispatcher.ts   # Settings 调度器
 │   └── utils/              # 工具函数
 │       ├── errors.ts       # 错误类型
 │       ├── logger.ts       # 日志工具
-│       └── format.ts       # 格式化工具
+│       ├── format.ts       # 格式化工具
+│       └── runner.ts       # 进程启动工具
 ├── test/                   # 测试和 fixtures
 └── dist/                   # 编译输出（tsdown）
     ├── run.js              # 编译后的 CLI 入口（可执行）
@@ -66,19 +75,28 @@ xling/
 
 ### 适配器模式
 
-项目使用适配器模式统一管理不同 AI CLI 工具的配置：
+项目使用适配器模式统一管理不同 AI CLI 工具的配置和启动：
 
+**Settings Adapters** - 配置管理：
 - **BaseAdapter**: 抽象基类，实现通用逻辑（DRY 原则）
 - **ClaudeAdapter**: Claude Code 配置适配器（JSON 格式）
 - **CodexAdapter**: Codex 配置适配器（TOML 格式，支持 profile）
 - **GeminiAdapter**: Gemini CLI 配置适配器（JSON 格式）
 
+**Launch Adapters** - 工具启动：
+- **BaseLaunchAdapter**: 抽象基类，实现进程启动通用逻辑
+- **ClaudeLaunchAdapter**: Claude Code 启动适配器（yolo: --dangerously-skip-permissions）
+- **CodexLaunchAdapter**: Codex 启动适配器（yolo: --dangerously-bypass-approvals-and-sandbox）
+
 ### 调度器
 
-`SettingsDispatcher` 负责将请求路由到对应的适配器：
-
+**SettingsDispatcher** - 配置管理调度器：
 - 依赖 `SettingsAdapter` 接口，不依赖具体实现（DIP 原则）
 - 新增工具只需注册适配器，无需修改命令层（OCP 原则）
+
+**LaunchDispatcher** - 工具启动调度器：
+- 依赖 `LaunchAdapter` 接口，不依赖具体实现（DIP 原则）
+- 支持工具可用性检查、yolo 模式、参数透传
 
 ### 命令层
 
@@ -126,7 +144,7 @@ bun run format         # 使用 oxfmt 格式化代码
 bun run format:check   # 检查代码格式
 bun run typecheck      # TypeScript 类型检查（tsc --noEmit）
 
-> Lint/format 风格通过 `.oxlintrc.json` 与 `.oxfmtrc.json` 统一配置（参考 [oxlint 官方文档](https://oxc.rs/docs/guide/usage/linter/config.html)）。  
+> Lint/format 风格通过 `.oxlintrc.json` 与 `.oxfmtrc.json` 统一配置（参考 [oxlint 官方文档](https://oxc.rs/docs/guide/usage/linter/config.html)）。
 > 其中强制使用双引号、显式分号，并忽略 `dist/`、`node_modules/` 等生成目录。
 
 # 测试
@@ -134,8 +152,19 @@ bun test               # 运行测试
 bun test:watch         # 监听模式测试
 bun test:coverage      # 测试覆盖率
 
-# 使用 CLI（示例）
-./dist/run.js --help                                       # 查看帮助/全局命令
+# x 命令 - 快速启动 AI CLI 工具（默认 Claude Code，yolo 模式）
+./dist/run.js x                                      # 启动 Claude Code (默认)
+./dist/run.js x -c                                   # 继续最后一个对话 (claude -c)
+./dist/run.js x -r                                   # 显示对话列表选择 (claude -r)
+./dist/run.js x --tool codex                         # 启动 Codex
+./dist/run.js x -t codex                             # 启动 Codex (简写)
+./dist/run.js x -t codex -c                          # 继续最后一个 Codex 会话 (codex resume --last)
+./dist/run.js x -t codex -r                          # 显示 Codex 会话列表 (codex resume)
+./dist/run.js x --no-yolo                            # 启动 Claude (无 yolo)
+./dist/run.js x -- chat "Hello"                      # 启动 Claude 并传递参数
+./dist/run.js x -t codex -C /path/to/project         # 在指定目录启动 Codex
+
+# Settings 命令 - 配置管理
 
 # settings:list - 默认摘要，--table/--json 切换
 ./dist/run.js settings:list --tool claude --scope user
