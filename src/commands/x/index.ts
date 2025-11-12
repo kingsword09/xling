@@ -65,11 +65,13 @@ export default class X extends Command {
     },
     {
       description: "Start Claude and pass arguments",
-      command: '<%= config.bin %> <%= command.id %> -- chat "Hello, how are you?"',
+      command:
+        '<%= config.bin %> <%= command.id %> -- chat "Hello, how are you?"',
     },
     {
       description: "Start Codex in specific directory",
-      command: "<%= config.bin %> <%= command.id %> -t codex -C /path/to/project",
+      command:
+        "<%= config.bin %> <%= command.id %> -t codex -C /path/to/project",
     },
   ];
 
