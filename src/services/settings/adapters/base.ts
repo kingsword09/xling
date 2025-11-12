@@ -12,6 +12,7 @@ import type {
   SettingsResult,
   EditOptions,
   SwitchOptions,
+  ConfigObject,
 } from "@/domain/types.ts";
 import { InvalidScopeError } from "@/utils/errors.ts";
 import * as fsStore from "@/services/settings/fsStore.ts";
@@ -97,18 +98,14 @@ export abstract class BaseAdapter implements SettingsAdapter {
   /**
    * Read the configuration file (subclasses may override)
    */
-  protected readConfig(path: string): Record<string, unknown> {
+  protected readConfig(path: string): ConfigObject {
     return fsStore.readJSON(path);
   }
 
   /**
    * Write the configuration file (subclasses may override)
    */
-  protected writeConfig(
-    path: string,
-    data: Record<string, unknown>,
-    backup = true,
-  ): void {
+  protected writeConfig(path: string, data: ConfigObject, backup = true): void {
     fsStore.writeJSON(path, data, backup);
   }
 }

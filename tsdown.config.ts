@@ -9,6 +9,6 @@ export default defineConfig({
   platform: "node",
   target: "node20",
   outExtensions: () => ({ js: ".js" }),
-  external: ["@oclif/core", "@iarna/toml", "zod", "cli-table3"],
+  external: ["@oclif/core", "smol-toml", "zod", "cli-table3"],
   shims: true,
 });

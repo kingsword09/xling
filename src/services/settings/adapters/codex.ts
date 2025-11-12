@@ -7,6 +7,8 @@ import type {
   SettingsResult,
   SettingsListData,
   SwitchOptions,
+  ConfigObject,
+  ConfigValue,
 } from "@/domain/types.ts";
 import { BaseAdapter } from "./base.ts";
 import { InvalidScopeError, ProfileNotFoundError } from "@/utils/errors.ts";
@@ -72,13 +74,18 @@ export class CodexAdapter extends BaseAdapter {
     const config = this.readConfig(path);
 
     // Ensure the requested profile exists
-    const profiles = config.profiles as Record<string, unknown> | undefined;
+    const profilesValue = config.profiles;
+    const profiles = isConfigObject(profilesValue) ? profilesValue : undefined;
     if (!profiles || !(profile in profiles)) {
       throw new ProfileNotFoundError(profile);
     }
 
     // Pull the profile configuration
-    const profileConfig = profiles[profile] as Record<string, unknown>;
+    const profileValue = profiles[profile];
+    if (!isConfigObject(profileValue)) {
+      throw new ProfileNotFoundError(profile);
+    }
+    const profileConfig = profileValue;
 
     // Merge profile values into the root config
     const newConfig = { ...config };
@@ -102,28 +109,28 @@ export class CodexAdapter extends BaseAdapter {
   /**
    * Read the TOML configuration
    */
-  protected readConfig(path: string): Record<string, unknown> {
+  protected readConfig(path: string): ConfigObject {
     return fsStore.readTOML(path);
   }
 
   /**
    * Write the TOML configuration
    */
-  protected writeConfig(path: string, data: Record<string, unknown>): void {
+  protected writeConfig(path: string, data: ConfigObject): void {
     fsStore.writeTOML(path, data);
   }
 
-  private extractProviders(
-    config: Record<string, unknown>,
-  ): Record<string, unknown> {
+  private extractProviders(config: ConfigObject): ConfigObject {
     const providers = config.model_providers;
-    if (
-      typeof providers === "object" &&
-      providers !== null &&
-      !Array.isArray(providers)
-    ) {
-      return providers as Record<string, unknown>;
+    if (isConfigObject(providers)) {
+      return providers;
     }
     return {};
   }
 }
+
+const isConfigObject = (value: ConfigValue): value is ConfigObject =>
+  typeof value === "object" &&
+  value !== null &&
+  !Array.isArray(value) &&
+  !(value instanceof Date);

@@ -10,6 +10,9 @@ import { SettingsDispatcher } from "@/services/settings/dispatcher.ts";
 import { formatJson } from "@/utils/format.ts";
 import type { ToolId, Scope, SettingsResult } from "@/domain/types.ts";
 
+type SwitchCommandFlags = Interfaces.InferredFlags<
+  (typeof SettingsSwitch)["flags"]
+>;
 export default class SettingsSwitch extends Command {
   static summary = "Switch Codex profiles or Claude settings variants";
 
@@ -86,7 +89,7 @@ export default class SettingsSwitch extends Command {
   private async handleClaudeSwitch(
     dispatcher: SettingsDispatcher,
     profile: string,
-    flags: Record<string, any>,
+    flags: SwitchCommandFlags,
   ): Promise<SettingsResult | null> {
     if (flags.json && !flags.force) {
       this.error("--json requires --force when switching Claude settings.", {
@@ -162,7 +165,7 @@ export default class SettingsSwitch extends Command {
   private printResult(
     result: SettingsResult,
     profile: string,
-    flags: Record<string, any>,
+    flags: SwitchCommandFlags,
   ): void {
     if (flags.json) {
       this.log(formatJson(result));
