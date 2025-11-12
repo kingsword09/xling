@@ -1,6 +1,6 @@
 /**
- * settings:list 命令
- * 列出指定工具的所有配置
+ * settings:list command
+ * List every configuration entry for a tool
  */
 
 import { Command, Flags, Interfaces } from "@oclif/core";

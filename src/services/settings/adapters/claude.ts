@@ -1,5 +1,5 @@
 /**
- * Claude Code 适配器
+ * Claude Code settings adapter
  */
 
 import * as fs from "fs";
@@ -23,9 +23,7 @@ import { openInEditor, resolveEditorCommand } from "@/utils/editor.ts";
 import { formatDiff } from "@/utils/format.ts";
 
 /**
- * Claude Code 配置适配器
- *
- * 配置文件路径：
+ * Resolves the following config locations:
  * - user: ~/.claude/settings.json
  * - project: <cwd>/.claude/settings.json
  * - local: <cwd>/.claude/settings.local.json
@@ -34,7 +32,7 @@ export class ClaudeAdapter extends BaseAdapter {
   readonly toolId = "claude" as const;
 
   /**
-   * 列出所有 settings.*.json 文件
+   * List every settings.*.json file in the scope directory
    */
   override async list(scope: Scope): Promise<SettingsListData> {
     if (!this.validateScope(scope)) {
@@ -68,7 +66,7 @@ export class ClaudeAdapter extends BaseAdapter {
   }
 
   /**
-   * 解析配置文件路径
+   * Resolve the config path for a scope
    */
   resolvePath(scope: Scope): string {
     switch (scope) {
@@ -84,14 +82,14 @@ export class ClaudeAdapter extends BaseAdapter {
   }
 
   /**
-   * 验证 scope 是否有效
+   * Validate supported scopes
    */
   validateScope(scope: Scope): boolean {
     return ["user", "project", "local"].includes(scope);
   }
 
   /**
-   * 切换 settings.<variant>.json 到活动文件
+   * Replace the active settings file with the selected variant
    */
   override async switchProfile(
     scope: Scope,

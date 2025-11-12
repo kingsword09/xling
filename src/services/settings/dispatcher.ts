@@ -1,6 +1,6 @@
 /**
- * Settings 调度器
- * 负责将请求路由到对应的适配器（DIP 原则）
+ * Settings dispatcher
+ * Routes requests to the appropriate adapter (DIP)
  */
 
 import type { SettingsAdapter } from "@/domain/interfaces.ts";
@@ -15,18 +15,16 @@ import { GeminiAdapter } from "./adapters/gemini.ts";
 import { UnsupportedToolError } from "@/utils/errors.ts";
 
 /**
- * Settings 调度器
- *
- * 体现 SOLID 原则：
- * - OCP: 新增工具只需在构造函数中注册适配器
- * - DIP: 依赖 SettingsAdapter 接口，不依赖具体实现
- * - SRP: 只负责调度，不处理具体逻辑
+ * Applies SOLID principles:
+ * - OCP: add new tools by registering adapters in the constructor
+ * - DIP: depends on the SettingsAdapter interface
+ * - SRP: only handles dispatching, not business logic
  */
 export class SettingsDispatcher {
   private adapters: Map<ToolId, SettingsAdapter>;
 
   constructor() {
-    // 注册所有适配器
+    // Register built-in adapters
     this.adapters = new Map<ToolId, SettingsAdapter>();
     this.adapters.set("claude", new ClaudeAdapter());
     this.adapters.set("codex", new CodexAdapter());
@@ -34,7 +32,7 @@ export class SettingsDispatcher {
   }
 
   /**
-   * 执行 settings 操作
+   * Execute the requested settings action
    */
   async execute(payload: SettingsPayload): Promise<SettingsResult> {
     const adapter = this.getAdapter(payload.tool);
@@ -89,7 +87,7 @@ export class SettingsDispatcher {
   }
 
   /**
-   * 获取适配器
+   * Return the adapter for a tool (or throw)
    */
   private getAdapter(tool: ToolId): SettingsAdapter {
     const adapter = this.adapters.get(tool);
@@ -100,14 +98,14 @@ export class SettingsDispatcher {
   }
 
   /**
-   * 注册新的适配器（扩展点）
+   * Register a new adapter (extension point)
    */
   registerAdapter(adapter: SettingsAdapter): void {
     this.adapters.set(adapter.toolId, adapter);
   }
 
   /**
-   * 获取所有支持的工具
+   * Return all supported tool IDs
    */
   getSupportedTools(): ToolId[] {
     return Array.from(this.adapters.keys());

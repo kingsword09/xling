@@ -1,6 +1,6 @@
 /**
- * x 命令
- * 快速启动 AI CLI 工具（Claude Code、Codex）
+ * x command
+ * Quick launcher for Claude Code or Codex
  */
 
 import { Command, Flags, Interfaces } from "@oclif/core";
@@ -103,13 +103,13 @@ export default class X extends Command {
     }),
   };
 
-  // 允许额外参数（用于透传）
+  // Allow extra args after -- so we can pass them through
   static strict = false;
 
   async run(): Promise<void> {
     const { flags, argv } = await this.parse(X);
 
-    // 提取 -- 后的参数用于透传
+    // Extract arguments that appear after --
     const passthroughIndex = argv.indexOf("--");
     const passthroughArgs =
       passthroughIndex >= 0 ? argv.slice(passthroughIndex + 1) : [];
@@ -117,7 +117,7 @@ export default class X extends Command {
     try {
       const dispatcher = new LaunchDispatcher();
 
-      // 执行启动
+      // Launch the requested tool
       const result = await dispatcher.execute({
         tool: flags.tool as ToolId,
         yolo: flags.yolo,
@@ -128,13 +128,13 @@ export default class X extends Command {
       });
 
       if (result.success) {
-        // 成功启动
+        // Launch succeeded
         this.log(result.message ?? "Launched successfully");
         if (result.command && flags.yolo) {
           this.log(`\nCommand: ${result.command}`);
         }
       } else {
-        // 启动失败
+        // Launch failed
         this.error(result.message ?? "Launch failed", { exit: 1 });
       }
     } catch (error) {

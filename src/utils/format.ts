@@ -1,19 +1,19 @@
 /**
- * 输出格式化工具
+ * Output formatting helpers
  */
 
 import Table from "cli-table3";
 import type { SettingsFileEntry } from "@/domain/types.ts";
 
 /**
- * 格式化为 JSON 字符串
+ * Format data as a JSON string
  */
 export function formatJson(data: unknown, pretty = true): string {
   return JSON.stringify(data, null, pretty ? 2 : 0);
 }
 
 /**
- * 格式化为表格
+ * Format a key/value object as a table
  */
 export function formatTable(data: Record<string, unknown>): string {
   const table = new Table({
@@ -30,7 +30,7 @@ export function formatTable(data: Record<string, unknown>): string {
 }
 
 /**
- * 格式化 settings 文件清单
+ * Format a list of settings files as a table
  */
 export function formatFilesTable(files: SettingsFileEntry[]): string {
   const table = new Table({
@@ -78,7 +78,7 @@ export function formatDiff(
 }
 
 /**
- * 格式化单个值
+ * Format a single value for display
  */
 function formatValue(value: unknown): string {
   if (value === null) return "null";

@@ -1,6 +1,6 @@
 /**
- * Launch 适配器抽象基类
- * 实现通用逻辑，减少重复代码（DRY 原则）
+ * Base class for launch adapters
+ * Implements shared logic to keep subclasses DRY
  */
 
 import type { LaunchAdapter } from "@/domain/interfaces.ts";
@@ -8,27 +8,24 @@ import type { ToolId, LaunchCommandSpec } from "@/domain/types.ts";
 import { checkExecutable, getExecutableVersion } from "@/utils/runner.ts";
 
 /**
- * 抽象基类
- * 体现 SOLID 原则：
- * - SRP: 只负责命令规范构建
- * - Template Method: 定义算法骨架，子类实现具体步骤
- * - DRY: 复用 validateAvailability 和 getVersion 实现
+ * Abstract base implementing SOLID principles:
+ * - SRP: only responsible for building command specs
+ * - Template Method: subclasses override specific pieces
+ * - DRY: shares validateAvailability and getVersion logic
  */
 export abstract class BaseLaunchAdapter implements LaunchAdapter {
   /**
-   * 工具标识符（子类必须实现）
+   * Tool identifier (implemented by subclasses)
    */
   abstract readonly toolId: ToolId;
 
   /**
-   * 可执行文件名称（子类必须实现）
+   * Executable name (implemented by subclasses)
    */
   abstract readonly executable: string;
 
   /**
-   * 构建启动命令配置（子类必须实现）
-   * @param payload Launch 请求参数
-   * @returns 命令规范
+   * Build the command spec for launching the tool
    */
   abstract buildCommandSpec(payload: {
     yolo?: boolean;
@@ -37,16 +34,14 @@ export abstract class BaseLaunchAdapter implements LaunchAdapter {
   }): LaunchCommandSpec;
 
   /**
-   * 默认实现：检查可执行文件是否存在
-   * 子类可以覆盖此方法以提供自定义验证逻辑
+   * Default availability check (subclasses may override)
    */
   async validateAvailability(): Promise<boolean> {
     return checkExecutable(this.executable);
   }
 
   /**
-   * 默认版本检查实现
-   * 子类可以覆盖此方法以使用不同的版本参数
+   * Default version check (subclasses may override)
    */
   async getVersion(): Promise<string> {
     try {

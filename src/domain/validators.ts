@@ -1,36 +1,33 @@
 /**
- * 配置验证器
+ * Configuration validators
  */
 
 import { z } from "zod";
 import type { SettingsPayload } from "./types.ts";
 
-/**
- * ToolId 验证 schema
- */
-export const ToolIdSchema: z.ZodEnum<["claude", "codex", "gemini"]> = z.enum([
-  "claude",
-  "codex",
-  "gemini",
-]);
+const TOOL_IDS = ["claude", "codex", "gemini"] as const;
+const SCOPES = ["user", "project", "local", "system"] as const;
+const ACTIONS = ["list", "edit", "switch-profile", "inspect"] as const;
 
 /**
- * Scope 验证 schema
+ * ToolId schema
  */
-export const ScopeSchema: z.ZodEnum<["user", "project", "local", "system"]> =
-  z.enum(["user", "project", "local", "system"]);
+export const ToolIdSchema = z.enum(TOOL_IDS);
 
 /**
- * SettingAction 验证 schema
+ * Scope schema
  */
-export const SettingActionSchema: z.ZodEnum<
-  ["list", "edit", "switch-profile", "inspect"]
-> = z.enum(["list", "edit", "switch-profile", "inspect"]);
+export const ScopeSchema = z.enum(SCOPES);
 
 /**
- * SettingsPayload 验证 schema
+ * SettingAction schema
  */
-export const SettingsPayloadSchema: z.ZodType<SettingsPayload> = z.object({
+export const SettingActionSchema = z.enum(ACTIONS);
+
+/**
+ * SettingsPayload schema
+ */
+export const SettingsPayloadSchema = z.object({
   tool: ToolIdSchema,
   scope: ScopeSchema,
   action: SettingActionSchema,
@@ -44,10 +41,10 @@ export const SettingsPayloadSchema: z.ZodType<SettingsPayload> = z.object({
       backup: z.boolean().optional(),
     })
     .optional(),
-});
+}) satisfies z.ZodType<SettingsPayload>;
 
 /**
- * 验证 SettingsPayload
+ * Validate an incoming settings payload
  */
 export function validatePayload(payload: unknown): SettingsPayload {
   return SettingsPayloadSchema.parse(payload);

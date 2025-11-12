@@ -1,9 +1,9 @@
 /**
- * 日志工具
+ * Logging utilities
  */
 
 /**
- * 日志级别
+ * Log levels
  */
 export enum LogLevel {
   DEBUG = 0,
@@ -13,7 +13,7 @@ export enum LogLevel {
 }
 
 /**
- * 简单的日志工具类
+ * Minimal logger wrapper
  */
 export class Logger {
   private level: LogLevel;
@@ -52,6 +52,6 @@ export class Logger {
 }
 
 /**
- * 默认 logger 实例
+ * Default logger instance
  */
 export const logger: Logger = new Logger();

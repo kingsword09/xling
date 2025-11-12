@@ -1,5 +1,5 @@
 /**
- * Codex 适配器
+ * Codex settings adapter
  */
 
 import type {
@@ -13,18 +13,13 @@ import { InvalidScopeError, ProfileNotFoundError } from "@/utils/errors.ts";
 import * as fsStore from "@/services/settings/fsStore.ts";
 
 /**
- * Codex 配置适配器
- *
- * 配置文件路径：
- * - user: ~/.codex/config.toml
- *
- * 支持 profile 切换
+ * Resolves ~/.codex/config.toml (user scope) and supports profile switching
  */
 export class CodexAdapter extends BaseAdapter {
   readonly toolId = "codex" as const;
 
   /**
-   * 自定义 list：聚焦 model_providers
+   * Custom list implementation that focuses on model_providers
    */
   override async list(scope: Scope): Promise<SettingsListData> {
     if (!this.validateScope(scope)) {
@@ -43,7 +38,7 @@ export class CodexAdapter extends BaseAdapter {
   }
 
   /**
-   * 解析配置文件路径
+   * Resolve the config path
    */
   resolvePath(scope: Scope): string {
     switch (scope) {
@@ -55,14 +50,14 @@ export class CodexAdapter extends BaseAdapter {
   }
 
   /**
-   * 验证 scope 是否有效
+   * Validate the supported scope
    */
   validateScope(scope: Scope): boolean {
     return scope === "user";
   }
 
   /**
-   * 切换 profile
+   * Switch to a different Codex profile
    */
   async switchProfile(
     scope: Scope,
@@ -76,25 +71,25 @@ export class CodexAdapter extends BaseAdapter {
     const path = this.resolvePath(scope);
     const config = this.readConfig(path);
 
-    // 检查 profile 是否存在
+    // Ensure the requested profile exists
     const profiles = config.profiles as Record<string, unknown> | undefined;
     if (!profiles || !(profile in profiles)) {
       throw new ProfileNotFoundError(profile);
     }
 
-    // 获取 profile 配置
+    // Pull the profile configuration
     const profileConfig = profiles[profile] as Record<string, unknown>;
 
-    // 将 profile 配置合并到根配置
+    // Merge profile values into the root config
     const newConfig = { ...config };
     for (const [key, value] of Object.entries(profileConfig)) {
       newConfig[key] = value;
     }
 
-    // 设置当前 profile
+    // Record the active profile
     newConfig.current_profile = profile;
 
-    // 写入配置
+    // Persist the updated config
     this.writeConfig(path, newConfig);
 
     return {
@@ -105,14 +100,14 @@ export class CodexAdapter extends BaseAdapter {
   }
 
   /**
-   * 读取 TOML 配置文件
+   * Read the TOML configuration
    */
   protected readConfig(path: string): Record<string, unknown> {
     return fsStore.readTOML(path);
   }
 
   /**
-   * 写入 TOML 配置文件
+   * Write the TOML configuration
    */
   protected writeConfig(path: string, data: Record<string, unknown>): void {
     fsStore.writeTOML(path, data);

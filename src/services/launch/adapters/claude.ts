@@ -1,16 +1,15 @@
 /**
- * Claude Code Launch 适配器
+ * Claude Code launch adapter
  */
 
 import { BaseLaunchAdapter } from "./base.ts";
 import type { LaunchCommandSpec } from "@/domain/types.ts";
 
 /**
- * Claude Code 启动适配器
- *
- * Yolo 模式: --dangerously-skip-permissions
- * Resume 模式: -r (显示对话列表选择)
- * Continue 模式: -c (继续最后一个对话)
+ * Applies Claude-specific flags:
+ * - Yolo mode: --dangerously-skip-permissions
+ * - Resume picker: -r
+ * - Continue last conversation: -c
  */
 export class ClaudeLaunchAdapter extends BaseLaunchAdapter {
   readonly toolId = "claude" as const;
@@ -23,7 +22,7 @@ export class ClaudeLaunchAdapter extends BaseLaunchAdapter {
   }): LaunchCommandSpec {
     const baseArgs: string[] = [];
 
-    // Resume 和 Continue 是互斥的
+    // Resume and continue are mutually exclusive
     if (payload.continue) {
       baseArgs.push("-c");
     } else if (payload.resume) {

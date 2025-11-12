@@ -1,9 +1,9 @@
 /**
- * 自定义错误类型
+ * Custom error types
  */
 
 /**
- * 基础错误类
+ * Base error class
  */
 export class XlingError extends Error {
   constructor(message: string) {
@@ -13,7 +13,7 @@ export class XlingError extends Error {
 }
 
 /**
- * 不支持的工具错误
+ * Error thrown when a tool is not supported
  */
 export class UnsupportedToolError extends XlingError {
   constructor(tool: string) {
@@ -23,7 +23,7 @@ export class UnsupportedToolError extends XlingError {
 }
 
 /**
- * 无效的 scope 错误
+ * Error thrown for invalid scopes
  */
 export class InvalidScopeError extends XlingError {
   constructor(scope: string) {
@@ -33,7 +33,7 @@ export class InvalidScopeError extends XlingError {
 }
 
 /**
- * 配置文件不存在错误
+ * Error thrown when a config file is missing
  */
 export class ConfigFileNotFoundError extends XlingError {
   constructor(path: string) {
@@ -43,7 +43,7 @@ export class ConfigFileNotFoundError extends XlingError {
 }
 
 /**
- * 配置文件解析错误
+ * Error thrown when parsing a config file fails
  */
 export class ConfigParseError extends XlingError {
   constructor(path: string, reason: string) {
@@ -53,7 +53,7 @@ export class ConfigParseError extends XlingError {
 }
 
 /**
- * Profile 不存在错误
+ * Error thrown when a Codex profile cannot be found
  */
 export class ProfileNotFoundError extends XlingError {
   constructor(profile: string) {
@@ -63,7 +63,7 @@ export class ProfileNotFoundError extends XlingError {
 }
 
 /**
- * Settings 变体不存在错误
+ * Error thrown when a requested settings variant is missing
  */
 export class SettingsVariantNotFoundError extends XlingError {
   constructor(variant: string) {
@@ -73,7 +73,7 @@ export class SettingsVariantNotFoundError extends XlingError {
 }
 
 /**
- * 文件写入错误
+ * Error thrown when a file cannot be written safely
  */
 export class FileWriteError extends XlingError {
   constructor(path: string, reason: string) {
@@ -83,7 +83,7 @@ export class FileWriteError extends XlingError {
 }
 
 /**
- * 编辑器启动错误
+ * Error thrown when the configured editor cannot be launched
  */
 export class EditorLaunchError extends XlingError {
   constructor(editor: string, reason: string) {

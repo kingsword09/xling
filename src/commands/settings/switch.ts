@@ -1,6 +1,6 @@
 /**
- * settings:switch 命令
- * 切换 profile（仅 Codex 支持）
+ * settings:switch command
+ * Switch profiles for Codex or variants for Claude
  */
 
 import { Args, Command, Flags, Interfaces } from "@oclif/core";
@@ -177,7 +177,7 @@ export default class SettingsSwitch extends Command {
       return;
     }
 
-    this.log(result.message ?? `✓ Switched to profile: ${profile}`);
+    this.log(result.message ?? `Switched to profile: ${profile}`);
     if (result.filePath) {
       this.log(`  File: ${result.filePath}`);
     }

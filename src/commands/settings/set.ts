@@ -1,6 +1,6 @@
 /**
- * settings:set 命令
- * 设置配置项的值
+ * settings:set command
+ * Edit Claude settings files through an IDE
  */
 
 import { Command, Flags, Interfaces } from "@oclif/core";
