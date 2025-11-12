@@ -111,7 +111,9 @@ xling git:pr 789 --no-gh --remote upstream
 xling git:view 123
 
 # View PR in specific browser
-xling git:view 456 --browser Chrome
+xling git:view 456 --browser safari
+xling git:view 789 --browser firefox
+xling git:view 999 --browser arc
 
 # List worktrees
 xling git:worktree --list
@@ -133,10 +135,11 @@ xling git:worktree --prune
 - Manual override: Use `--no-gh` to force git strategy
 
 **Browser Support:**
-- macOS: Safari, Chrome, Firefox (via `open -a <Browser>`)
-- Linux: firefox, google-chrome, etc. (direct command)
-- Windows: Browser exe paths (via `start`)
-- Environment: Respects `GH_BROWSER` environment variable
+- macOS: chrome, safari, firefox, arc, edge, dia
+- Linux: chrome, firefox, edge, dia (via `google-chrome`, `firefox`, `microsoft-edge`, `dia`)
+- Windows: chrome, firefox, arc, edge, dia
+- Default: chrome
+- Note: Safari only available on macOS; Arc has limited Linux support
 
 ### List Settings
 

@@ -9,6 +9,10 @@ export type GitSubcommand = "worktree" | "pr" | "view";
 // Worktree actions
 export type GitWorktreeAction = "list" | "add" | "remove" | "prune";
 
+// Supported browsers for PR viewing
+export const SUPPORTED_BROWSERS = ["chrome", "safari", "firefox", "arc", "edge", "dia"] as const;
+export type SupportedBrowser = typeof SUPPORTED_BROWSERS[number];
+
 /**
  * Base payload for all git commands
  */

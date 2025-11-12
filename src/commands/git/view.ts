@@ -6,27 +6,32 @@
 import { Command, Flags, Args, Interfaces } from "@oclif/core";
 import { GitDispatcher } from "@/services/git/dispatcher.ts";
 import type { GitViewRequest } from "@/domain/git.ts";
+import { SUPPORTED_BROWSERS } from "@/domain/git.ts";
 
 export default class View extends Command {
   static summary = "Open PR in web browser";
 
   static description = `
     Open a pull request in your web browser using GitHub CLI.
-    Supports custom browser selection (Safari, Chrome, Firefox, etc.).
+    Supports multiple browsers: Chrome (default), Safari, Firefox, Arc, Edge, Dia.
   `;
 
   static examples: Command.Example[] = [
     {
-      description: "Open PR in default browser",
+      description: "Open PR in Chrome (default)",
       command: '<%= config.bin %> <%= command.id %> 123',
     },
     {
-      description: "Open PR in Chrome",
-      command: '<%= config.bin %> <%= command.id %> 456 --browser Chrome',
+      description: "Open PR in Safari",
+      command: '<%= config.bin %> <%= command.id %> 456 --browser safari',
     },
     {
       description: "Open PR in Firefox",
-      command: '<%= config.bin %> <%= command.id %> 789 --browser Firefox',
+      command: '<%= config.bin %> <%= command.id %> 789 --browser firefox',
+    },
+    {
+      description: "Open PR in Arc",
+      command: '<%= config.bin %> <%= command.id %> 999 --browser arc',
     },
   ];
 
@@ -40,8 +45,9 @@ export default class View extends Command {
   static flags: Interfaces.FlagInput = {
     browser: Flags.string({
       char: 'b',
-      description: 'Browser to use (Safari, Chrome, Firefox, etc.)',
-      default: 'Safari',
+      description: 'Browser to use',
+      options: [...SUPPORTED_BROWSERS],
+      default: 'chrome',
     }),
   };
 
