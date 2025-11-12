@@ -7,6 +7,19 @@ export type Scope = "user" | "project" | "local" | "system";
 export type SettingAction = "list" | "edit" | "switch-profile" | "inspect";
 export type OutputFormat = "json" | "table";
 
+export type ConfigValue =
+  | string
+  | number
+  | boolean
+  | null
+  | Date
+  | ConfigValue[]
+  | ConfigObject;
+
+export interface ConfigObject {
+  [key: string]: ConfigValue;
+}
+
 export interface EditOptions {
   name?: string;
   ide?: string;
@@ -31,7 +44,7 @@ export interface SettingsFileEntry {
 export type SettingsListData =
   | {
       type: "entries";
-      entries: Record<string, unknown>;
+      entries: ConfigObject;
       filePath: string;
     }
   | {
@@ -56,9 +69,11 @@ export interface SettingsPayload {
 /**
  * Result returned by settings operations
  */
-export interface SettingsResult {
+export interface SettingsResult<
+  TData = ConfigValue | ConfigObject | SettingsListData | InspectResult,
+> {
   success: boolean;
-  data?: Record<string, unknown> | unknown;
+  data?: TData;
   message?: string;
   filePath?: string;
   diff?: string;
@@ -95,12 +110,12 @@ export interface LaunchPayload {
 /**
  * Launch result
  */
-export interface LaunchResult {
+export interface LaunchResult<TData = ConfigObject> {
   success: boolean;
   pid?: number; // spawned process ID
   command?: string; // full command string
   message?: string;
-  data?: Record<string, unknown>;
+  data?: TData;
 }
 
 /**

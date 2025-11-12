@@ -1,4 +1,6 @@
-export const CLAUDE_SETTINGS_TEMPLATE = {
+import type { ConfigObject } from "@/domain/types.ts";
+
+export const CLAUDE_SETTINGS_TEMPLATE: ConfigObject = {
   env: {
     ANTHROPIC_AUTH_TOKEN: "",
     ANTHROPIC_BASE_URL: "https://api.anthropic.com",
@@ -13,4 +15,4 @@ export const CLAUDE_SETTINGS_TEMPLATE = {
   enabledPlugins: {
     "example-skills@anthropic-agent-skills": false,
   },
-} satisfies Record<string, unknown>;
+};

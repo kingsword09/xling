@@ -3,9 +3,6 @@
  * Defines the contract for git-related operations
  */
 
-// Supported git subcommands
-export type GitSubcommand = "worktree" | "prr" | "prv" | "prc";
-
 // Worktree actions
 export type GitWorktreeAction = "list" | "add" | "remove" | "prune" | "switch";
 
@@ -20,14 +17,11 @@ export const SUPPORTED_BROWSERS = [
 ] as const;
 export type SupportedBrowser = (typeof SUPPORTED_BROWSERS)[number];
 
-/**
- * Base payload for all git commands
- */
-export interface GitCommandPayload {
-  cwd?: string;
-  command: GitSubcommand;
-  data: GitWorktreeRequest | GitPrRequest | GitViewRequest | GitCreatePrRequest;
-}
+export type GitCommandPayload =
+  | { cwd?: string; command: "worktree"; data: GitWorktreeRequest }
+  | { cwd?: string; command: "prr"; data: GitPrRequest }
+  | { cwd?: string; command: "prv"; data: GitViewRequest }
+  | { cwd?: string; command: "prc"; data: GitCreatePrRequest };
 
 /**
  * Worktree operation request
@@ -75,11 +69,34 @@ export interface GitCreatePrRequest {
   label?: string[];
 }
 
+export interface WorktreeStatus {
+  path: string;
+  branch?: string;
+  head?: string;
+}
+
+export interface GitCommandDetails {
+  output?: string;
+  worktrees?: WorktreeStatus[];
+  path?: string;
+  branch?: string;
+  strategy?: "gh" | "git";
+  remote?: string;
+  draft?: boolean;
+  web?: boolean;
+  base?: string;
+  head?: string;
+  title?: string;
+  browser?: string;
+  platform?: NodeJS.Platform;
+  id?: string;
+}
+
 /**
  * Result of a git command execution
  */
 export interface GitCommandResult {
   success: boolean;
   message: string;
-  details?: Record<string, unknown>;
+  details?: GitCommandDetails;
 }

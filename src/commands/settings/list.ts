@@ -11,6 +11,8 @@ import type {
   Scope,
   SettingsListData,
   SettingsFileEntry,
+  ConfigObject,
+  ConfigValue,
 } from "@/domain/types.ts";
 
 export default class SettingsList extends Command {
@@ -136,7 +138,7 @@ export default class SettingsList extends Command {
   }
 
   private formatEntriesSummary(
-    entries: Record<string, unknown>,
+    entries: ConfigObject,
     filePath: string,
   ): string {
     const lines = ["entries:"];
@@ -155,9 +157,12 @@ export default class SettingsList extends Command {
     return lines.join("\n");
   }
 
-  private stringify(value: unknown): string {
-    if (value === null || value === undefined) return "null";
+  private stringify(value: ConfigValue): string {
+    if (value === null) return "null";
     if (typeof value === "object") {
+      if (value instanceof Date) {
+        return value.toISOString();
+      }
       return JSON.stringify(value, null, 2);
     }
     return String(value);

@@ -3,7 +3,11 @@
  * Manages git worktrees (list, add, remove, prune, switch)
  */
 
-import type { GitWorktreeRequest, GitCommandResult } from "@/domain/git.ts";
+import type {
+  GitWorktreeRequest,
+  GitCommandResult,
+  WorktreeStatus,
+} from "@/domain/git.ts";
 import { runCommand } from "@/utils/runner.ts";
 import { GitCommandError } from "@/utils/errors.ts";
 import path from "node:path";
@@ -39,19 +43,30 @@ function generateWorktreePath(cwd: string, branch: string): string {
  * @param output Git worktree list porcelain output
  * @returns Array of worktree info
  */
-function parseWorktreeList(
-  output: string,
-): Array<{ path: string; branch: string; head: string }> {
-  const worktrees: Array<{ path: string; branch: string; head: string }> = [];
+type WorktreeParseRecord = Partial<WorktreeStatus>;
+
+function pushWorktreeRecord(
+  collection: WorktreeStatus[],
+  record: WorktreeParseRecord,
+): void {
+  if (record.path) {
+    collection.push({
+      path: record.path,
+      branch: record.branch,
+      head: record.head,
+    });
+  }
+}
+
+function parseWorktreeList(output: string): WorktreeStatus[] {
+  const worktrees: WorktreeStatus[] = [];
   const lines = output.trim().split("\n");
 
-  let current: Partial<{ path: string; branch: string; head: string }> = {};
+  let current: WorktreeParseRecord = {};
 
   for (const line of lines) {
     if (line.startsWith("worktree ")) {
-      if (current.path) {
-        worktrees.push(current as any);
-      }
+      pushWorktreeRecord(worktrees, current);
       current = { path: line.substring(9) };
     } else if (line.startsWith("HEAD ")) {
       current.head = line.substring(5);
@@ -59,16 +74,12 @@ function parseWorktreeList(
       const branchRef = line.substring(7);
       current.branch = branchRef.replace("refs/heads/", "");
     } else if (line === "") {
-      if (current.path) {
-        worktrees.push(current as any);
-        current = {};
-      }
+      pushWorktreeRecord(worktrees, current);
+      current = {};
     }
   }
 
-  if (current.path) {
-    worktrees.push(current as any);
-  }
+  pushWorktreeRecord(worktrees, current);
 
   return worktrees;
 }
@@ -203,7 +214,7 @@ export async function manageWorktree(
       return {
         success: true,
         message: foundPath,
-        details: { path: foundPath },
+        details: { path: foundPath, branch: targetBranch },
       };
     }
 

@@ -5,12 +5,13 @@
 import * as fs from "fs";
 import * as path from "path";
 import * as os from "os";
-import * as toml from "@iarna/toml";
+import * as toml from "smol-toml";
 import {
   ConfigFileNotFoundError,
   ConfigParseError,
   FileWriteError,
 } from "@/utils/errors.ts";
+import type { ConfigObject, ConfigValue } from "@/domain/types.ts";
 
 export interface FileInfo {
   size: number;
@@ -40,7 +41,7 @@ export function ensureDir(dirPath: string): void {
 /**
  * Read a JSON file
  */
-export function readJSON(filepath: string): Record<string, unknown> {
+export function readJSON(filepath: string): ConfigObject {
   const resolvedPath = resolveHome(filepath);
 
   if (!fs.existsSync(resolvedPath)) {
@@ -60,7 +61,7 @@ export function readJSON(filepath: string): Record<string, unknown> {
  */
 export function writeJSON(
   filepath: string,
-  data: Record<string, unknown>,
+  data: ConfigObject,
   backup = true,
 ): void {
   const resolvedPath = resolveHome(filepath);
@@ -87,7 +88,7 @@ export function writeJSON(
 /**
  * Read a TOML file
  */
-export function readTOML(filepath: string): Record<string, unknown> {
+export function readTOML(filepath: string): ConfigObject {
   const resolvedPath = resolveHome(filepath);
 
   if (!fs.existsSync(resolvedPath)) {
@@ -96,7 +97,7 @@ export function readTOML(filepath: string): Record<string, unknown> {
 
   try {
     const content = fs.readFileSync(resolvedPath, "utf-8");
-    return toml.parse(content) as Record<string, unknown>;
+    return toml.parse(content) as ConfigObject;
   } catch (error) {
     throw new ConfigParseError(resolvedPath, (error as Error).message);
   }
@@ -107,7 +108,7 @@ export function readTOML(filepath: string): Record<string, unknown> {
  */
 export function writeTOML(
   filepath: string,
-  data: Record<string, unknown>,
+  data: ConfigObject,
   backup = true,
 ): void {
   const resolvedPath = resolveHome(filepath);
@@ -124,7 +125,7 @@ export function writeTOML(
   try {
     // Atomic write
     const tempPath = `${resolvedPath}.tmp`;
-    fs.writeFileSync(tempPath, toml.stringify(data as any), "utf-8");
+    fs.writeFileSync(tempPath, toml.stringify(data), "utf-8");
     fs.renameSync(tempPath, resolvedPath);
   } catch (error) {
     throw new FileWriteError(resolvedPath, (error as Error).message);
@@ -134,11 +135,17 @@ export function writeTOML(
 /**
  * Deep merge two plain objects
  */
+const isPlainConfigObject = (value: ConfigValue): value is ConfigObject =>
+  typeof value === "object" &&
+  value !== null &&
+  !Array.isArray(value) &&
+  !(value instanceof Date);
+
 export function deepMerge(
-  target: Record<string, unknown>,
-  source: Record<string, unknown>,
-): Record<string, unknown> {
-  const result = { ...target };
+  target: ConfigObject,
+  source: ConfigObject,
+): ConfigObject {
+  const result: ConfigObject = { ...target };
 
   for (const key in source) {
     if (Object.prototype.hasOwnProperty.call(source, key)) {
@@ -146,17 +153,10 @@ export function deepMerge(
       const targetValue = result[key];
 
       if (
-        typeof sourceValue === "object" &&
-        sourceValue !== null &&
-        !Array.isArray(sourceValue) &&
-        typeof targetValue === "object" &&
-        targetValue !== null &&
-        !Array.isArray(targetValue)
+        isPlainConfigObject(sourceValue) &&
+        isPlainConfigObject(targetValue)
       ) {
-        result[key] = deepMerge(
-          targetValue as Record<string, unknown>,
-          sourceValue as Record<string, unknown>,
-        );
+        result[key] = deepMerge(targetValue, sourceValue);
       } else {
         result[key] = sourceValue;
       }

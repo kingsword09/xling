@@ -11,6 +11,7 @@ import type {
   SettingsResult,
   EditOptions,
   SwitchOptions,
+  ConfigObject,
 } from "@/domain/types.ts";
 import { BaseAdapter } from "./base.ts";
 import * as fsStore from "@/services/settings/fsStore.ts";
@@ -115,7 +116,7 @@ export class ClaudeAdapter extends BaseAdapter {
 
     const nextConfig = this.readConfig(sourcePath);
 
-    let currentConfig: Record<string, unknown> = {};
+    let currentConfig: ConfigObject = {};
     try {
       currentConfig = this.readConfig(targetPath);
     } catch {
@@ -243,11 +244,11 @@ export class ClaudeAdapter extends BaseAdapter {
     return match[1] ?? "default";
   }
 
-  private buildSeedConfig(basePath: string): Record<string, unknown> {
+  private buildSeedConfig(basePath: string): ConfigObject {
     try {
       if (fs.existsSync(basePath)) {
         const content = fs.readFileSync(basePath, "utf-8");
-        return JSON.parse(content);
+        return JSON.parse(content) as ConfigObject;
       }
     } catch {
       // ignore, fallback to template

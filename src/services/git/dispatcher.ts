@@ -26,24 +26,23 @@ export class GitDispatcher {
       await ensureGitRepo(payload.cwd);
     }
 
-    // Route to appropriate handler
-    switch (payload.command) {
-      case "worktree":
-        return manageWorktree(payload.data as any, payload.cwd);
-
-      case "prr":
-        return checkoutPr(payload.data as any, payload.cwd);
-
-      case "prv":
-        return viewPr(payload.data as any, payload.cwd);
-
-      case "prc":
-        return createPr(payload.data as any, payload.cwd);
-
-      default:
-        // TypeScript exhaustiveness check
-        const _exhaustive: never = payload.command;
-        throw new Error(`Unknown git command: ${_exhaustive}`);
+    if (payload.command === "worktree") {
+      return manageWorktree(payload.data, payload.cwd);
     }
+
+    if (payload.command === "prr") {
+      return checkoutPr(payload.data, payload.cwd);
+    }
+
+    if (payload.command === "prv") {
+      return viewPr(payload.data, payload.cwd);
+    }
+
+    if (payload.command === "prc") {
+      return createPr(payload.data, payload.cwd);
+    }
+
+    const _exhaustive: never = payload;
+    throw new Error(`Unknown git command: ${_exhaustive}`);
   }
 }

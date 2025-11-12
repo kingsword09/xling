@@ -3,40 +3,42 @@
  */
 
 import { z, type ZodType } from "zod";
-import type { SettingsPayload } from "./types.ts";
-
-const TOOL_IDS = ["claude", "codex", "gemini"] as const;
-const SCOPES = ["user", "project", "local", "system"] as const;
-const ACTIONS = ["list", "edit", "switch-profile", "inspect"] as const;
+import type {
+  ConfigValue,
+  SettingAction,
+  SettingsPayload,
+  Scope,
+  ToolId,
+} from "./types.ts";
 
 /**
  * ToolId schema
  */
-export const ToolIdSchema: z.ZodEnum<{
-  claude: "claude";
-  codex: "codex";
-  gemini: "gemini";
-}> = z.enum(TOOL_IDS);
+export const ToolIdSchema: z.ZodType<ToolId> = z.enum([
+  "claude",
+  "codex",
+  "gemini",
+] as const);
 
 /**
  * Scope schema
  */
-export const ScopeSchema: z.ZodEnum<{
-  user: "user";
-  project: "project";
-  local: "local";
-  system: "system";
-}> = z.enum(SCOPES);
+export const ScopeSchema: z.ZodType<Scope> = z.enum([
+  "user",
+  "project",
+  "local",
+  "system",
+] as const);
 
 /**
  * SettingAction schema
  */
-export const SettingActionSchema: z.ZodEnum<{
-  list: "list";
-  edit: "edit";
-  "switch-profile": "switch-profile";
-  inspect: "inspect";
-}> = z.enum(ACTIONS);
+export const SettingActionSchema: z.ZodType<SettingAction> = z.enum([
+  "list",
+  "edit",
+  "switch-profile",
+  "inspect",
+] as const);
 
 /**
  * SettingsPayload schema
@@ -55,11 +57,11 @@ export const SettingsPayloadSchema: ZodType<SettingsPayload> = z.object({
       backup: z.boolean().optional(),
     })
     .optional(),
-}) as ZodType<SettingsPayload>;
+});
 
 /**
  * Validate an incoming settings payload
  */
-export function validatePayload(payload: unknown): SettingsPayload {
+export function validatePayload(payload: ConfigValue): SettingsPayload {
   return SettingsPayloadSchema.parse(payload);
 }

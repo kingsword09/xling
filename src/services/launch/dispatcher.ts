@@ -4,7 +4,12 @@
  */
 
 import type { LaunchAdapter } from "@/domain/interfaces.ts";
-import type { LaunchPayload, LaunchResult, ToolId } from "@/domain/types.ts";
+import type {
+  LaunchPayload,
+  LaunchResult,
+  ToolId,
+  ConfigValue,
+} from "@/domain/types.ts";
 import { ClaudeLaunchAdapter } from "./adapters/claude.ts";
 import { CodexLaunchAdapter } from "./adapters/codex.ts";
 import { spawnProcess } from "@/utils/runner.ts";
@@ -59,18 +64,30 @@ export class LaunchDispatcher {
         args: payload.args,
       });
 
+      const telemetry = {
+        tool: payload.tool,
+        yolo,
+        args: payload.args ?? [],
+      } as Record<string, ConfigValue>;
+
+      if (payload.resume !== undefined) {
+        telemetry.resume = payload.resume;
+      }
+
+      if (payload.continue !== undefined) {
+        telemetry.continue = payload.continue;
+      }
+
+      if (payload.cwd) {
+        telemetry.cwd = payload.cwd;
+      }
+
       return {
         success: true,
         pid,
         command,
         message: `Launched ${payload.tool} successfully (PID: ${pid})`,
-        data: {
-          tool: payload.tool,
-          yolo,
-          resume: payload.resume,
-          continue: payload.continue,
-          args: payload.args ?? [],
-        },
+        data: telemetry,
       };
     } catch (error) {
       return {

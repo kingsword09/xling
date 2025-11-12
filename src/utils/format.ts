@@ -3,19 +3,23 @@
  */
 
 import Table from "cli-table3";
-import type { SettingsFileEntry } from "@/domain/types.ts";
+import type {
+  ConfigObject,
+  ConfigValue,
+  SettingsFileEntry,
+} from "@/domain/types.ts";
 
 /**
  * Format data as a JSON string
  */
-export function formatJson(data: unknown, pretty = true): string {
+export function formatJson<T>(data: T, pretty = true): string {
   return JSON.stringify(data, null, pretty ? 2 : 0);
 }
 
 /**
  * Format a key/value object as a table
  */
-export function formatTable(data: Record<string, unknown>): string {
+export function formatTable(data: ConfigObject): string {
   const table = new Table({
     head: ["Key", "Value"],
     colWidths: [30, 50],
@@ -53,8 +57,8 @@ export function formatFilesTable(files: SettingsFileEntry[]): string {
 }
 
 export function formatDiff(
-  currentValue: unknown,
-  nextValue: unknown,
+  currentValue: ConfigValue,
+  nextValue: ConfigValue,
 ): string | null {
   const current = JSON.stringify(currentValue ?? {}, null, 2);
   const next = JSON.stringify(nextValue ?? {}, null, 2);
@@ -80,10 +84,11 @@ export function formatDiff(
 /**
  * Format a single value for display
  */
-function formatValue(value: unknown): string {
+function formatValue(value: ConfigValue): string {
   if (value === null) return "null";
   if (value === undefined) return "undefined";
   if (typeof value === "string") return value;
+  if (value instanceof Date) return value.toISOString();
   if (typeof value === "number" || typeof value === "boolean")
     return String(value);
   if (Array.isArray(value)) return JSON.stringify(value);
