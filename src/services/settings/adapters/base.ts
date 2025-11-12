@@ -1,6 +1,6 @@
 /**
- * 适配器抽象基类
- * 实现通用逻辑，减少重复代码（DRY 原则）
+ * Base class for settings adapters
+ * Provides shared logic to keep subclasses DRY
  */
 
 import type { SettingsAdapter } from "@/domain/interfaces.ts";
@@ -17,19 +17,19 @@ import { InvalidScopeError } from "@/utils/errors.ts";
 import * as fsStore from "@/services/settings/fsStore.ts";
 
 /**
- * 抽象基类
+ * Abstract adapter implementation
  */
 export abstract class BaseAdapter implements SettingsAdapter {
   abstract readonly toolId: ToolId;
 
   /**
-   * 子类必须实现的方法
+   * Methods every adapter must implement
    */
   abstract resolvePath(scope: Scope): string;
   abstract validateScope(scope: Scope): boolean;
 
   /**
-   * 列出所有配置
+   * List all configuration entries for a scope
    */
   async list(scope: Scope): Promise<SettingsListData> {
     if (!this.validateScope(scope)) {
@@ -47,7 +47,7 @@ export abstract class BaseAdapter implements SettingsAdapter {
   }
 
   /**
-   * 默认 switchProfile 会抛出，子类可覆盖
+   * Default switchProfile implementation (throws unless overridden)
    */
   async switchProfile(
     _scope: Scope,
@@ -58,7 +58,7 @@ export abstract class BaseAdapter implements SettingsAdapter {
   }
 
   /**
-   * 检查配置文件
+   * Inspect the configuration file
    */
   async inspect(scope: Scope): Promise<InspectResult> {
     if (!this.validateScope(scope)) {
@@ -88,21 +88,21 @@ export abstract class BaseAdapter implements SettingsAdapter {
   }
 
   /**
-   * 默认 edit 会抛出，子类可覆盖
+   * Default edit implementation (throws unless overridden)
    */
   async edit(scope: Scope, _options: EditOptions): Promise<SettingsResult> {
     throw new Error(`Tool ${this.toolId} does not support edit for ${scope}`);
   }
 
   /**
-   * 读取配置文件（子类可覆盖）
+   * Read the configuration file (subclasses may override)
    */
   protected readConfig(path: string): Record<string, unknown> {
     return fsStore.readJSON(path);
   }
 
   /**
-   * 写入配置文件（子类可覆盖）
+   * Write the configuration file (subclasses may override)
    */
   protected writeConfig(
     path: string,

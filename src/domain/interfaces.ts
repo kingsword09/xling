@@ -1,5 +1,5 @@
 /**
- * 适配器接口定义
+ * Adapter interfaces
  */
 
 import type {
@@ -14,22 +14,21 @@ import type {
 } from "./types.ts";
 
 /**
- * Settings 适配器接口
- * 所有工具适配器必须实现此接口（LSP 原则）
+ * Settings adapter contract (all adapters must honor it per LSP)
  */
 export interface SettingsAdapter {
   /**
-   * 工具标识符
+   * Tool identifier
    */
   readonly toolId: ToolId;
 
   /**
-   * 列出指定 scope 的所有配置
+   * List all configuration entries for a scope
    */
   list(scope: Scope): Promise<SettingsListData>;
 
   /**
-   * 切换 profile（可选，仅 Codex 支持）
+   * Switch profiles (optional, Codex only)
    */
   switchProfile?(
     scope: Scope,
@@ -38,45 +37,43 @@ export interface SettingsAdapter {
   ): Promise<SettingsResult>;
 
   /**
-   * 打开配置文件供编辑（可选）
+   * Open the configuration file for editing (optional)
    */
   edit?(scope: Scope, options: EditOptions): Promise<SettingsResult>;
 
   /**
-   * 检查配置文件状态
+   * Inspect the configuration file
    */
   inspect?(scope: Scope): Promise<InspectResult>;
 
   /**
-   * 解析配置文件路径
+   * Resolve the configuration file path
    */
   resolvePath(scope: Scope): string;
 
   /**
-   * 验证 scope 是否有效
+   * Validate that the scope is supported
    */
   validateScope(scope: Scope): boolean;
 }
 
 /**
- * Launch 适配器接口
- * 负责构建工具启动命令（ISP 原则：与 SettingsAdapter 分离）
+ * Launch adapter interface (separate from settings adapters per ISP)
  */
 export interface LaunchAdapter {
   /**
-   * 工具标识符
+   * Tool identifier
    */
   readonly toolId: ToolId;
 
   /**
-   * 可执行文件名称
+   * Executable name
    */
   readonly executable: string;
 
   /**
-   * 构建启动命令配置
-   * @param payload Launch 请求参数
-   * @returns 命令规范
+   * Build the launch command specification
+   * @param payload Launch request payload
    */
   buildCommandSpec(payload: {
     yolo?: boolean;
@@ -85,14 +82,12 @@ export interface LaunchAdapter {
   }): LaunchCommandSpec;
 
   /**
-   * 验证工具是否可用（在 PATH 中）
-   * @returns 工具是否可用
+   * Verify that the tool is available on PATH
    */
   validateAvailability(): Promise<boolean>;
 
   /**
-   * 获取工具版本信息（可选）
-   * @returns 版本字符串
+   * Optional: fetch the tool version
    */
   getVersion?(): Promise<string>;
 }

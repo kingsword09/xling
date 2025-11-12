@@ -1,6 +1,6 @@
 /**
- * settings:get 命令
- * 获取指定配置项的值
+ * settings:get command
+ * Retrieve the selected configuration file
  */
 
 import fs from "node:fs";

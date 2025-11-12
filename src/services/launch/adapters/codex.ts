@@ -1,17 +1,16 @@
 /**
- * Codex Launch 适配器
+ * Codex launch adapter
  */
 
 import { BaseLaunchAdapter } from "./base.ts";
 import type { LaunchCommandSpec } from "@/domain/types.ts";
 
 /**
- * Codex 启动适配器
- *
- * Yolo 模式: --dangerously-bypass-approvals-and-sandbox
- * Resume 模式: resume (显示会话列表选择)
- * Continue 模式: resume --last (继续最后一个会话)
- * 启动交互式会话: codex --dangerously-bypass-approvals-and-sandbox
+ * Applies Codex-specific behavior:
+ * - Yolo mode: --dangerously-bypass-approvals-and-sandbox
+ * - Resume picker: `codex resume`
+ * - Continue last session: `codex resume --last`
+ * - Default interactive session: `codex`
  */
 export class CodexLaunchAdapter extends BaseLaunchAdapter {
   readonly toolId = "codex" as const;
@@ -24,7 +23,7 @@ export class CodexLaunchAdapter extends BaseLaunchAdapter {
   }): LaunchCommandSpec {
     const baseArgs: string[] = [];
 
-    // Resume 和 Continue 是互斥的
+    // Resume and continue flags are mutually exclusive
     if (payload.continue) {
       // codex resume --last
       baseArgs.push("resume", "--last");
@@ -32,7 +31,7 @@ export class CodexLaunchAdapter extends BaseLaunchAdapter {
       // codex resume
       baseArgs.push("resume");
     }
-    // 否则直接启动交互式会话，baseArgs 为空
+    // Otherwise launch the default interactive session
 
     return {
       executable: this.executable,

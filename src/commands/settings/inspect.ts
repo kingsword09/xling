@@ -1,6 +1,6 @@
 /**
- * settings:inspect 命令
- * 检查配置文件状态
+ * settings:inspect command
+ * Check the status of configuration files
  */
 
 import { Command, Flags, Interfaces } from "@oclif/core";

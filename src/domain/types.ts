@@ -1,5 +1,5 @@
 /**
- * 核心类型定义
+ * Core type definitions
  */
 
 export type ToolId = "claude" | "codex" | "gemini";
@@ -40,7 +40,7 @@ export type SettingsListData =
     };
 
 /**
- * Settings 操作的输入参数
+ * Input payload for settings operations
  */
 export interface SettingsPayload {
   tool: ToolId;
@@ -54,7 +54,7 @@ export interface SettingsPayload {
 }
 
 /**
- * Settings 操作的返回结果
+ * Result returned by settings operations
  */
 export interface SettingsResult {
   success: boolean;
@@ -66,7 +66,7 @@ export interface SettingsResult {
 }
 
 /**
- * 配置文件检查结果
+ * Inspect command result
  */
 export interface InspectResult {
   path: string;
@@ -77,38 +77,38 @@ export interface InspectResult {
 }
 
 /**
- * Launch 功能相关类型
+ * Launch-related types
  */
 
 /**
- * Launch 操作的输入参数
+ * Launch payload
  */
 export interface LaunchPayload {
   tool: ToolId;
-  yolo?: boolean; // 默认 true
-  args?: string[]; // 透传给工具的额外参数
-  cwd?: string; // 工作目录
-  resume?: boolean; // 显示对话列表选择 (claude -r, codex resume)
-  continue?: boolean; // 继续最后一个对话 (claude -c, codex resume --last)
+  yolo?: boolean; // defaults to true
+  args?: string[]; // additional args forwarded to the tool
+  cwd?: string; // working directory
+  resume?: boolean; // show session picker (claude -r, codex resume)
+  continue?: boolean; // continue most recent session (claude -c, codex resume --last)
 }
 
 /**
- * Launch 操作的返回结果
+ * Launch result
  */
 export interface LaunchResult {
   success: boolean;
-  pid?: number; // 进程 ID
-  command?: string; // 执行的完整命令
+  pid?: number; // spawned process ID
+  command?: string; // full command string
   message?: string;
   data?: Record<string, unknown>;
 }
 
 /**
- * 进程启动命令规范
+ * Launch command specification
  */
 export interface LaunchCommandSpec {
-  executable: string; // 可执行文件名或路径
-  baseArgs: string[]; // 基础参数
-  yoloArgs?: string[]; // yolo 模式的参数
-  envVars?: Record<string, string>; // 环境变量
+  executable: string; // binary name or path
+  baseArgs: string[]; // default arguments
+  yoloArgs?: string[]; // extra arguments used in yolo mode
+  envVars?: Record<string, string>; // environment variables
 }

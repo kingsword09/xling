@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * xling CLI 入口点
+ * xling CLI entry point
  */
 
 import { execute } from "@oclif/core";

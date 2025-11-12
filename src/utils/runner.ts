@@ -1,6 +1,6 @@
 /**
- * 进程启动和管理工具
- * 遵循 SRP 原则：只负责进程启动，不涉及业务逻辑
+ * Process launch helpers
+ * Stays focused on spawning child processes (SRP)
  */
 
 import { spawn } from "node:child_process";
@@ -18,53 +18,53 @@ export interface SpawnResult {
 }
 
 /**
- * 启动子进程
- * @param spec 命令规范
- * @param options 启动选项
- * @returns 进程 ID 和完整命令
+ * Launch a child process
+ * @param spec Launch command specification
+ * @param options Additional spawn options
+ * @returns Process ID and the full command string
  */
 export async function spawnProcess(
   spec: LaunchCommandSpec,
   options?: SpawnOptions,
 ): Promise<SpawnResult> {
-  // 1. 合并参数
+  // 1. Merge arguments
   const args = [...spec.baseArgs];
 
-  // 添加 yolo 参数
+  // Include yolo flags when requested
   if (spec.yoloArgs) {
     args.push(...spec.yoloArgs);
   }
 
-  // 添加用户透传的额外参数
+  // Add passthrough arguments from the CLI
   if (options?.args) {
     args.push(...options.args);
   }
 
-  // 2. 合并环境变量
+  // 2. Compose environment variables
   const env = {
     ...process.env,
     ...spec.envVars,
     ...options?.env,
   };
 
-  // 3. 启动进程
+  // 3. Spawn the child process
   const child = spawn(spec.executable, args, {
     cwd: options?.cwd ?? process.cwd(),
     env,
-    stdio: "inherit", // 继承父进程的标准输入输出
+    stdio: "inherit", // reuse parent stdio to keep UX consistent
     detached: false,
   });
 
-  // 构建完整命令字符串（用于日志）
+  // Build a full command string for logging
   const command = `${spec.executable} ${args.join(" ")}`;
 
-  // 等待进程启动
+  // Wait for the process to spawn or fail
   return new Promise((resolve, reject) => {
     child.on("error", (error) => {
       reject(new Error(`Failed to spawn process: ${error.message}`));
     });
 
-    // 进程成功启动后立即返回
+    // Resolve as soon as the process successfully spawns
     child.on("spawn", () => {
       resolve({
         pid: child.pid!,
@@ -72,7 +72,7 @@ export async function spawnProcess(
       });
     });
 
-    // 如果进程立即退出（如命令不存在），视为错误
+    // Treat immediate non-zero exits (e.g., missing binary) as errors
     child.on("exit", (code) => {
       if (code !== 0 && code !== null) {
         reject(new Error(`Process exited with code ${code}`));
@@ -82,9 +82,8 @@ export async function spawnProcess(
 }
 
 /**
- * 检查可执行文件是否存在于 PATH 中
- * @param name 可执行文件名
- * @returns 是否存在
+ * Check whether an executable exists on the PATH
+ * @param name Executable name to look up
  */
 export async function checkExecutable(name: string): Promise<boolean> {
   return new Promise((resolve) => {
@@ -99,10 +98,9 @@ export async function checkExecutable(name: string): Promise<boolean> {
 }
 
 /**
- * 获取可执行文件的版本信息
- * @param executable 可执行文件名
- * @param versionArgs 版本参数（默认 --version）
- * @returns 版本字符串
+ * Retrieve the version string from an executable
+ * @param executable Program name
+ * @param versionArgs Arguments passed to print the version (defaults to --version)
  */
 export async function getExecutableVersion(
   executable: string,

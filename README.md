@@ -54,7 +54,7 @@ The fastest way to start your AI tools! Just type `xling x` to launch Claude Cod
 **Claude Code is launched by default** - the ultimate convenience!
 
 ```bash
-# 🚀 Fastest way - Start Claude Code instantly
+# Fastest way - Start Claude Code instantly
 xling x
 
 # Continue last conversation/session
@@ -111,8 +111,7 @@ xling settings:list --tool codex --table
 > block from `~/.codex/config.toml`, helping you audit provider names, base URLs,
 > and env key bindings at a glance.
 
-`settings:list` 默认输出 YAML 风格的简洁概览；如需表格/JSON，请加 `--table` 或
-`--json`。其余命令仍以 JSON 为默认输出，可通过 `--no-json` 获取文本格式。
+`settings:list` prints a concise YAML-style summary by default. Add `--table` or `--json` for structured output. Other commands default to JSON and can switch to plain text with `--no-json`.
 
 ### Get Settings File
 
@@ -137,11 +136,9 @@ xling settings:set --tool claude --scope user --name hxi
 xling settings:set --tool claude --scope project --name default --ide cursor --no-json
 ```
 
-`settings:set` 现专注于整文件编辑：传 `--name`（默认 `default`）即可创建/打开
-`settings.<name>.json`，并使用 `--ide` 指定编辑器（默认 VS Code 的 `code`）。
+`settings:set` now focuses on whole-file editing: pass `--name` (defaults to `default`) to create or open `settings.<name>.json`, and use `--ide` to pick the editor command (defaults to VS Code's `code`).
 
-> Note: 所有 `settings:*` 命令仅依赖 `--tool`、`--scope`、`--name` 等 flag；不再提供
-> `developerShortcuts.runCommand` 这类键级参数。
+> Note: Every `settings:*` command relies solely on flags such as `--tool`, `--scope`, and `--name`; key-level overrides like `developerShortcuts.runCommand` are no longer supported.
 
 ### Switch Profiles or Claude Variants
 
@@ -159,9 +156,7 @@ xling settings:switch hxi --tool claude --scope user --force
 xling settings:switch hxi --tool claude --scope user --force --backup
 ```
 
-Claude switches现在默认进行交互式 diff 预览：命令会先打印彩色统一 diff，
-然后提示 `overwrite / backup / cancel`。若要非交互执行，使用 `--force`，并可
-通过 `--backup` 强制保留 `.bak`。Codex 保持原行为，直接切换 profile。
+Claude switches now show an interactive diff preview: the command prints a unified diff and then prompts for `overwrite / backup / cancel`. Use `--force` for non-interactive runs, optionally paired with `--backup` to keep a `.bak`. Codex continues to switch profiles immediately.
 
 ### Inspect Configuration
 
@@ -209,19 +204,19 @@ The project follows SOLID principles:
 
 ```
 xling/
-├── bin/
-│   └── run.js              # CLI entry point
-├── src/
-│   ├── commands/           # oclif commands
-│   │   └── settings/
-│   ├── domain/             # Types and interfaces
-│   ├── services/           # Business logic
-│   │   └── settings/
-│   │       ├── adapters/   # Tool adapters
-│   │       ├── fsStore.ts  # File system operations
-│   │       └── dispatcher.ts
-│   └── utils/              # Utilities
-└── test/                   # Tests and fixtures
+|- bin/                     # CLI entry point (compiled)
+|  |- run.js
+|- src/
+|  |- commands/             # oclif commands
+|  |  |- settings/
+|  |- domain/               # Types and interfaces
+|  |- services/             # Business logic
+|  |  |- settings/
+|  |     |- adapters/       # Tool adapters
+|  |     |- fsStore.ts      # File system operations
+|  |     |- dispatcher.ts
+|  |- utils/                # Utilities
+|- test/                    # Tests and fixtures
 ```
 
 ## Development

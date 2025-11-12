@@ -1,237 +1,170 @@
-## 项目基础约定
+## Project Conventions
 
-- **运行时**：本项目默认使用 Bun（>= 1.3.2）。所有开发、构建、测试脚本统一通过 `bun` 命令执行。
-- **语言**：业务逻辑全部使用 TypeScript；如需 JavaScript 辅助脚本需在文档中注明原因。
-- **构建工具**：使用 tsdown 进行 TypeScript 编译，基于 rolldown 提供快速构建和打包。
-- **代码检查**：使用 oxlint 进行代码质量检查，基于 Rust 的高性能 linter。
-- **代码格式化**：使用 oxfmt 进行代码格式化，兼容 Prettier 配置。
-- **测试框架**：单元与集成测试统一使用 Vitest，默认命令为 `bun test`。
-- **CLI 框架**：使用 oclif 构建命令行工具，支持子命令、参数验证和自动文档生成。
+- **Runtime**: Bun (>= 1.3.2). Run every development, build, and test script via `bun`.
+- **Language**: Business logic lives in TypeScript. If a JavaScript helper is required, document the rationale.
+- **Build System**: tsdown (powered by rolldown) compiles and bundles the CLI.
+- **Linting**: oxlint provides fast, Rust-based lint checks.
+- **Formatting**: oxfmt enforces the shared Prettier-compatible style.
+- **Testing**: Vitest (invoked through `bun test`) covers unit and integration flows.
+- **CLI Framework**: oclif powers subcommands, flag validation, and auto-generated help.
 
-## 环境准备
+## Environment Setup
 
-1. 安装 Bun（推荐 `curl -fsSL https://bun.sh/install | bash`）。
-2. 在仓库根目录执行 `bun install` 安装依赖。
-3. 运行 `bun run build` 编译 TypeScript 代码。
-4. 运行 `./bin/run.js --help` 验证 CLI 工具正常工作。
-5. 运行 `bun lint` 和 `bun fmt` 格式化代码。
-6. 运行 `bun test` 或 `bun test --watch` 确认测试通过。
+1. Install Bun (recommended: `curl -fsSL https://bun.sh/install | bash`).
+2. Run `bun install` at the repo root.
+3. Compile the project with `bun run build`.
+4. Verify the CLI by running `./bin/run.js --help`.
+5. Run `bun lint` and `bun fmt` to ensure lint/format success.
+6. Run `bun test` or `bun test --watch` to confirm the test suite.
 
-## 开发约定
+## Development Rules
 
-- 新增 npm scripts 需在 `package.json` 中声明，并通过 `bun run <script>` 调用。
-- TypeScript 保持严格模式，公共 API 必须提供类型定义。
-- 所有新功能必须配套 Vitest 用例；若暂无法测试需在 PR 中说明原因及补充计划。
-- 遵循 SOLID 原则：单一职责、开闭原则、里氏替换、接口隔离、依赖倒置。
+- Declare new npm scripts inside `package.json` and execute them with `bun run <script>`.
+- Keep TypeScript in strict mode and expose types for every public API.
+- Ship Vitest coverage with each new feature (call out temporary gaps in the PR if needed).
+- Follow SOLID: single responsibility, open/closed, Liskov substitution, interface segregation, dependency inversion.
 
-## 项目结构
+## Project Layout
 
 ```
 xling/
-├── src/
-│   ├── run.ts              # CLI 入口点（编译到 dist/run.js）
-│   ├── commands/           # oclif 命令（文件系统路由）
-│   │   ├── x/              # x 命令（快速启动）
-│   │   │   └── index.ts    # x 命令
-│   │   └── settings/       # settings 命令组
-│   │       ├── list.ts     # settings:list
-│   │       ├── get.ts      # settings:get
-│   │       ├── set.ts      # settings:set
-│   │       ├── switch.ts   # settings:switch
-│   │       └── inspect.ts  # settings:inspect
-│   ├── domain/             # 领域模型
-│   │   ├── types.ts        # 核心类型定义
-│   │   ├── interfaces.ts   # 接口定义
-│   │   └── validators.ts   # 验证器
-│   ├── services/           # 业务逻辑
-│   │   ├── launch/         # Launch 服务
-│   │   │   ├── adapters/   # 工具启动适配器
-│   │   │   │   ├── base.ts     # 抽象基类
-│   │   │   │   ├── claude.ts   # Claude Code 启动适配器
-│   │   │   │   └── codex.ts    # Codex 启动适配器
-│   │   │   └── dispatcher.ts   # Launch 调度器
-│   │   └── settings/       # Settings 服务
-│   │       ├── adapters/   # 工具配置适配器
-│   │       │   ├── base.ts     # 抽象基类
-│   │       │   ├── claude.ts   # Claude Code 适配器
-│   │       │   ├── codex.ts    # Codex 适配器
-│   │       │   └── gemini.ts   # Gemini CLI 适配器
-│   │       ├── fsStore.ts      # 文件系统操作
-│   │       └── dispatcher.ts   # Settings 调度器
-│   └── utils/              # 工具函数
-│       ├── errors.ts       # 错误类型
-│       ├── logger.ts       # 日志工具
-│       ├── format.ts       # 格式化工具
-│       └── runner.ts       # 进程启动工具
-├── test/                   # 测试和 fixtures
-└── dist/                   # 编译输出（tsdown）
-    ├── run.js              # 编译后的 CLI 入口（可执行）
-    ├── commands/           # 编译后的命令
-    ├── services/           # 编译后的服务
-    └── ...
+|- src/
+|  |- run.ts                 # Bundled into dist/run.js
+|  |- commands/              # oclif command files
+|  |  |- x/index.ts          # Quick launcher
+|  |  |- settings/{list,get,set,switch,inspect}.ts
+|  |- domain/                # Types, interfaces, validators
+|  |- services/
+|  |  |- launch/             # Launch adapters + dispatcher
+|  |  |- settings/           # Settings adapters, fsStore, dispatcher
+|  |- utils/                 # errors, logger, format, runner
+|- test/                     # Tests and fixtures
+|- dist/                     # tsdown output (commands, services, run.js)
 ```
 
-## 架构设计
+## Architecture Overview
 
-### 适配器模式
+### Adapter Pattern
 
-项目使用适配器模式统一管理不同 AI CLI 工具的配置和启动：
+Adapters isolate every external tool:
 
-**Settings Adapters** - 配置管理：
-- **BaseAdapter**: 抽象基类，实现通用逻辑（DRY 原则）
-- **ClaudeAdapter**: Claude Code 配置适配器（JSON 格式）
-- **CodexAdapter**: Codex 配置适配器（TOML 格式，支持 profile）
-- **GeminiAdapter**: Gemini CLI 配置适配器（JSON 格式）
+- **Settings adapters**: `BaseAdapter`, `ClaudeAdapter` (JSON), `CodexAdapter` (TOML with profiles), `GeminiAdapter` (JSON).
+- **Launch adapters**: `BaseLaunchAdapter`, plus Claude (`--dangerously-skip-permissions`) and Codex (`--dangerously-bypass-approvals-and-sandbox`) implementations.
 
-**Launch Adapters** - 工具启动：
-- **BaseLaunchAdapter**: 抽象基类，实现进程启动通用逻辑
-- **ClaudeLaunchAdapter**: Claude Code 启动适配器（yolo: --dangerously-skip-permissions）
-- **CodexLaunchAdapter**: Codex 启动适配器（yolo: --dangerously-bypass-approvals-and-sandbox）
+### Dispatchers
 
-### 调度器
+- **SettingsDispatcher** depends only on the `SettingsAdapter` interface (DIP) and registers adapters so new tools can be added without touching the command layer (OCP).
+- **LaunchDispatcher** depends on `LaunchAdapter`, validates availability, toggles yolo mode, and forwards passthrough arguments.
 
-**SettingsDispatcher** - 配置管理调度器：
-- 依赖 `SettingsAdapter` 接口，不依赖具体实现（DIP 原则）
-- 新增工具只需注册适配器，无需修改命令层（OCP 原则）
+### Command Layer
 
-**LaunchDispatcher** - 工具启动调度器：
-- 依赖 `LaunchAdapter` 接口，不依赖具体实现（DIP 原则）
-- 支持工具可用性检查、yolo 模式、参数透传
+Filesystem routing maps files such as `src/commands/settings/list.ts` to `xling settings:list`. Commands share flag validation, help-generation, JSON output, and centralized error handling.
 
-### 命令层
-
-使用 oclif 构建 CLI 命令：
-
-- 文件系统路由：`src/commands/settings/list.ts` → `xling settings:list`
-- 内置参数验证、帮助文档生成、JSON 输出支持
-- 统一的错误处理和日志输出
-
-## 支持的工具
+## Supported Tools
 
 ### Claude Code
 
 - **Scopes**: user, project, local
-- **配置文件**:
-  - User: `~/.claude/settings.json`
-  - Project: `.claude/settings.json`
-  - Local: `.claude/settings.local.json`
+- **Config files**: `~/.claude/settings.json`, `.claude/settings.json`, `.claude/settings.local.json`
 
 ### Codex
 
-- **Scopes**: user
-- **配置文件**: `~/.codex/config.toml`
-- **特性**: Profile 切换
+- **Scope**: user
+- **Config file**: `~/.codex/config.toml`
+- **Special feature**: profile switching
 
 ### Gemini CLI
 
 - **Scopes**: user, project, system
-- **配置文件**:
-  - User: `~/.gemini/settings.json`
-  - Project: `.gemini/settings.json`
-  - System: 平台相关路径
+- **Config files**: `~/.gemini/settings.json`, `.gemini/settings.json`, plus platform-specific system paths
 
-## 常用命令
+## Common Commands
 
 ```bash
-# 开发
-bun run build          # 使用 tsdown 编译 TypeScript
-bun run dev            # 监听模式编译（tsdown --watch）
+# Build & dev
+bun run build             # Compile via tsdown
+bun run dev               # tsdown --watch
 
-# 代码质量
-bun run lint           # 使用 oxlint 检查代码
-bun run lint:fix       # 使用 oxlint 自动修复问题
-bun run format         # 使用 oxfmt 格式化代码
-bun run format:check   # 检查代码格式
-bun run typecheck      # TypeScript 类型检查（tsc --noEmit）
+# Quality
+bun run lint              # oxlint
+bun run lint:fix          # oxlint auto-fix
+bun run format            # oxfmt
+bun run format:check      # verify formatting
+bun run typecheck         # tsc --noEmit
 
-> Lint/format 风格通过 `.oxlintrc.json` 与 `.oxfmtrc.json` 统一配置（参考 [oxlint 官方文档](https://oxc.rs/docs/guide/usage/linter/config.html)）。
-> 其中强制使用双引号、显式分号，并忽略 `dist/`、`node_modules/` 等生成目录。
+# Tests
+bun test
+bun test:watch
+bun test:coverage
 
-# 测试
-bun test               # 运行测试
-bun test:watch         # 监听模式测试
-bun test:coverage      # 测试覆盖率
+# x command (fast launcher, default tool = Claude Code, yolo on)
+./dist/run.js x
+./dist/run.js x -c                      # Continue last Claude conversation
+./dist/run.js x -r                      # Pick a conversation
+./dist/run.js x --tool codex
+./dist/run.js x -t codex -c             # Codex resume --last
+./dist/run.js x -t codex -r             # Codex resume picker
+./dist/run.js x --no-yolo               # Launch Claude without yolo
+./dist/run.js x -- chat \"Hello\"         # Pass additional args
+./dist/run.js x -t codex -C /path        # Launch Codex in a specific directory
 
-# x 命令 - 快速启动 AI CLI 工具（默认 Claude Code，yolo 模式）
-./dist/run.js x                                      # 启动 Claude Code (默认)
-./dist/run.js x -c                                   # 继续最后一个对话 (claude -c)
-./dist/run.js x -r                                   # 显示对话列表选择 (claude -r)
-./dist/run.js x --tool codex                         # 启动 Codex
-./dist/run.js x -t codex                             # 启动 Codex (简写)
-./dist/run.js x -t codex -c                          # 继续最后一个 Codex 会话 (codex resume --last)
-./dist/run.js x -t codex -r                          # 显示 Codex 会话列表 (codex resume)
-./dist/run.js x --no-yolo                            # 启动 Claude (无 yolo)
-./dist/run.js x -- chat "Hello"                      # 启动 Claude 并传递参数
-./dist/run.js x -t codex -C /path/to/project         # 在指定目录启动 Codex
-
-# Settings 命令 - 配置管理
-
-# settings:list - 默认摘要，--table/--json 切换
+# Settings commands
 ./dist/run.js settings:list --tool claude --scope user
 ./dist/run.js settings:list --tool codex --table
-
-# settings:get - 查看完整配置文件，可 --json 输出结构化数据
 ./dist/run.js settings:get --tool claude --scope user
 ./dist/run.js settings:get hxi --tool claude --scope user
 ./dist/run.js settings:get --tool codex
-
-# settings:set - 通过 IDE 编辑 Claude 变体
-./dist/run.js settings:set --tool claude --scope user --name hxi            # 创建/编辑 settings.hxi.json（默认 VS Code）
+./dist/run.js settings:set --tool claude --scope user --name hxi
 ./dist/run.js settings:set --tool claude --scope project --name default --ide cursor --no-json
-
-# settings:switch - Codex profile / Claude 变体切换
 ./dist/run.js settings:switch oss --tool codex
 ./dist/run.js settings:switch hxi --tool claude --scope user
-
-# settings:inspect - 查看文件状态（默认 JSON，可 --no-json）
 ./dist/run.js settings:inspect --tool claude --scope user
 ./dist/run.js settings:inspect --tool codex --no-json
 ```
 
-## 扩展指南
+> Lint and format configuration lives in `.oxlintrc.json` and `.oxfmtrc.json`. The enforced style uses double quotes, explicit semicolons, and ignores generated folders such as `dist/` and `node_modules/`.
 
-### 添加新的 AI CLI 工具
+## Extension Guide
 
-1. 在 `src/services/settings/adapters/` 创建新的适配器类
-2. 继承 `BaseAdapter` 并实现必要方法
-3. 在 `SettingsDispatcher` 构造函数中注册适配器
-4. 更新类型定义 `ToolId` 添加新工具
+### Add a New AI CLI Tool
 
-示例：
+1. Create an adapter under `src/services/settings/adapters/`.
+2. Extend `BaseAdapter` and implement the required methods.
+3. Register the adapter inside `SettingsDispatcher`.
+4. Update the `ToolId` union to include the new identifier.
 
-```typescript
+```ts
 // src/services/settings/adapters/newtool.ts
 export class NewToolAdapter extends BaseAdapter {
-  readonly toolId = 'newtool' as const;
+  readonly toolId = \"newtool\" as const;
 
   resolvePath(scope: Scope): string {
-    // 实现路径解析
+    // Resolve the config path for each scope
   }
 
   validateScope(scope: Scope): boolean {
-    // 实现 scope 验证
+    // Return true for supported scopes
   }
 }
 
 // src/services/settings/dispatcher.ts
 constructor() {
   this.adapters = new Map<ToolId, SettingsAdapter>();
-  // ... 其他适配器
-  this.adapters.set('newtool', new NewToolAdapter());
+  // ...register other adapters
+  this.adapters.set(\"newtool\", new NewToolAdapter());
 }
 ```
 
-### 添加新的命令
+### Add a New Command
 
-1. 在 `src/commands/settings/` 创建新的命令文件
-2. 继承 `Command` 类并实现 `run` 方法
-3. 定义 `args` 和 `flags`
-4. oclif 会自动注册命令
+1. Create a file under `src/commands/<group>/`.
+2. Extend `Command`, implement `run`, and define `args`/`flags`.
+3. oclif automatically registers the command based on its path.
 
-## 注意事项
+## Additional Notes
 
-- 配置文件操作使用原子写入（临时文件 + 重命名）
-- settings 相关命令只依赖 `--tool`、`--scope` 等 flag 控制行为，不再提供 `developerShortcuts` 这类键级配置
-- 自动备份现有配置文件（`.bak` 后缀）
-- 所有错误继承自 `XlingError` 基类
-- 使用 Zod 进行运行时类型验证
+- Configuration writes are atomic (temp file + rename).
+- Settings commands rely on flags such as `--tool`, `--scope`, and `--name`; key-level overrides like `developerShortcuts` are intentionally unsupported.
+- Files are backed up automatically with a `.bak` suffix.
+- All errors extend the shared `XlingError` base class.
+- Runtime validation is powered by Zod.

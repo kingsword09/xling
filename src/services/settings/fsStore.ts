@@ -1,5 +1,5 @@
 /**
- * 文件系统存储工具
+ * File-system helpers for settings
  */
 
 import * as fs from "fs";
@@ -18,7 +18,7 @@ export interface FileInfo {
 }
 
 /**
- * 解析 ~ 为用户主目录
+ * Expand ~ to the current user's home directory
  */
 export function resolveHome(filepath: string): string {
   if (filepath.startsWith("~/") || filepath === "~") {
@@ -28,7 +28,7 @@ export function resolveHome(filepath: string): string {
 }
 
 /**
- * 确保目录存在
+ * Ensure the directory exists
  */
 export function ensureDir(dirPath: string): void {
   const resolvedPath = resolveHome(dirPath);
@@ -38,7 +38,7 @@ export function ensureDir(dirPath: string): void {
 }
 
 /**
- * 读取 JSON 文件
+ * Read a JSON file
  */
 export function readJSON(filepath: string): Record<string, unknown> {
   const resolvedPath = resolveHome(filepath);
@@ -56,7 +56,7 @@ export function readJSON(filepath: string): Record<string, unknown> {
 }
 
 /**
- * 写入 JSON 文件
+ * Write a JSON file
  */
 export function writeJSON(
   filepath: string,
@@ -65,17 +65,17 @@ export function writeJSON(
 ): void {
   const resolvedPath = resolveHome(filepath);
 
-  // 确保目录存在
+  // Ensure the destination directory exists
   ensureDir(path.dirname(resolvedPath));
 
-  // 备份现有文件
+  // Backup the existing file if needed
   if (backup && fs.existsSync(resolvedPath)) {
     const backupPath = `${resolvedPath}.bak`;
     fs.copyFileSync(resolvedPath, backupPath);
   }
 
   try {
-    // 原子写入：先写临时文件，再重命名
+    // Atomic write: temporary file then rename
     const tempPath = `${resolvedPath}.tmp`;
     fs.writeFileSync(tempPath, JSON.stringify(data, null, 2), "utf-8");
     fs.renameSync(tempPath, resolvedPath);
@@ -85,7 +85,7 @@ export function writeJSON(
 }
 
 /**
- * 读取 TOML 文件
+ * Read a TOML file
  */
 export function readTOML(filepath: string): Record<string, unknown> {
   const resolvedPath = resolveHome(filepath);
@@ -103,7 +103,7 @@ export function readTOML(filepath: string): Record<string, unknown> {
 }
 
 /**
- * 写入 TOML 文件
+ * Write a TOML file
  */
 export function writeTOML(
   filepath: string,
@@ -112,17 +112,17 @@ export function writeTOML(
 ): void {
   const resolvedPath = resolveHome(filepath);
 
-  // 确保目录存在
+  // Ensure the destination directory exists
   ensureDir(path.dirname(resolvedPath));
 
-  // 备份现有文件
+  // Backup the existing file if needed
   if (backup && fs.existsSync(resolvedPath)) {
     const backupPath = `${resolvedPath}.bak`;
     fs.copyFileSync(resolvedPath, backupPath);
   }
 
   try {
-    // 原子写入
+    // Atomic write
     const tempPath = `${resolvedPath}.tmp`;
     fs.writeFileSync(tempPath, toml.stringify(data as any), "utf-8");
     fs.renameSync(tempPath, resolvedPath);
@@ -132,7 +132,7 @@ export function writeTOML(
 }
 
 /**
- * 深度合并对象
+ * Deep merge two plain objects
  */
 export function deepMerge(
   target: Record<string, unknown>,
@@ -167,7 +167,7 @@ export function deepMerge(
 }
 
 /**
- * 检查文件是否存在
+ * Check whether the file exists
  */
 export function fileExists(filepath: string): boolean {
   const resolvedPath = resolveHome(filepath);
@@ -175,7 +175,7 @@ export function fileExists(filepath: string): boolean {
 }
 
 /**
- * 获取文件信息
+ * Retrieve file metadata
  */
 export function getFileInfo(filepath: string): FileInfo | null {
   const resolvedPath = resolveHome(filepath);

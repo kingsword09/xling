@@ -1,12 +1,12 @@
 /**
- * 配置验证器
+ * Configuration validators
  */
 
 import { z } from "zod";
 import type { SettingsPayload } from "./types.ts";
 
 /**
- * ToolId 验证 schema
+ * ToolId schema
  */
 export const ToolIdSchema: z.ZodEnum<["claude", "codex", "gemini"]> = z.enum([
   "claude",
@@ -15,20 +15,20 @@ export const ToolIdSchema: z.ZodEnum<["claude", "codex", "gemini"]> = z.enum([
 ]);
 
 /**
- * Scope 验证 schema
+ * Scope schema
  */
 export const ScopeSchema: z.ZodEnum<["user", "project", "local", "system"]> =
   z.enum(["user", "project", "local", "system"]);
 
 /**
- * SettingAction 验证 schema
+ * SettingAction schema
  */
 export const SettingActionSchema: z.ZodEnum<
   ["list", "edit", "switch-profile", "inspect"]
 > = z.enum(["list", "edit", "switch-profile", "inspect"]);
 
 /**
- * SettingsPayload 验证 schema
+ * SettingsPayload schema
  */
 export const SettingsPayloadSchema: z.ZodType<SettingsPayload> = z.object({
   tool: ToolIdSchema,
@@ -47,7 +47,7 @@ export const SettingsPayloadSchema: z.ZodType<SettingsPayload> = z.object({
 });
 
 /**
- * 验证 SettingsPayload
+ * Validate an incoming settings payload
  */
 export function validatePayload(payload: unknown): SettingsPayload {
   return SettingsPayloadSchema.parse(payload);

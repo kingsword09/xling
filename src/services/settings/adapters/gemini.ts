@@ -1,5 +1,5 @@
 /**
- * Gemini CLI 适配器
+ * Gemini CLI settings adapter
  */
 
 import type { Scope } from "@/domain/types.ts";
@@ -8,18 +8,16 @@ import * as os from "os";
 import * as path from "path";
 
 /**
- * Gemini CLI 配置适配器
- *
- * 配置文件路径：
+ * Resolves the following config paths:
  * - user: ~/.gemini/settings.json
  * - project: <cwd>/.gemini/settings.json
- * - system: 平台相关路径
+ * - system: platform-specific path
  */
 export class GeminiAdapter extends BaseAdapter {
   readonly toolId = "gemini" as const;
 
   /**
-   * 解析配置文件路径
+   * Resolve the configuration path for each scope
    */
   resolvePath(scope: Scope): string {
     switch (scope) {
@@ -35,14 +33,14 @@ export class GeminiAdapter extends BaseAdapter {
   }
 
   /**
-   * 验证 scope 是否有效
+   * Validate supported scopes
    */
   validateScope(scope: Scope): boolean {
     return ["user", "project", "system"].includes(scope);
   }
 
   /**
-   * 获取系统级配置路径（跨平台）
+   * Determine the system-level config path across platforms
    */
   private getSystemConfigPath(): string {
     const platform = os.platform();
