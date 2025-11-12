@@ -93,6 +93,97 @@ xling x -t codex -C /path/to/project
 - Claude Code: `--dangerously-skip-permissions`
 - Codex: `--dangerously-bypass-approvals-and-sandbox`
 
+### Git Workflow Commands
+
+Manage PRs and worktrees with intelligent fallback strategies.
+
+```bash
+# Checkout PR (uses gh CLI if available, falls back to git)
+xling git:prr 123
+
+# Checkout PR to a specific branch
+xling git:prr 456 --branch my-feature
+
+# Force git fallback (skip gh CLI)
+xling git:prr 789 --no-gh --remote upstream
+
+# Create PR
+xling git:prc
+
+# Create PR with title and body
+xling git:prc --title "Add feature X" --body "Implements feature X"
+
+# Create PR and preview in browser
+xling git:prc --web
+
+# Create PR and preview in specific browser
+xling git:prc --web --browser safari
+
+# Create draft PR
+xling git:prc --draft --title "WIP: Feature Y"
+
+# Create PR with reviewers and labels
+xling git:prc --reviewer user1 --reviewer user2 --label bug
+
+# View PR in browser
+xling git:prv 123
+
+# View PR in specific browser
+xling git:prv 456 --browser safari
+xling git:prv 789 --browser firefox
+xling git:prv 999 --browser arc
+
+# List worktrees
+xling git:wtl
+
+# Add new worktree (defaults to main branch)
+xling git:wta
+xling git:wta -b feature/login
+xling git:wta -b feature/login -p ../custom-path
+
+# Switch to worktree (outputs path for cd)
+cd $(xling git:wts)              # Switch to main
+cd $(xling git:wts -b feature/login)  # Switch to specific branch
+
+# Remove worktree
+xling git:wtr -b main                 # By branch name
+xling git:wtr -b xling-feature        # By directory name
+xling git:wtr -p ../repo-feature      # By path
+
+# Prune stale worktrees
+xling git:wtp
+```
+
+**PR Checkout Strategies:**
+- **gh strategy**: Uses `gh pr checkout <id>` (preferred, requires GitHub CLI)
+- **git fallback**: Uses `git fetch origin pull/<id>/head:<branch>` + `git switch <branch>`
+- Automatic detection: gh CLI availability is checked automatically
+- Manual override: Use `--no-gh` to force git strategy
+
+**PR Creation Features:**
+- Interactive mode: Run without flags for guided PR creation
+- Direct mode: Specify title, body, and other options via flags
+- Draft PRs: Use `--draft` flag for work-in-progress PRs
+- Reviewers & Labels: Add multiple reviewers and labels
+- Browser preview: Use `--web` to open PR in browser after creation
+- Custom browser: Combine `--web --browser <name>` for specific browser
+
+**Worktree Features:**
+- **Focused commands**: Separate commands for each action (`wtl`, `wta`, `wts`, `wtr`, `wtp`)
+- **Smart switching**: `wts` outputs path only, use with `cd $(xling git:wts -b <branch>)`
+- **Auto-path generation**: Auto-generates path as `../repo-name-branch-name` when adding
+- **Smart naming**: Branch names with `/` are converted to `-` (e.g., `feature/login` → `xling-feature-login`)
+- **Intelligent matching**: Remove/switch by branch name, directory name, or full path
+- **Default branch**: Defaults to `main` branch for `wta` and `wts`
+- **Branch occupation check**: Prevents creating worktree for branch already in use
+
+**Browser Support:**
+- macOS: chrome, safari, firefox, arc, edge, dia
+- Linux: chrome, firefox, edge, dia (via `google-chrome`, `firefox`, `microsoft-edge`, `dia`)
+- Windows: chrome, firefox, arc, edge, dia
+- Default: chrome
+- Note: Safari only available on macOS; Arc has limited Linux support
+
 ### List Settings
 
 ```bash
@@ -208,9 +299,12 @@ xling/
 |  |- run.js
 |- src/
 |  |- commands/             # oclif commands
-|  |  |- settings/
+|  |  |- git/               # Git workflow commands
+|  |  |- settings/          # Settings management commands
+|  |  |- x/                 # Quick launcher
 |  |- domain/               # Types and interfaces
 |  |- services/             # Business logic
+|  |  |- git/               # Git services (pr, worktree, view)
 |  |  |- settings/
 |  |     |- adapters/       # Tool adapters
 |  |     |- fsStore.ts      # File system operations

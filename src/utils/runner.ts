@@ -134,3 +134,98 @@ export async function getExecutableVersion(
     });
   });
 }
+
+export interface RunCommandOptions {
+  cwd?: string;
+  env?: Record<string, string>;
+  silent?: boolean;
+  throwOnError?: boolean;
+}
+
+export interface RunCommandResult {
+  stdout: string;
+  stderr: string;
+  exitCode: number;
+  success: boolean;
+}
+
+/**
+ * Run a command and capture its output
+ * Lightweight wrapper for git commands that don't need full LaunchCommandSpec
+ * @param command Executable to run
+ * @param args Command arguments
+ * @param options Run options
+ */
+export async function runCommand(
+  command: string,
+  args: string[],
+  options: RunCommandOptions = {},
+): Promise<RunCommandResult> {
+  const {
+    cwd = process.cwd(),
+    env = {},
+    silent = false,
+    throwOnError = true,
+  } = options;
+
+  return new Promise((resolve, reject) => {
+    let stdout = "";
+    let stderr = "";
+
+    const mergedEnv = {
+      ...process.env,
+      ...env,
+    };
+
+    const child = spawn(command, args, {
+      cwd,
+      env: mergedEnv,
+      stdio: silent ? ["ignore", "pipe", "pipe"] : ["inherit", "pipe", "pipe"],
+    });
+
+    child.stdout?.on("data", (data) => {
+      stdout += data.toString();
+      if (!silent) {
+        process.stdout.write(data);
+      }
+    });
+
+    child.stderr?.on("data", (data) => {
+      stderr += data.toString();
+      if (!silent) {
+        process.stderr.write(data);
+      }
+    });
+
+    child.on("error", (error) => {
+      const result = {
+        stdout: stdout.trim(),
+        stderr: error.message,
+        exitCode: 1,
+        success: false,
+      };
+
+      if (throwOnError) {
+        reject(result);
+      } else {
+        resolve(result);
+      }
+    });
+
+    child.on("exit", (code) => {
+      const exitCode = code ?? 1;
+      const result = {
+        stdout: stdout.trim(),
+        stderr: stderr.trim(),
+        exitCode,
+        success: exitCode === 0,
+      };
+
+      if (throwOnError && !result.success) {
+        reject(result);
+      } else {
+        resolve(result);
+      }
+    });
+  });
+}
