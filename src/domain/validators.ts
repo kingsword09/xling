@@ -12,17 +12,31 @@ const ACTIONS = ["list", "edit", "switch-profile", "inspect"] as const;
 /**
  * ToolId schema
  */
-export const ToolIdSchema = z.enum(TOOL_IDS);
+export const ToolIdSchema: z.ZodEnum<{
+  claude: "claude";
+  codex: "codex";
+  gemini: "gemini";
+}> = z.enum(TOOL_IDS);
 
 /**
  * Scope schema
  */
-export const ScopeSchema = z.enum(SCOPES);
+export const ScopeSchema: z.ZodEnum<{
+  user: "user";
+  project: "project";
+  local: "local";
+  system: "system";
+}> = z.enum(SCOPES);
 
 /**
  * SettingAction schema
  */
-export const SettingActionSchema = z.enum(ACTIONS);
+export const SettingActionSchema: z.ZodEnum<{
+  list: "list";
+  edit: "edit";
+  "switch-profile": "switch-profile";
+  inspect: "inspect";
+}> = z.enum(ACTIONS);
 
 /**
  * SettingsPayload schema
