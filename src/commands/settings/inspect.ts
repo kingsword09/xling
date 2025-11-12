@@ -3,7 +3,7 @@
  * 检查配置文件状态
  */
 
-import { Command, Flags } from "@oclif/core";
+import { Command, Flags, Interfaces } from "@oclif/core";
 import { SettingsDispatcher } from "@/services/settings/dispatcher.ts";
 import { formatJson } from "@/utils/format.ts";
 import type { ToolId, Scope, InspectResult } from "@/domain/types.ts";
@@ -20,12 +20,12 @@ export default class SettingsInspect extends Command {
     - File contents (if exists)
   `;
 
-  static examples = [
+  static examples: Command.Example[] = [
     "<%= config.bin %> <%= command.id %> --tool claude --scope user",
     "<%= config.bin %> <%= command.id %> --tool codex --json",
   ];
 
-  static flags = {
+  static flags: Interfaces.FlagInput = {
     tool: Flags.string({
       char: "t",
       description: "AI CLI tool to manage",

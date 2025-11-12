@@ -3,7 +3,7 @@
  * 切换 profile（仅 Codex 支持）
  */
 
-import { Args, Command, Flags } from "@oclif/core";
+import { Args, Command, Flags, Interfaces } from "@oclif/core";
 import readline from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
 import { SettingsDispatcher } from "@/services/settings/dispatcher.ts";
@@ -18,20 +18,20 @@ export default class SettingsSwitch extends Command {
     or activate a specific settings.<variant>.json for Claude.
   `;
 
-  static examples = [
+  static examples: Command.Example[] = [
     "<%= config.bin %> <%= command.id %> oss --tool codex",
     "<%= config.bin %> <%= command.id %> production --tool codex",
     "<%= config.bin %> <%= command.id %> hxi --tool claude --scope user",
   ];
 
-  static args = {
+  static args: Interfaces.ArgInput = {
     profile: Args.string({
       description: "Profile name to switch to",
       required: true,
     }),
   };
 
-  static flags = {
+  static flags: Interfaces.FlagInput = {
     tool: Flags.string({
       char: "t",
       description: "AI CLI tool to manage",

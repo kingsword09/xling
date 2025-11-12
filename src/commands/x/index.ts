@@ -3,7 +3,7 @@
  * 快速启动 AI CLI 工具（Claude Code、Codex）
  */
 
-import { Command, Flags } from "@oclif/core";
+import { Command, Flags, Interfaces } from "@oclif/core";
 import { LaunchDispatcher } from "@/services/launch/dispatcher.ts";
 import type { ToolId } from "@/domain/types.ts";
 
@@ -38,7 +38,7 @@ export default class X extends Command {
       $ xling x -t codex -C /path        # Start Codex in specific directory
   `;
 
-  static examples = [
+  static examples: Command.Example[] = [
     {
       description: "Start Claude Code instantly (default)",
       command: "<%= config.bin %> <%= command.id %>",
@@ -75,7 +75,7 @@ export default class X extends Command {
     },
   ];
 
-  static flags = {
+  static flags: Interfaces.FlagInput = {
     tool: Flags.string({
       description: "AI CLI tool to launch",
       char: "t",

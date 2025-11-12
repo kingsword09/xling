@@ -5,7 +5,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import { Args, Command, Flags } from "@oclif/core";
+import { Args, Command, Flags, Interfaces } from "@oclif/core";
 import { SettingsDispatcher } from "@/services/settings/dispatcher.ts";
 import { formatJson } from "@/utils/format.ts";
 import * as fsStore from "@/services/settings/fsStore.ts";
@@ -20,19 +20,19 @@ export default class SettingsGet extends Command {
     Use --json for structured output or --no-json for plain text.
   `;
 
-  static examples = [
+  static examples: Command.Example[] = [
     "<%= config.bin %> <%= command.id %> --tool claude --scope user",
     "<%= config.bin %> <%= command.id %> --tool codex --no-json",
   ];
 
-  static args = {
+  static args: Interfaces.ArgInput = {
     name: Args.string({
       description: "Claude variant name (optional). Example: settings:get hxi",
       required: false,
     }),
   };
 
-  static flags = {
+  static flags: Interfaces.FlagInput = {
     tool: Flags.string({
       char: "t",
       description: "AI CLI tool to manage",

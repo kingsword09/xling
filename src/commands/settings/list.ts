@@ -3,7 +3,7 @@
  * 列出指定工具的所有配置
  */
 
-import { Command, Flags } from "@oclif/core";
+import { Command, Flags, Interfaces } from "@oclif/core";
 import { SettingsDispatcher } from "@/services/settings/dispatcher.ts";
 import { formatFilesTable, formatJson, formatTable } from "@/utils/format.ts";
 import type {
@@ -21,13 +21,13 @@ export default class SettingsList extends Command {
     Supports multiple scopes (user, project, local, system).
   `;
 
-  static examples = [
+  static examples: Command.Example[] = [
     "<%= config.bin %> <%= command.id %> --tool claude --scope user",
     "<%= config.bin %> <%= command.id %> --tool codex --scope user --table",
     "<%= config.bin %> -t gemini -s project --no-json",
   ];
 
-  static flags = {
+  static flags: Interfaces.FlagInput = {
     tool: Flags.string({
       char: "t",
       description: "AI CLI tool to manage",

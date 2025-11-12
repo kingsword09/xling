@@ -22,29 +22,29 @@ export class Logger {
     this.level = level;
   }
 
-  setLevel(level: LogLevel) {
+  setLevel(level: LogLevel): void {
     this.level = level;
   }
 
-  debug(message: string, ...args: unknown[]) {
+  debug(message: string, ...args: unknown[]): void {
     if (this.level <= LogLevel.DEBUG) {
       console.debug(`[DEBUG] ${message}`, ...args);
     }
   }
 
-  info(message: string, ...args: unknown[]) {
+  info(message: string, ...args: unknown[]): void {
     if (this.level <= LogLevel.INFO) {
       console.info(`[INFO] ${message}`, ...args);
     }
   }
 
-  warn(message: string, ...args: unknown[]) {
+  warn(message: string, ...args: unknown[]): void {
     if (this.level <= LogLevel.WARN) {
       console.warn(`[WARN] ${message}`, ...args);
     }
   }
 
-  error(message: string, ...args: unknown[]) {
+  error(message: string, ...args: unknown[]): void {
     if (this.level <= LogLevel.ERROR) {
       console.error(`[ERROR] ${message}`, ...args);
     }
@@ -54,4 +54,4 @@ export class Logger {
 /**
  * 默认 logger 实例
  */
-export const logger = new Logger();
+export const logger: Logger = new Logger();
