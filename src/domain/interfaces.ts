@@ -10,6 +10,7 @@ import type {
   SettingsListData,
   EditOptions,
   SwitchOptions,
+  LaunchCommandSpec,
 } from "./types.ts";
 
 /**
@@ -55,4 +56,43 @@ export interface SettingsAdapter {
    * 验证 scope 是否有效
    */
   validateScope(scope: Scope): boolean;
+}
+
+/**
+ * Launch 适配器接口
+ * 负责构建工具启动命令（ISP 原则：与 SettingsAdapter 分离）
+ */
+export interface LaunchAdapter {
+  /**
+   * 工具标识符
+   */
+  readonly toolId: ToolId;
+
+  /**
+   * 可执行文件名称
+   */
+  readonly executable: string;
+
+  /**
+   * 构建启动命令配置
+   * @param payload Launch 请求参数
+   * @returns 命令规范
+   */
+  buildCommandSpec(payload: {
+    yolo?: boolean;
+    resume?: boolean;
+    continue?: boolean;
+  }): LaunchCommandSpec;
+
+  /**
+   * 验证工具是否可用（在 PATH 中）
+   * @returns 工具是否可用
+   */
+  validateAvailability(): Promise<boolean>;
+
+  /**
+   * 获取工具版本信息（可选）
+   * @returns 版本字符串
+   */
+  getVersion?(): Promise<string>;
 }
