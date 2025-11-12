@@ -3,7 +3,7 @@
  * 设置配置项的值
  */
 
-import { Command, Flags } from "@oclif/core";
+import { Command, Flags, Interfaces } from "@oclif/core";
 import { SettingsDispatcher } from "@/services/settings/dispatcher.ts";
 import { formatJson } from "@/utils/format.ts";
 import type { ToolId, Scope } from "@/domain/types.ts";
@@ -16,14 +16,14 @@ export default class SettingsSet extends Command {
     Provide --name to edit settings.<name>.json (default: settings.json).
   `;
 
-  static examples = [
+  static examples: Command.Example[] = [
     "<%= config.bin %> <%= command.id %> --tool claude --scope user --name hxi",
     "<%= config.bin %> <%= command.id %> --tool claude --scope project --name default --ide cursor",
   ];
 
-  static args = {};
+  static args: Interfaces.ArgInput = {};
 
-  static flags = {
+  static flags: Interfaces.FlagInput = {
     tool: Flags.string({
       char: "t",
       description: "AI CLI tool to manage",

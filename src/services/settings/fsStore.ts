@@ -12,6 +12,11 @@ import {
   FileWriteError,
 } from "@/utils/errors.ts";
 
+export interface FileInfo {
+  size: number;
+  lastModified: Date;
+}
+
 /**
  * 解析 ~ 为用户主目录
  */
@@ -172,7 +177,7 @@ export function fileExists(filepath: string): boolean {
 /**
  * 获取文件信息
  */
-export function getFileInfo(filepath: string) {
+export function getFileInfo(filepath: string): FileInfo | null {
   const resolvedPath = resolveHome(filepath);
   if (!fs.existsSync(resolvedPath)) {
     return null;

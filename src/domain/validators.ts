@@ -3,31 +3,34 @@
  */
 
 import { z } from "zod";
+import type { SettingsPayload } from "./types.ts";
 
 /**
  * ToolId 验证 schema
  */
-export const ToolIdSchema = z.enum(["claude", "codex", "gemini"]);
+export const ToolIdSchema: z.ZodEnum<["claude", "codex", "gemini"]> = z.enum([
+  "claude",
+  "codex",
+  "gemini",
+]);
 
 /**
  * Scope 验证 schema
  */
-export const ScopeSchema = z.enum(["user", "project", "local", "system"]);
+export const ScopeSchema: z.ZodEnum<["user", "project", "local", "system"]> =
+  z.enum(["user", "project", "local", "system"]);
 
 /**
  * SettingAction 验证 schema
  */
-export const SettingActionSchema = z.enum([
-  "list",
-  "edit",
-  "switch-profile",
-  "inspect",
-]);
+export const SettingActionSchema: z.ZodEnum<
+  ["list", "edit", "switch-profile", "inspect"]
+> = z.enum(["list", "edit", "switch-profile", "inspect"]);
 
 /**
  * SettingsPayload 验证 schema
  */
-export const SettingsPayloadSchema = z.object({
+export const SettingsPayloadSchema: z.ZodType<SettingsPayload> = z.object({
   tool: ToolIdSchema,
   scope: ScopeSchema,
   action: SettingActionSchema,
@@ -46,6 +49,6 @@ export const SettingsPayloadSchema = z.object({
 /**
  * 验证 SettingsPayload
  */
-export function validatePayload(payload: unknown) {
+export function validatePayload(payload: unknown): SettingsPayload {
   return SettingsPayloadSchema.parse(payload);
 }

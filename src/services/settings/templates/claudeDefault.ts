@@ -7,8 +7,8 @@ export const CLAUDE_SETTINGS_TEMPLATE = {
     ANTHROPIC_SMALL_FAST_MODEL: "claude-haiku-4-5-20251001",
   },
   permissions: {
-    allow: [],
-    deny: [],
+    allow: [] as string[],
+    deny: [] as string[],
   },
   enabledPlugins: {
     "example-skills@anthropic-agent-skills": false,
