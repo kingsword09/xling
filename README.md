@@ -134,29 +134,24 @@ xling git:prv 789 --browser firefox
 xling git:prv 999 --browser arc
 
 # List worktrees
-xling git:worktree --list
-# or short form
-xling git:worktree -l
+xling git:wtl
 
-# Add new worktree with auto-generated path (format: ../repo-name-branch-name)
-# Uses current branch if --branch not specified
-xling git:worktree -a
-# or specify a branch
-xling git:worktree -a -b feature/login
-# Creates: ../xling-feature-login
+# Add new worktree (defaults to main branch)
+xling git:wta
+xling git:wta -b feature/login
+xling git:wta -b feature/login -p ../custom-path
 
-# Add worktree with custom path
-xling git:worktree -a -p ../custom-path -b feature/login
-
-# Switch to another worktree (shows available worktrees)
-xling git:worktree -s
-xling git:worktree --switch
+# Switch to worktree (outputs path for cd)
+cd $(xling git:wts)              # Switch to main
+cd $(xling git:wts -b feature/login)  # Switch to specific branch
 
 # Remove worktree
-xling git:worktree -r -p ../repo-feature
+xling git:wtr -b main                 # By branch name
+xling git:wtr -b xling-feature        # By directory name
+xling git:wtr -p ../repo-feature      # By path
 
 # Prune stale worktrees
-xling git:worktree --prune
+xling git:wtp
 ```
 
 **PR Checkout Strategies:**
@@ -174,11 +169,13 @@ xling git:worktree --prune
 - Custom browser: Combine `--web --browser <name>` for specific browser
 
 **Worktree Features:**
-- **Auto-path generation**: When using `--add` without `--path`, path is auto-generated as `../repo-name-branch-name`
+- **Focused commands**: Separate commands for each action (`wtl`, `wta`, `wts`, `wtr`, `wtp`)
+- **Smart switching**: `wts` outputs path only, use with `cd $(xling git:wts -b <branch>)`
+- **Auto-path generation**: Auto-generates path as `../repo-name-branch-name` when adding
 - **Smart naming**: Branch names with `/` are converted to `-` (e.g., `feature/login` → `xling-feature-login`)
-- **Interactive switch**: Use `-s` to list all available worktrees
-- **Short options**: All flags have short forms (`-a`, `-p`, `-b`, `-s`, `-r`, `-f`)
-- **Existence check**: Prevents overwriting existing paths unless `--force` is used
+- **Intelligent matching**: Remove/switch by branch name, directory name, or full path
+- **Default branch**: Defaults to `main` branch for `wta` and `wts`
+- **Branch occupation check**: Prevents creating worktree for branch already in use
 
 **Browser Support:**
 - macOS: chrome, safari, firefox, arc, edge, dia

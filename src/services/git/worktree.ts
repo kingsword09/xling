@@ -150,10 +150,20 @@ export async function manageWorktree(
         throw new GitCommandError("git worktree list", result.stderr);
       }
 
+      const worktrees = parseWorktreeList(result.stdout);
+
+      // Format worktrees in a friendly way
+      const worktreeList = worktrees
+        .map(
+          (wt, idx) =>
+            `  [${idx + 1}] ${wt.path}\n      Branch: ${wt.branch || "detached"}`,
+        )
+        .join("\n\n");
+
       return {
         success: true,
-        message: "Worktree list retrieved",
-        details: { output: result.stdout },
+        message: "Available worktrees:",
+        details: { output: worktreeList, worktrees },
       };
     }
 
@@ -178,28 +188,22 @@ export async function manageWorktree(
         throw new Error("No worktrees found");
       }
 
-      if (worktrees.length === 1) {
+      // Default to main branch if not specified
+      const targetBranch = branch || "main";
+
+      // Find worktree by branch/directory name
+      const foundPath = await findWorktree(targetBranch, currentCwd);
+      if (!foundPath) {
         throw new Error(
-          "Only one worktree exists. Create more with --add first.",
+          `Could not find worktree matching "${targetBranch}". Use --list to see available worktrees.`,
         );
       }
 
-      // For now, return the list for user to choose
-      // In a future enhancement, we could use inquirer for interactive selection
-      const worktreeList = worktrees
-        .map(
-          (wt, idx) => `  [${idx + 1}] ${wt.path} (${wt.branch || "detached"})`,
-        )
-        .join("\n");
-
+      // Only output the path for easy use with cd $()
       return {
         success: true,
-        message: "Available worktrees:",
-        details: {
-          output: worktreeList,
-          worktrees,
-          path: worktrees[0].path, // Return first non-current worktree
-        },
+        message: foundPath,
+        details: { path: foundPath },
       };
     }
 

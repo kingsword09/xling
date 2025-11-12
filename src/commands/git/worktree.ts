@@ -17,7 +17,7 @@ export default class Worktree extends Command {
 
   static examples: Command.Example[] = [
     {
-      description: "List all worktrees",
+      description: "List all worktrees in friendly format",
       command: "<%= config.bin %> <%= command.id %> --list",
     },
     {
@@ -31,8 +31,12 @@ export default class Worktree extends Command {
         "<%= config.bin %> <%= command.id %> -a -p ../repo-feature -b feature/login",
     },
     {
-      description: "Switch to another worktree",
-      command: "<%= config.bin %> <%= command.id %> --switch",
+      description: "Switch to main worktree (outputs path for cd)",
+      command: "cd $(<%= config.bin %> <%= command.id %> -s)",
+    },
+    {
+      description: "Switch to specific worktree by branch name",
+      command: "cd $(<%= config.bin %> <%= command.id %> -s -b feature/login)",
     },
     {
       description: "Remove worktree by branch name",
@@ -65,7 +69,8 @@ export default class Worktree extends Command {
     }),
     switch: Flags.boolean({
       char: "s",
-      description: "Switch to another worktree interactively",
+      description:
+        "Get worktree path (outputs path only, use with: cd $(xling git:worktree -s -b <branch>))",
       default: false,
     }),
     remove: Flags.boolean({
@@ -85,7 +90,7 @@ export default class Worktree extends Command {
     branch: Flags.string({
       char: "b",
       description:
-        "Branch or worktree name (e.g., 'main' or 'xling-main'). Defaults to main for --add. For --remove, intelligently matches branch name or directory name.",
+        "Branch or worktree name. Defaults to main for --add and --switch. For --remove, intelligently matches branch or directory name.",
     }),
     force: Flags.boolean({
       char: "f",
@@ -124,17 +129,18 @@ export default class Worktree extends Command {
         data: request,
       });
 
-      this.log(`✓ ${result.message}`);
-
-      // Display worktree list if available
-      if (result.details?.output) {
-        this.log("\n" + result.details.output);
+      // For switch action, only output the path (for cd $(...))
+      if (action === "switch") {
+        this.log(result.message);
+        return;
       }
 
-      // Display path for switch action
-      if (action === "switch" && result.details?.path) {
-        this.log(`\nTo switch to this worktree, run:`);
-        this.log(`  cd ${result.details.path}`);
+      // For other actions, show success message and details
+      this.log(`✓ ${result.message}`);
+
+      // Display worktree list or command if available
+      if (result.details?.output) {
+        this.log("\n" + result.details.output);
       }
     } catch (error) {
       this.error((error as Error).message, { exit: 1 });
