@@ -141,9 +141,12 @@ xling git:wta
 xling git:wta -b feature/login
 xling git:wta -b feature/login -p ../custom-path
 
-# Switch to worktree (outputs path for cd)
-cd $(xling git:wts)              # Switch to main
-cd $(xling git:wts -b feature/login)  # Switch to specific branch
+# Switch to worktree (opens subshell)
+xling git:wts                     # Switch to main
+xling git:wts -b feature/login    # Switch to specific branch
+
+# Print path only (useful for cd $(...))
+cd $(xling git:wts --path-only -b feature/login)
 
 # Remove worktree
 xling git:wtr -b main                 # By branch name
@@ -170,7 +173,7 @@ xling git:wtp
 
 **Worktree Features:**
 - **Focused commands**: Separate commands for each action (`wtl`, `wta`, `wts`, `wtr`, `wtp`)
-- **Smart switching**: `wts` outputs path only, use with `cd $(xling git:wts -b <branch>)`
+- **Smart switching**: `wts` drops you into a subshell inside the worktree (use `--path-only` for scripts)
 - **Auto-path generation**: Auto-generates path as `../repo-name-branch-name` when adding
 - **Smart naming**: Branch names with `/` are converted to `-` (e.g., `feature/login` → `xling-feature-login`)
 - **Intelligent matching**: Remove/switch by branch name, directory name, or full path
