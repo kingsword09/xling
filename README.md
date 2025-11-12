@@ -139,6 +139,9 @@ xling git:worktree --list
 xling git:worktree -l
 
 # Add new worktree with auto-generated path (format: ../repo-name-branch-name)
+# Uses current branch if --branch not specified
+xling git:worktree -a
+# or specify a branch
 xling git:worktree -a -b feature/login
 # Creates: ../xling-feature-login
 

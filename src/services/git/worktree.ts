@@ -74,6 +74,55 @@ function parseWorktreeList(
 }
 
 /**
+ * Find worktree by branch name or path pattern
+ * @param identifier Branch name or path pattern
+ * @param cwd Working directory
+ * @returns Worktree path if found
+ */
+async function findWorktree(
+  identifier: string,
+  cwd: string,
+): Promise<string | null> {
+  const listResult = await runCommand(
+    "git",
+    ["worktree", "list", "--porcelain"],
+    {
+      cwd,
+      throwOnError: false,
+    },
+  );
+
+  if (!listResult.success) {
+    return null;
+  }
+
+  const worktrees = parseWorktreeList(listResult.stdout);
+
+  // First, try exact branch name match
+  const exactMatch = worktrees.find((wt) => wt.branch === identifier);
+  if (exactMatch) {
+    return exactMatch.path;
+  }
+
+  // Then, try path basename match (e.g., "xling-main" matches branch "main")
+  const basenameMatch = worktrees.find((wt) => {
+    const basename = path.basename(wt.path);
+    return basename === identifier || basename.endsWith(`-${identifier}`);
+  });
+  if (basenameMatch) {
+    return basenameMatch.path;
+  }
+
+  // Finally, try partial path match
+  const partialMatch = worktrees.find((wt) => wt.path.includes(identifier));
+  if (partialMatch) {
+    return partialMatch.path;
+  }
+
+  return null;
+}
+
+/**
  * Manage git worktrees
  * @param request Worktree operation request
  * @param cwd Working directory
@@ -155,12 +204,33 @@ export async function manageWorktree(
     }
 
     case "add": {
-      if (!branch) {
-        throw new Error("--branch (-b) is required for add action");
+      // Use main branch if not specified
+      let targetBranch = branch || "main";
+
+      // Check if branch is already used by another worktree
+      const listResult = await runCommand(
+        "git",
+        ["worktree", "list", "--porcelain"],
+        { cwd: currentCwd, throwOnError: false },
+      );
+
+      if (listResult.success) {
+        const worktrees = parseWorktreeList(listResult.stdout);
+        const existingWorktree = worktrees.find(
+          (wt) => wt.branch === targetBranch,
+        );
+
+        if (existingWorktree) {
+          throw new Error(
+            `Branch "${targetBranch}" is already used by worktree at "${existingWorktree.path}".\n` +
+              `Choose a different branch name, or switch that worktree to another branch first.`,
+          );
+        }
       }
 
       // Auto-generate path if not provided
-      const worktreePath = userPath || generateWorktreePath(currentCwd, branch);
+      const worktreePath =
+        userPath || generateWorktreePath(currentCwd, targetBranch);
 
       // Check if path already exists
       if (existsSync(worktreePath) && !force) {
@@ -172,7 +242,7 @@ export async function manageWorktree(
       const args = ["worktree", "add"];
       if (force) args.push("--force");
       if (detach) args.push("--detach");
-      args.push(worktreePath, branch);
+      args.push(worktreePath, targetBranch);
 
       const result = await runCommand("git", args, {
         cwd: currentCwd,
@@ -181,26 +251,48 @@ export async function manageWorktree(
 
       if (!result.success) {
         throw new GitCommandError(
-          `git worktree add ${worktreePath} ${branch}`,
+          `git worktree add ${worktreePath} ${targetBranch}`,
           result.stderr,
         );
       }
 
       return {
         success: true,
-        message: `Created worktree at ${worktreePath} for branch ${branch}`,
-        details: { path: worktreePath, branch },
+        message: `Created worktree at ${worktreePath} for branch ${targetBranch}`,
+        details: { path: worktreePath, branch: targetBranch },
       };
     }
 
     case "remove": {
-      if (!userPath) {
-        throw new Error("--path (-p) is required for remove action");
+      // Determine what to remove: by name (branch/worktree) or by path
+      let targetPath: string;
+
+      if (branch) {
+        // Remove by name: branch name or worktree name (e.g., "main" or "xling-main")
+        const foundPath = await findWorktree(branch, currentCwd);
+        if (!foundPath) {
+          throw new Error(
+            `Could not find worktree matching "${branch}". Use --list to see available worktrees.`,
+          );
+        }
+        targetPath = foundPath;
+      } else if (userPath) {
+        // Remove by path: must be a valid file path
+        if (!existsSync(userPath)) {
+          throw new Error(
+            `Path "${userPath}" does not exist. Use --branch (-b) to remove by name, or --list to see available worktrees.`,
+          );
+        }
+        targetPath = userPath;
+      } else {
+        throw new Error(
+          "--branch (-b) or --path (-p) is required for remove action.",
+        );
       }
 
       const args = ["worktree", "remove"];
       if (force) args.push("--force");
-      args.push(userPath);
+      args.push(targetPath);
 
       const result = await runCommand("git", args, {
         cwd: currentCwd,
@@ -209,15 +301,15 @@ export async function manageWorktree(
 
       if (!result.success) {
         throw new GitCommandError(
-          `git worktree remove ${userPath}`,
+          `git worktree remove ${targetPath}`,
           result.stderr,
         );
       }
 
       return {
         success: true,
-        message: `Removed worktree at ${userPath}`,
-        details: { path: userPath },
+        message: `Removed worktree at ${targetPath}`,
+        details: { path: targetPath },
       };
     }
 

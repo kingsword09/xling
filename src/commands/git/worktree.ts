@@ -35,7 +35,15 @@ export default class Worktree extends Command {
       command: "<%= config.bin %> <%= command.id %> --switch",
     },
     {
-      description: "Remove worktree",
+      description: "Remove worktree by branch name",
+      command: "<%= config.bin %> <%= command.id %> -r -b main",
+    },
+    {
+      description: "Remove worktree by directory name",
+      command: "<%= config.bin %> <%= command.id %> -r -b xling-feature",
+    },
+    {
+      description: "Remove worktree by path",
       command: "<%= config.bin %> <%= command.id %> -r -p ../repo-feature",
     },
     {
@@ -71,11 +79,13 @@ export default class Worktree extends Command {
     }),
     path: Flags.string({
       char: "p",
-      description: "Worktree path (auto-generated if not specified with --add)",
+      description:
+        "Worktree path (e.g., '../repo-feature' or absolute path). Auto-generated if not specified with --add.",
     }),
     branch: Flags.string({
       char: "b",
-      description: "Branch name for new worktree",
+      description:
+        "Branch or worktree name (e.g., 'main' or 'xling-main'). Defaults to main for --add. For --remove, intelligently matches branch name or directory name.",
     }),
     force: Flags.boolean({
       char: "f",
