@@ -13,22 +13,25 @@ export default class Git extends Command {
     Supports PR checkout with gh/git fallback, browser PR viewing, and worktree operations.
   `;
 
-  static examples = [
-    '<%= config.bin %> <%= command.id %>:pr 123',
-    '<%= config.bin %> <%= command.id %>:worktree --list',
-    '<%= config.bin %> <%= command.id %>:view 456 --browser Safari',
-  ] as const;
+  static examples: string[] = [
+    "<%= config.bin %> <%= command.id %>:prc --web",
+    "<%= config.bin %> <%= command.id %>:prr 123",
+    "<%= config.bin %> <%= command.id %>:worktree --list",
+    "<%= config.bin %> <%= command.id %>:prv 456 --browser safari",
+  ];
 
   async run(): Promise<void> {
-    this.log('Git workflow utilities for xling\n');
-    this.log('Available subcommands:');
-    this.log('  pr       - Checkout PR branch (gh CLI preferred, git fallback)');
-    this.log('  worktree - Manage git worktrees (list, add, remove, prune)');
-    this.log('  view     - Open PR in web browser\n');
-    this.log('Use --help with any subcommand for details');
-    this.log('\nExamples:');
-    this.log('  xling git:pr 123');
-    this.log('  xling git:worktree --list');
-    this.log('  xling git:view 456 --browser Chrome');
+    this.log("Git workflow utilities for xling\n");
+    this.log("Available subcommands:");
+    this.log("  prc      - Create PR with optional browser preview");
+    this.log("  prr      - Checkout PR branch (PR Read/Retrieve)");
+    this.log("  prv      - Open PR in web browser (PR View)");
+    this.log("  worktree - Manage git worktrees (list, add, remove, prune)\n");
+    this.log("Use --help with any subcommand for details");
+    this.log("\nExamples:");
+    this.log("  xling git:prc --web --browser chrome");
+    this.log("  xling git:prr 123");
+    this.log("  xling git:prv 456 --browser safari");
+    this.log("  xling git:worktree --list");
   }
 }

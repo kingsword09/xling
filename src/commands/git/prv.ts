@@ -1,5 +1,5 @@
 /**
- * git:view command
+ * git:prv command
  * Open PR in web browser with configurable browser
  */
 
@@ -8,8 +8,8 @@ import { GitDispatcher } from "@/services/git/dispatcher.ts";
 import type { GitViewRequest } from "@/domain/git.ts";
 import { SUPPORTED_BROWSERS } from "@/domain/git.ts";
 
-export default class View extends Command {
-  static summary = "Open PR in web browser";
+export default class Prv extends Command {
+  static summary = "Open PR in web browser (PR View)";
 
   static description = `
     Open a pull request in your web browser using GitHub CLI.
@@ -19,40 +19,40 @@ export default class View extends Command {
   static examples: Command.Example[] = [
     {
       description: "Open PR in Chrome (default)",
-      command: '<%= config.bin %> <%= command.id %> 123',
+      command: "<%= config.bin %> <%= command.id %> 123",
     },
     {
       description: "Open PR in Safari",
-      command: '<%= config.bin %> <%= command.id %> 456 --browser safari',
+      command: "<%= config.bin %> <%= command.id %> 456 --browser safari",
     },
     {
       description: "Open PR in Firefox",
-      command: '<%= config.bin %> <%= command.id %> 789 --browser firefox',
+      command: "<%= config.bin %> <%= command.id %> 789 --browser firefox",
     },
     {
       description: "Open PR in Arc",
-      command: '<%= config.bin %> <%= command.id %> 999 --browser arc',
+      command: "<%= config.bin %> <%= command.id %> 999 --browser arc",
     },
   ];
 
   static args: Interfaces.ArgInput = {
     id: Args.string({
-      description: 'PR number',
+      description: "PR number",
       required: true,
     }),
   };
 
   static flags: Interfaces.FlagInput = {
     browser: Flags.string({
-      char: 'b',
-      description: 'Browser to use',
+      char: "b",
+      description: "Browser to use",
       options: [...SUPPORTED_BROWSERS],
-      default: 'chrome',
+      default: "chrome",
     }),
   };
 
   async run(): Promise<void> {
-    const { args, flags } = await this.parse(View);
+    const { args, flags } = await this.parse(Prv);
 
     const dispatcher = new GitDispatcher();
     const request: GitViewRequest = {
@@ -62,7 +62,7 @@ export default class View extends Command {
 
     try {
       const result = await dispatcher.execute({
-        command: 'view',
+        command: "prv",
         cwd: process.cwd(),
         data: request,
       });

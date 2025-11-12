@@ -17,25 +17,25 @@ import { detectGhCli } from "./utils.ts";
  */
 export async function checkoutPr(
   request: GitPrRequest,
-  cwd?: string
+  cwd?: string,
 ): Promise<GitCommandResult> {
-  const { id, branch = `pr/${id}`, strategy, remote = 'origin' } = request;
+  const { id, branch = `pr/${id}`, strategy, remote = "origin" } = request;
 
   // Strategy 1: Try GitHub CLI
-  if (strategy !== 'git') {
+  if (strategy !== "git") {
     const hasGh = await detectGhCli();
     if (hasGh) {
       try {
-        const result = await runCommand('gh', ['pr', 'checkout', id], {
+        const result = await runCommand("gh", ["pr", "checkout", id], {
           cwd,
-          throwOnError: false
+          throwOnError: false,
         });
 
         if (result.success) {
           return {
             success: true,
             message: `Checked out PR #${id} using GitHub CLI`,
-            details: { strategy: 'gh', branch },
+            details: { strategy: "gh", branch },
           };
         }
       } catch {
@@ -47,22 +47,23 @@ export async function checkoutPr(
   // Strategy 2: Fallback to git fetch
   const prRef = `pull/${id}/head:${branch}`;
 
-  const fetchResult = await runCommand(
-    'git',
-    ['fetch', remote, prRef],
-    { cwd, throwOnError: false }
-  );
+  const fetchResult = await runCommand("git", ["fetch", remote, prRef], {
+    cwd,
+    throwOnError: false,
+  });
 
   if (!fetchResult.success) {
-    throw new GitCommandError(`git fetch ${remote} ${prRef}`, fetchResult.stderr);
+    throw new GitCommandError(
+      `git fetch ${remote} ${prRef}`,
+      fetchResult.stderr,
+    );
   }
 
   // Switch to the branch
-  const switchResult = await runCommand(
-    'git',
-    ['switch', branch],
-    { cwd, throwOnError: false }
-  );
+  const switchResult = await runCommand("git", ["switch", branch], {
+    cwd,
+    throwOnError: false,
+  });
 
   if (!switchResult.success) {
     throw new GitCommandError(`git switch ${branch}`, switchResult.stderr);
@@ -71,6 +72,6 @@ export async function checkoutPr(
   return {
     success: true,
     message: `Checked out PR #${id} to branch '${branch}' using git`,
-    details: { strategy: 'git', branch, remote },
+    details: { strategy: "git", branch, remote },
   };
 }

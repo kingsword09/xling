@@ -98,7 +98,7 @@ export class EditorLaunchError extends XlingError {
 export class ExecutableNotFoundError extends XlingError {
   constructor(executable: string, hint?: string) {
     super(
-      `Executable '${executable}' not found in PATH.${hint ? ` ${hint}` : ''}`
+      `Executable '${executable}' not found in PATH.${hint ? ` ${hint}` : ""}`,
     );
     this.name = "ExecutableNotFoundError";
   }

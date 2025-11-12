@@ -3,7 +3,11 @@
  * Opens PR in web browser with configurable browser
  */
 
-import type { GitViewRequest, GitCommandResult, SupportedBrowser } from "@/domain/git.ts";
+import type {
+  GitViewRequest,
+  GitCommandResult,
+  SupportedBrowser,
+} from "@/domain/git.ts";
 import { runCommand } from "@/utils/runner.ts";
 import { ExecutableNotFoundError } from "@/utils/errors.ts";
 import { detectGhCli } from "./utils.ts";
@@ -11,36 +15,36 @@ import { detectGhCli } from "./utils.ts";
 /**
  * Browser launch command mapping for different platforms
  */
-const BROWSER_COMMANDS: Record<SupportedBrowser, Record<NodeJS.Platform, string>> = {
+const BROWSER_COMMANDS: Record<
+  SupportedBrowser,
+  Partial<Record<NodeJS.Platform, string>>
+> = {
   chrome: {
-    darwin: 'Google Chrome',
-    linux: 'google-chrome',
-    win32: 'chrome',
+    darwin: "Google Chrome",
+    linux: "google-chrome",
+    win32: "chrome",
   },
   safari: {
-    darwin: 'Safari',
-    linux: '', // Safari not available on Linux
-    win32: '', // Safari not available on Windows
+    darwin: "Safari",
   },
   firefox: {
-    darwin: 'Firefox',
-    linux: 'firefox',
-    win32: 'firefox',
+    darwin: "Firefox",
+    linux: "firefox",
+    win32: "firefox",
   },
   arc: {
-    darwin: 'Arc',
-    linux: '', // Arc not widely available on Linux
-    win32: 'Arc',
+    darwin: "Arc",
+    win32: "Arc",
   },
   edge: {
-    darwin: 'Microsoft Edge',
-    linux: 'microsoft-edge',
-    win32: 'msedge',
+    darwin: "Microsoft Edge",
+    linux: "microsoft-edge",
+    win32: "msedge",
   },
   dia: {
-    darwin: 'Dia',
-    linux: 'dia',
-    win32: 'dia',
+    darwin: "Dia",
+    linux: "dia",
+    win32: "dia",
   },
 };
 
@@ -58,7 +62,7 @@ function getBrowserCommand(browser: SupportedBrowser): string | null {
   }
 
   // For macOS, wrap in "open -a" command
-  if (platform === 'darwin') {
+  if (platform === "darwin") {
     return `open -a "${command}"`;
   }
 
@@ -73,16 +77,16 @@ function getBrowserCommand(browser: SupportedBrowser): string | null {
  */
 export async function viewPr(
   request: GitViewRequest,
-  cwd?: string
+  cwd?: string,
 ): Promise<GitCommandResult> {
-  const { id, browser = 'chrome', openFlags = [] } = request;
+  const { id, browser = "chrome", openFlags = [] } = request;
 
   // Check if gh CLI is available
   const hasGh = await detectGhCli();
   if (!hasGh) {
     throw new ExecutableNotFoundError(
-      'gh',
-      'Install GitHub CLI: https://cli.github.com/'
+      "gh",
+      "Install GitHub CLI: https://cli.github.com/",
     );
   }
 
@@ -92,16 +96,16 @@ export async function viewPr(
   if (!browserCmd) {
     throw new Error(
       `Browser "${browser}" is not available on ${process.platform}. ` +
-      `Supported browsers: chrome, safari (macOS only), firefox, arc, edge, dia`
+        `Supported browsers: chrome, safari (macOS only), firefox, arc, edge, dia`,
     );
   }
 
   const env = { GH_BROWSER: browserCmd };
 
   const result = await runCommand(
-    'gh',
-    ['pr', 'view', id, '--web', ...openFlags],
-    { cwd, env, throwOnError: false }
+    "gh",
+    ["pr", "view", id, "--web", ...openFlags],
+    { cwd, env, throwOnError: false },
   );
 
   if (!result.success) {

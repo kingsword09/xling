@@ -99,30 +99,58 @@ Manage PRs and worktrees with intelligent fallback strategies.
 
 ```bash
 # Checkout PR (uses gh CLI if available, falls back to git)
-xling git:pr 123
+xling git:prr 123
 
 # Checkout PR to a specific branch
-xling git:pr 456 --branch my-feature
+xling git:prr 456 --branch my-feature
 
 # Force git fallback (skip gh CLI)
-xling git:pr 789 --no-gh --remote upstream
+xling git:prr 789 --no-gh --remote upstream
+
+# Create PR
+xling git:prc
+
+# Create PR with title and body
+xling git:prc --title "Add feature X" --body "Implements feature X"
+
+# Create PR and preview in browser
+xling git:prc --web
+
+# Create PR and preview in specific browser
+xling git:prc --web --browser safari
+
+# Create draft PR
+xling git:prc --draft --title "WIP: Feature Y"
+
+# Create PR with reviewers and labels
+xling git:prc --reviewer user1 --reviewer user2 --label bug
 
 # View PR in browser
-xling git:view 123
+xling git:prv 123
 
 # View PR in specific browser
-xling git:view 456 --browser safari
-xling git:view 789 --browser firefox
-xling git:view 999 --browser arc
+xling git:prv 456 --browser safari
+xling git:prv 789 --browser firefox
+xling git:prv 999 --browser arc
 
 # List worktrees
 xling git:worktree --list
+# or short form
+xling git:worktree -l
 
-# Add new worktree
-xling git:worktree --add --path ../repo-feature --branch feature/login
+# Add new worktree with auto-generated path (format: ../repo-name-branch-name)
+xling git:worktree -a -b feature/login
+# Creates: ../xling-feature-login
+
+# Add worktree with custom path
+xling git:worktree -a -p ../custom-path -b feature/login
+
+# Switch to another worktree (shows available worktrees)
+xling git:worktree -s
+xling git:worktree --switch
 
 # Remove worktree
-xling git:worktree --remove --path ../repo-feature
+xling git:worktree -r -p ../repo-feature
 
 # Prune stale worktrees
 xling git:worktree --prune
@@ -133,6 +161,21 @@ xling git:worktree --prune
 - **git fallback**: Uses `git fetch origin pull/<id>/head:<branch>` + `git switch <branch>`
 - Automatic detection: gh CLI availability is checked automatically
 - Manual override: Use `--no-gh` to force git strategy
+
+**PR Creation Features:**
+- Interactive mode: Run without flags for guided PR creation
+- Direct mode: Specify title, body, and other options via flags
+- Draft PRs: Use `--draft` flag for work-in-progress PRs
+- Reviewers & Labels: Add multiple reviewers and labels
+- Browser preview: Use `--web` to open PR in browser after creation
+- Custom browser: Combine `--web --browser <name>` for specific browser
+
+**Worktree Features:**
+- **Auto-path generation**: When using `--add` without `--path`, path is auto-generated as `../repo-name-branch-name`
+- **Smart naming**: Branch names with `/` are converted to `-` (e.g., `feature/login` → `xling-feature-login`)
+- **Interactive switch**: Use `-s` to list all available worktrees
+- **Short options**: All flags have short forms (`-a`, `-p`, `-b`, `-s`, `-r`, `-f`)
+- **Existence check**: Prevents overwriting existing paths unless `--force` is used
 
 **Browser Support:**
 - macOS: chrome, safari, firefox, arc, edge, dia

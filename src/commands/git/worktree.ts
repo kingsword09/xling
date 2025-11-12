@@ -18,57 +18,72 @@ export default class Worktree extends Command {
   static examples: Command.Example[] = [
     {
       description: "List all worktrees",
-      command: '<%= config.bin %> <%= command.id %> --list',
+      command: "<%= config.bin %> <%= command.id %> --list",
     },
     {
-      description: "Add new worktree",
-      command: '<%= config.bin %> <%= command.id %> --add --path ../repo-feature --branch feature/login',
+      description: "Add new worktree with auto-generated path",
+      command:
+        "<%= config.bin %> <%= command.id %> --add --branch feature/login",
+    },
+    {
+      description: "Add worktree with custom path",
+      command:
+        "<%= config.bin %> <%= command.id %> -a -p ../repo-feature -b feature/login",
+    },
+    {
+      description: "Switch to another worktree",
+      command: "<%= config.bin %> <%= command.id %> --switch",
     },
     {
       description: "Remove worktree",
-      command: '<%= config.bin %> <%= command.id %> --remove --path ../repo-feature',
+      command: "<%= config.bin %> <%= command.id %> -r -p ../repo-feature",
     },
     {
       description: "Prune stale worktrees",
-      command: '<%= config.bin %> <%= command.id %> --prune',
+      command: "<%= config.bin %> <%= command.id %> --prune",
     },
   ];
 
   static flags: Interfaces.FlagInput = {
     list: Flags.boolean({
-      char: 'l',
-      description: 'List worktrees (default)',
+      char: "l",
+      description: "List worktrees (default)",
       default: false,
     }),
     add: Flags.boolean({
-      char: 'a',
-      description: 'Add new worktree',
+      char: "a",
+      description: "Add new worktree (auto-generates path if not specified)",
+      default: false,
+    }),
+    switch: Flags.boolean({
+      char: "s",
+      description: "Switch to another worktree interactively",
       default: false,
     }),
     remove: Flags.boolean({
-      char: 'r',
-      description: 'Remove worktree',
+      char: "r",
+      description: "Remove worktree",
       default: false,
     }),
     prune: Flags.boolean({
-      char: 'p',
-      description: 'Prune stale worktrees',
+      description: "Prune stale worktrees",
       default: false,
     }),
     path: Flags.string({
-      description: 'Worktree path',
+      char: "p",
+      description: "Worktree path (auto-generated if not specified with --add)",
     }),
-    branch: Flags.boolean({
-      char: 'b',
-      description: 'Branch name for new worktree',
+    branch: Flags.string({
+      char: "b",
+      description: "Branch name for new worktree",
     }),
     force: Flags.boolean({
-      char: 'f',
-      description: 'Force operation',
+      char: "f",
+      description: "Force operation",
       default: false,
     }),
     detach: Flags.boolean({
-      description: 'Detach HEAD in new worktree',
+      description: "Detach HEAD in new worktree",
       default: false,
     }),
   };
@@ -77,23 +92,24 @@ export default class Worktree extends Command {
     const { flags } = await this.parse(Worktree);
 
     // Determine action based on flags
-    let action: GitWorktreeAction = 'list';
-    if (flags.add) action = 'add';
-    else if (flags.remove) action = 'remove';
-    else if (flags.prune) action = 'prune';
+    let action: GitWorktreeAction = "list";
+    if (flags.add) action = "add";
+    else if (flags.switch) action = "switch";
+    else if (flags.remove) action = "remove";
+    else if (flags.prune) action = "prune";
 
     const dispatcher = new GitDispatcher();
     const request: GitWorktreeRequest = {
       action,
       path: flags.path,
-      branch: flags.branch as any,
+      branch: flags.branch,
       force: flags.force,
       detach: flags.detach,
     };
 
     try {
       const result = await dispatcher.execute({
-        command: 'worktree',
+        command: "worktree",
         cwd: process.cwd(),
         data: request,
       });
@@ -102,7 +118,13 @@ export default class Worktree extends Command {
 
       // Display worktree list if available
       if (result.details?.output) {
-        this.log('\n' + result.details.output);
+        this.log("\n" + result.details.output);
+      }
+
+      // Display path for switch action
+      if (action === "switch" && result.details?.path) {
+        this.log(`\nTo switch to this worktree, run:`);
+        this.log(`  cd ${result.details.path}`);
       }
     } catch (error) {
       this.error((error as Error).message, { exit: 1 });

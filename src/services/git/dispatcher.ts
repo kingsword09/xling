@@ -7,6 +7,7 @@ import type { GitCommandPayload, GitCommandResult } from "@/domain/git.ts";
 import { checkoutPr } from "./pr.ts";
 import { viewPr } from "./view.ts";
 import { manageWorktree } from "./worktree.ts";
+import { createPr } from "./create.ts";
 import { ensureGitRepo } from "./utils.ts";
 
 /**
@@ -20,21 +21,24 @@ export class GitDispatcher {
    * @returns Command execution result
    */
   async execute(payload: GitCommandPayload): Promise<GitCommandResult> {
-    // Validate git repository (except for view which can work outside repo)
-    if (payload.command !== 'view') {
+    // Validate git repository (except for prv which can work outside repo)
+    if (payload.command !== "prv") {
       await ensureGitRepo(payload.cwd);
     }
 
     // Route to appropriate handler
     switch (payload.command) {
-      case 'worktree':
+      case "worktree":
         return manageWorktree(payload.data as any, payload.cwd);
 
-      case 'pr':
+      case "prr":
         return checkoutPr(payload.data as any, payload.cwd);
 
-      case 'view':
+      case "prv":
         return viewPr(payload.data as any, payload.cwd);
+
+      case "prc":
+        return createPr(payload.data as any, payload.cwd);
 
       default:
         // TypeScript exhaustiveness check
