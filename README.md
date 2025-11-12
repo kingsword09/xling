@@ -93,6 +93,51 @@ xling x -t codex -C /path/to/project
 - Claude Code: `--dangerously-skip-permissions`
 - Codex: `--dangerously-bypass-approvals-and-sandbox`
 
+### Git Workflow Commands
+
+Manage PRs and worktrees with intelligent fallback strategies.
+
+```bash
+# Checkout PR (uses gh CLI if available, falls back to git)
+xling git:pr 123
+
+# Checkout PR to a specific branch
+xling git:pr 456 --branch my-feature
+
+# Force git fallback (skip gh CLI)
+xling git:pr 789 --no-gh --remote upstream
+
+# View PR in browser
+xling git:view 123
+
+# View PR in specific browser
+xling git:view 456 --browser Chrome
+
+# List worktrees
+xling git:worktree --list
+
+# Add new worktree
+xling git:worktree --add --path ../repo-feature --branch feature/login
+
+# Remove worktree
+xling git:worktree --remove --path ../repo-feature
+
+# Prune stale worktrees
+xling git:worktree --prune
+```
+
+**PR Checkout Strategies:**
+- **gh strategy**: Uses `gh pr checkout <id>` (preferred, requires GitHub CLI)
+- **git fallback**: Uses `git fetch origin pull/<id>/head:<branch>` + `git switch <branch>`
+- Automatic detection: gh CLI availability is checked automatically
+- Manual override: Use `--no-gh` to force git strategy
+
+**Browser Support:**
+- macOS: Safari, Chrome, Firefox (via `open -a <Browser>`)
+- Linux: firefox, google-chrome, etc. (direct command)
+- Windows: Browser exe paths (via `start`)
+- Environment: Respects `GH_BROWSER` environment variable
+
 ### List Settings
 
 ```bash
@@ -208,9 +253,12 @@ xling/
 |  |- run.js
 |- src/
 |  |- commands/             # oclif commands
-|  |  |- settings/
+|  |  |- git/               # Git workflow commands
+|  |  |- settings/          # Settings management commands
+|  |  |- x/                 # Quick launcher
 |  |- domain/               # Types and interfaces
 |  |- services/             # Business logic
+|  |  |- git/               # Git services (pr, worktree, view)
 |  |  |- settings/
 |  |     |- adapters/       # Tool adapters
 |  |     |- fsStore.ts      # File system operations

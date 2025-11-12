@@ -12,22 +12,22 @@ const ACTIONS = ["list", "edit", "switch-profile", "inspect"] as const;
 /**
  * ToolId schema
  */
-export const ToolIdSchema = z.enum(TOOL_IDS);
+export const ToolIdSchema: z.ZodEnum<["claude", "codex", "gemini"]> = z.enum(TOOL_IDS);
 
 /**
  * Scope schema
  */
-export const ScopeSchema = z.enum(SCOPES);
+export const ScopeSchema: z.ZodEnum<["user", "project", "local", "system"]> = z.enum(SCOPES);
 
 /**
  * SettingAction schema
  */
-export const SettingActionSchema = z.enum(ACTIONS);
+export const SettingActionSchema: z.ZodEnum<["list", "edit", "switch-profile", "inspect"]> = z.enum(ACTIONS);
 
 /**
  * SettingsPayload schema
  */
-export const SettingsPayloadSchema = z.object({
+export const SettingsPayloadSchema: z.ZodType<SettingsPayload> = z.object({
   tool: ToolIdSchema,
   scope: ScopeSchema,
   action: SettingActionSchema,
@@ -41,7 +41,7 @@ export const SettingsPayloadSchema = z.object({
       backup: z.boolean().optional(),
     })
     .optional(),
-}) satisfies z.ZodType<SettingsPayload>;
+});
 
 /**
  * Validate an incoming settings payload

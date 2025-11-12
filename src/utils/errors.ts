@@ -91,3 +91,35 @@ export class EditorLaunchError extends XlingError {
     this.name = "EditorLaunchError";
   }
 }
+
+/**
+ * Error thrown when an executable is not found in PATH
+ */
+export class ExecutableNotFoundError extends XlingError {
+  constructor(executable: string, hint?: string) {
+    super(
+      `Executable '${executable}' not found in PATH.${hint ? ` ${hint}` : ''}`
+    );
+    this.name = "ExecutableNotFoundError";
+  }
+}
+
+/**
+ * Error thrown when not in a git repository
+ */
+export class GitRepositoryError extends XlingError {
+  constructor(cwd: string) {
+    super(`Not a git repository (or any parent): ${cwd}`);
+    this.name = "GitRepositoryError";
+  }
+}
+
+/**
+ * Error thrown when a git command fails
+ */
+export class GitCommandError extends XlingError {
+  constructor(command: string, stderr: string) {
+    super(`Git command failed: ${command}\n${stderr}`);
+    this.name = "GitCommandError";
+  }
+}
