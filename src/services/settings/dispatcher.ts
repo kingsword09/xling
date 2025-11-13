@@ -12,6 +12,7 @@ import type {
 import { ClaudeAdapter } from "./adapters/claude.ts";
 import { CodexAdapter } from "./adapters/codex.ts";
 import { GeminiAdapter } from "./adapters/gemini.ts";
+import { XlingAdapter } from "./adapters/xling.ts";
 import { UnsupportedToolError } from "@/utils/errors.ts";
 
 /**
@@ -29,6 +30,7 @@ export class SettingsDispatcher {
     this.adapters.set("claude", new ClaudeAdapter());
     this.adapters.set("codex", new CodexAdapter());
     this.adapters.set("gemini", new GeminiAdapter());
+    this.adapters.set("xling", new XlingAdapter());
   }
 
   /**

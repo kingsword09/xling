@@ -9,16 +9,18 @@ import { formatJson } from "@/utils/format.ts";
 import type { ToolId, Scope } from "@/domain/types.ts";
 
 export default class SettingsSet extends Command {
-  static summary = "Open settings files in your IDE (Claude only)";
+  static summary = "Open settings files in your IDE";
 
   static description = `
-    Create or open Claude settings variants in your preferred editor.
-    Provide --name to edit settings.<name>.json (default: settings.json).
+    Create or open settings files for AI CLI tools in your preferred editor.
+    For Claude: provide --name to edit settings.<name>.json (default: settings.json).
+    For Xling: edits ~/.claude/xling.json configuration.
   `;
 
   static examples: Command.Example[] = [
     "<%= config.bin %> <%= command.id %> --tool claude --scope user --name hxi",
     "<%= config.bin %> <%= command.id %> --tool claude --scope project --name default --ide cursor",
+    "<%= config.bin %> <%= command.id %> --tool xling --scope user --ide cursor",
   ];
 
   static args: Interfaces.ArgInput = {};
@@ -27,7 +29,7 @@ export default class SettingsSet extends Command {
     tool: Flags.string({
       char: "t",
       description: "AI CLI tool to manage",
-      options: ["claude", "codex", "gemini"],
+      options: ["claude", "codex", "gemini", "xling"],
       default: "claude",
     }),
     scope: Flags.string({
@@ -55,15 +57,6 @@ export default class SettingsSet extends Command {
     const { flags } = await this.parse(SettingsSet);
 
     try {
-      if (flags.tool !== "claude") {
-        this.error(
-          "Editing settings files is currently only supported for Claude.",
-          {
-            exit: 1,
-          },
-        );
-      }
-
       const dispatcher = new SettingsDispatcher();
       const result = await dispatcher.execute({
         tool: flags.tool as ToolId,
