@@ -299,7 +299,7 @@ export default class PCommand extends Command {
             resolve(false);
           }
         }, 10000);
-      } catch (error) {
+      } catch {
         // If /dev/tty is not available (e.g., not a TTY environment), decline
         resolve(false);
       }
@@ -346,7 +346,7 @@ export default class PCommand extends Command {
         if (inputStream && "setRawMode" in inputStream) {
           try {
             (inputStream as tty.ReadStream).setRawMode(wasRaw);
-          } catch (e) {
+          } catch {
             // Ignore errors during cleanup
           }
         }
@@ -355,21 +355,21 @@ export default class PCommand extends Command {
         if (ttyReadStream) {
           try {
             ttyReadStream.destroy();
-          } catch (e) {
+          } catch {
             // Ignore errors during cleanup
           }
         }
         if (ttyWriteStream) {
           try {
             ttyWriteStream.destroy();
-          } catch (e) {
+          } catch {
             // Ignore errors during cleanup
           }
         }
         if (ttyFd !== null) {
           try {
             fs.closeSync(ttyFd);
-          } catch (e) {
+          } catch {
             // Ignore errors during cleanup
           }
         }
@@ -483,9 +483,7 @@ export default class PCommand extends Command {
       process.once("SIGTERM", signalHandler);
       process.once("SIGINT", signalHandler);
     } catch (error) {
-      this.error(
-        `Cannot enter interactive mode: ${(error as Error).message}`,
-      );
+      this.error(`Cannot enter interactive mode: ${(error as Error).message}`);
     }
   }
 
