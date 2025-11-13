@@ -52,7 +52,10 @@ export class ModelRouter {
   constructor(config: XlingConfig, logger?: Logger) {
     this.registry = new ProviderRegistry(config);
     this.clients = new Map();
-    this.retryPolicy = config.retryPolicy || { maxRetries: 2, backoffMs: 1000 };
+    this.retryPolicy = config.prompt.retryPolicy || {
+      maxRetries: 2,
+      backoffMs: 1000,
+    };
     this.logger = logger || defaultLogger;
   }
 

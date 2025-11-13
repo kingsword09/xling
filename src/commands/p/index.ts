@@ -122,15 +122,17 @@ export default class PCommand extends Command {
             `Please create a configuration file with at least one provider.\n` +
             `Example:\n` +
             `{\n` +
-            `  "providers": [\n` +
-            `    {\n` +
-            `      "name": "openai",\n` +
-            `      "baseUrl": "https://api.openai.com/v1",\n` +
-            `      "apiKey": "sk-...",\n` +
-            `      "models": ["gpt-4", "gpt-4-turbo"]\n` +
-            `    }\n` +
-            `  ],\n` +
-            `  "defaultModel": "gpt-4"\n` +
+            `  "prompt": {\n` +
+            `    "providers": [\n` +
+            `      {\n` +
+            `        "name": "openai",\n` +
+            `        "baseUrl": "https://api.openai.com/v1",\n` +
+            `        "apiKey": "sk-...",\n` +
+            `        "models": ["gpt-4", "gpt-4-turbo"]\n` +
+            `      }\n` +
+            `    ],\n` +
+            `    "defaultModel": "gpt-4"\n` +
+            `  }\n` +
             `}`,
         );
       }

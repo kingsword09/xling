@@ -26,6 +26,7 @@ Together, `xling` is more than just a tool; it's an intelligent partner that amp
 
 - **Unified Interface**: Manage settings for multiple AI CLI tools with a single command
 - **Quick Launcher**: Just type `xling x` to start Claude Code instantly with yolo mode
+- **Command Shortcuts**: Define custom aliases for frequently used commands with `sx`
 - **Multiple Scopes**: Support for user, project, local, and system-level configurations
 - **Profile Switching**: Switch between different configuration profiles (Codex)
 - **Dry Run Mode**: Preview changes before applying them
@@ -56,6 +57,7 @@ place.
 ### Command Overview
 
 - `x`: Launch Claude Code or Codex with resume flags, yolo toggle, and passthrough args.
+- `sx`: Execute command shortcuts/aliases defined in xling config.
 - `settings:list|get|set|switch|inspect`: Inspect, edit, and switch Claude, Codex, or Gemini configs across scopes.
 - `git:prc|prr|prv`: Create, checkout, and view GitHub pull requests with automatic gh/git fallbacks.
 - `git:wta|wtl|wtp|wtr|wts`: Manage git worktrees (add/list/prune/remove/switch) with guard rails and subshell support.
@@ -65,6 +67,7 @@ place.
 #### Launching AI tools
 
 - [`x` – quick launcher](docs/x.md): fire up Claude Code or Codex with resume/yolo controls and passthrough args.
+- [`sx` – shortcut execute](docs/sx.md): run predefined command shortcuts with optional passthrough args.
 
 #### Settings management
 
