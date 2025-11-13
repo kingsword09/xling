@@ -148,17 +148,20 @@ export class XlingAdapter extends BaseAdapter {
 
     // Convert to ConfigObject format
     const entries: ConfigObject = {
-      defaultModel: config.defaultModel || null,
-      retryPolicy: config.retryPolicy || null,
-      providers: config.providers.map((p: ProviderConfig) => ({
-        name: p.name,
-        baseUrl: p.baseUrl,
-        models: p.models,
-        priority: p.priority ?? null,
-        timeout: p.timeout ?? null,
-        // Mask API key for security
-        apiKey: this.maskApiKey(p.apiKey),
-      })),
+      prompt: {
+        defaultModel: config.prompt.defaultModel || null,
+        retryPolicy: config.prompt.retryPolicy || null,
+        providers: config.prompt.providers.map((p: ProviderConfig) => ({
+          name: p.name,
+          baseUrl: p.baseUrl,
+          models: p.models,
+          priority: p.priority ?? null,
+          timeout: p.timeout ?? null,
+          // Mask API key for security
+          apiKey: this.maskApiKey(p.apiKey),
+        })),
+      },
+      shortcuts: config.shortcuts || null,
     };
 
     return {
@@ -166,6 +169,21 @@ export class XlingAdapter extends BaseAdapter {
       entries,
       filePath: fsStore.resolveHome(configPath),
     };
+  }
+
+  /**
+   * Get all configured shortcuts
+   */
+  getShortcuts(
+    scope: Scope,
+  ): Record<string, import("@/domain/xling/config.ts").ShortcutConfig> {
+    if (!this.validateScope(scope)) {
+      throw new InvalidScopeError(scope);
+    }
+
+    const configPath = this.resolvePath(scope);
+    const config = this.readConfig(configPath);
+    return config.shortcuts || {};
   }
 
   /**
@@ -180,7 +198,9 @@ export class XlingAdapter extends BaseAdapter {
 
     // Check for duplicate name
     if (
-      config.providers.some((p: ProviderConfig) => p.name === provider.name)
+      config.prompt.providers.some(
+        (p: ProviderConfig) => p.name === provider.name,
+      )
     ) {
       return {
         success: false,
@@ -189,7 +209,7 @@ export class XlingAdapter extends BaseAdapter {
       };
     }
 
-    config.providers.push(provider);
+    config.prompt.providers.push(provider);
     this.writeConfig(configPath, config);
 
     return {
@@ -206,7 +226,7 @@ export class XlingAdapter extends BaseAdapter {
     const configPath = this.resolvePath(scope);
     const config = this.readConfig(configPath);
 
-    const index = config.providers.findIndex(
+    const index = config.prompt.providers.findIndex(
       (p: ProviderConfig) => p.name === name,
     );
     if (index === -1) {
@@ -217,7 +237,7 @@ export class XlingAdapter extends BaseAdapter {
       };
     }
 
-    if (config.providers.length === 1) {
+    if (config.prompt.providers.length === 1) {
       return {
         success: false,
         message:
@@ -226,7 +246,7 @@ export class XlingAdapter extends BaseAdapter {
       };
     }
 
-    config.providers.splice(index, 1);
+    config.prompt.providers.splice(index, 1);
     this.writeConfig(configPath, config);
 
     return {
@@ -247,7 +267,7 @@ export class XlingAdapter extends BaseAdapter {
     const configPath = this.resolvePath(scope);
     const config = this.readConfig(configPath);
 
-    const provider = config.providers.find(
+    const provider = config.prompt.providers.find(
       (p: ProviderConfig) => p.name === name,
     );
     if (!provider) {
@@ -277,7 +297,7 @@ export class XlingAdapter extends BaseAdapter {
     const configPath = this.resolvePath(scope);
     const config = this.readConfig(configPath);
 
-    config.defaultModel = model;
+    config.prompt.defaultModel = model;
     this.writeConfig(configPath, config);
 
     return {

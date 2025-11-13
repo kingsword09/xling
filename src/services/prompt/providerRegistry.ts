@@ -22,8 +22,8 @@ export class ProviderRegistry {
   private defaultModel?: string;
 
   constructor(config: XlingConfig) {
-    this.providers = this.sortByPriority(config.providers);
-    this.defaultModel = config.defaultModel;
+    this.providers = this.sortByPriority(config.prompt.providers);
+    this.defaultModel = config.prompt.defaultModel;
     this.modelIndex = this.buildModelIndex();
   }
 
@@ -123,8 +123,8 @@ export class ProviderRegistry {
     const adapter = new XlingAdapter();
     const config = adapter.readConfig(adapter.resolvePath("user"));
 
-    this.providers = this.sortByPriority(config.providers);
-    this.defaultModel = config.defaultModel;
+    this.providers = this.sortByPriority(config.prompt.providers);
+    this.defaultModel = config.prompt.defaultModel;
     this.modelIndex = this.buildModelIndex();
   }
 
