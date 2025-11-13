@@ -337,9 +337,54 @@ export default class PCommand extends Command {
       let ttyFd: number | null = null;
       let ttyReadStream: tty.ReadStream | null = null;
       let ttyWriteStream: tty.WriteStream | null = null;
+      let wasRaw = false;
+      let inputStream: NodeJS.ReadableStream;
+
+      // Cleanup function to restore terminal state
+      const cleanup = () => {
+        // Restore raw mode state
+        if (inputStream && "setRawMode" in inputStream) {
+          try {
+            (inputStream as tty.ReadStream).setRawMode(wasRaw);
+          } catch (e) {
+            // Ignore errors during cleanup
+          }
+        }
+
+        // Close TTY streams if opened
+        if (ttyReadStream) {
+          try {
+            ttyReadStream.destroy();
+          } catch (e) {
+            // Ignore errors during cleanup
+          }
+        }
+        if (ttyWriteStream) {
+          try {
+            ttyWriteStream.destroy();
+          } catch (e) {
+            // Ignore errors during cleanup
+          }
+        }
+        if (ttyFd !== null) {
+          try {
+            fs.closeSync(ttyFd);
+          } catch (e) {
+            // Ignore errors during cleanup
+          }
+        }
+      };
 
       if (process.stdin.isTTY) {
         // stdin is available, use it directly
+        inputStream = process.stdin;
+
+        // Save raw mode state and enable it for proper input handling
+        wasRaw = process.stdin.isRaw || false;
+        if (!wasRaw) {
+          process.stdin.setRawMode(true);
+        }
+
         rl = readline.createInterface({
           input: process.stdin,
           output: process.stdout,
@@ -350,6 +395,14 @@ export default class PCommand extends Command {
         ttyFd = fs.openSync("/dev/tty", "r+");
         ttyReadStream = new tty.ReadStream(ttyFd);
         ttyWriteStream = new tty.WriteStream(ttyFd);
+        inputStream = ttyReadStream;
+
+        // Enable raw mode on the TTY stream for proper input handling
+        // This prevents terminal echo conflicts with readline
+        wasRaw = ttyReadStream.isRaw || false;
+        if (!wasRaw) {
+          ttyReadStream.setRawMode(true);
+        }
 
         rl = readline.createInterface({
           input: ttyReadStream,
@@ -409,9 +462,7 @@ export default class PCommand extends Command {
       });
 
       rl.on("close", () => {
-        if (ttyReadStream) ttyReadStream.destroy();
-        if (ttyWriteStream) ttyWriteStream.destroy();
-        if (ttyFd !== null) fs.closeSync(ttyFd);
+        cleanup();
         this.log("\nGoodbye!");
         process.exit(0);
       });
@@ -423,6 +474,14 @@ export default class PCommand extends Command {
         );
         rl.prompt();
       });
+
+      // Register cleanup on process signals
+      const signalHandler = () => {
+        cleanup();
+        process.exit(0);
+      };
+      process.once("SIGTERM", signalHandler);
+      process.once("SIGINT", signalHandler);
     } catch (error) {
       this.error(
         `Cannot enter interactive mode: ${(error as Error).message}`,
