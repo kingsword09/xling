@@ -2,7 +2,7 @@
  * Core type definitions
  */
 
-export type ToolId = "claude" | "codex" | "gemini";
+export type ToolId = "claude" | "codex" | "gemini" | "xling";
 export type Scope = "user" | "project" | "local" | "system";
 export type SettingAction = "list" | "edit" | "switch-profile" | "inspect";
 export type OutputFormat = "json" | "table";

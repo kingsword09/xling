@@ -33,7 +33,7 @@ export default class SettingsList extends Command {
     tool: Flags.string({
       char: "t",
       description: "AI CLI tool to manage",
-      options: ["claude", "codex", "gemini"],
+      options: ["claude", "codex", "gemini", "xling"],
       default: "claude",
     }),
     scope: Flags.string({
