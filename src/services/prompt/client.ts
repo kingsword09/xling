@@ -52,7 +52,8 @@ export class PromptClient {
     const baseParams = {
       model: this.provider(request.model || ""),
       temperature: request.temperature,
-      maxRetries: request.maxTokens,
+      maxOutputTokens: request.maxTokens,
+      maxRetries: 2, // AI SDK default
       abortSignal: request.abortSignal,
     };
 
@@ -86,7 +87,8 @@ export class PromptClient {
     const baseParams = {
       model: this.provider(request.model || ""),
       temperature: request.temperature,
-      maxRetries: request.maxTokens,
+      maxOutputTokens: request.maxTokens,
+      maxRetries: 2, // AI SDK default
       abortSignal: request.abortSignal,
     };
 
