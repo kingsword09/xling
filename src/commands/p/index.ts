@@ -503,6 +503,12 @@ export default class PCommand extends Command {
     for await (const chunk of streamResult.textStream) {
       outputStream.write(chunk);
       fullText += chunk;
+
+      // Force flush to ensure immediate output
+      // This is especially important for TTY streams
+      if ("flush" in outputStream && typeof outputStream.flush === "function") {
+        outputStream.flush();
+      }
     }
 
     outputStream.write("\n");
