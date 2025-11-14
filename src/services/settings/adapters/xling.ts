@@ -5,6 +5,7 @@
 
 import * as fs from "fs";
 import * as path from "path";
+import { execSync } from "child_process";
 import type {
   Scope,
   SettingsListData,
@@ -30,12 +31,17 @@ export class XlingAdapter extends BaseAdapter {
   readonly toolId = "xling" as const;
 
   /**
-   * Resolve config path - always ~/.claude/xling.json
+   * Resolve config path - cross-platform
+   * macOS/Linux: ~/.claude/xling.json
+   * Windows: %USERPROFILE%\.claude\xling.json
    */
   resolvePath(scope: Scope): string {
     if (!this.validateScope(scope)) {
       throw new InvalidScopeError(scope);
     }
+
+    // Use ~ which will be resolved by fsStore.resolveHome()
+    // This works on all platforms
     return "~/.claude/xling.json";
   }
 
@@ -67,7 +73,9 @@ export class XlingAdapter extends BaseAdapter {
   }
 
   /**
-   * Write Xling configuration with chmod 600 for security
+   * Write Xling configuration with secure permissions
+   * Unix: chmod 600
+   * Windows: ACL to restrict access to current user only
    */
   override writeConfig(
     configPath: string,
@@ -90,13 +98,45 @@ export class XlingAdapter extends BaseAdapter {
       const tempPath = `${resolvedPath}.tmp`;
       fs.writeFileSync(tempPath, JSON.stringify(data, null, 2), "utf-8");
 
-      // Set permissions to 600 (owner read/write only) for API key security
-      fs.chmodSync(tempPath, 0o600);
+      // Set secure permissions (cross-platform)
+      this.setSecurePermissions(tempPath);
 
       fs.renameSync(tempPath, resolvedPath);
     } catch (error) {
       throw new Error(
         `Failed to write config to ${resolvedPath}: ${(error as Error).message}`,
+      );
+    }
+  }
+
+  /**
+   * Set secure file permissions (cross-platform)
+   * Unix: chmod 600 (owner read/write only)
+   * Windows: icacls to restrict access to current user only
+   */
+  private setSecurePermissions(filePath: string): void {
+    try {
+      if (process.platform === "win32") {
+        // Windows: Remove inheritance and grant full control to current user only
+        // /inheritance:r - Remove inherited permissions
+        // /grant:r - Grant permissions (replace existing)
+        // %USERNAME%:(F) - Full control for current user
+        execSync(
+          `icacls "${filePath}" /inheritance:r /grant:r "%USERNAME%:(F)"`,
+          {
+            stdio: "ignore",
+            windowsHide: true,
+          },
+        );
+      } else {
+        // Unix: Standard chmod 600
+        fs.chmodSync(filePath, 0o600);
+      }
+    } catch (error) {
+      // Log warning but don't fail the operation
+      // File permissions are a security enhancement, not a hard requirement
+      console.warn(
+        `Warning: Could not set secure permissions on ${filePath}: ${(error as Error).message}`,
       );
     }
   }

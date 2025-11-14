@@ -46,6 +46,16 @@ bun run build
 npm link
 ```
 
+### Platform Requirements
+
+**Windows Users:**
+- PowerShell 7+ is required for shell shortcuts (`sx` command with shell type)
+- Install from: https://github.com/PowerShell/PowerShell/releases
+
+**All Platforms:**
+- Node.js >= 20.19.0
+- Git (for git-related commands)
+
 ## Usage
 
 `xling` bundles a quick launcher, configuration helpers, and git productivity
