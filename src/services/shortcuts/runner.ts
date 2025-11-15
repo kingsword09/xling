@@ -22,17 +22,19 @@ import {
  * Service for managing and executing command shortcuts
  */
 export class ShortcutRunner {
-  private adapter: XlingAdapter;
+  #adapter: XlingAdapter;
+  #config: Config;
 
-  constructor(private config: Config) {
-    this.adapter = new XlingAdapter();
+  constructor(config: Config) {
+    this.#config = config;
+    this.#adapter = new XlingAdapter();
   }
 
   /**
    * Load all shortcuts from configuration
    */
   async load(): Promise<Record<string, ShortcutConfig>> {
-    return this.adapter.getShortcuts("user");
+    return this.#adapter.getShortcuts("user");
   }
 
   /**
@@ -50,7 +52,7 @@ export class ShortcutRunner {
       } else if (config.shell) {
         type = "shell";
         // Resolve platform-specific shell command for display
-        const shellCommand = this.resolveShellCommand(config.shell);
+        const shellCommand = this.#resolveShellCommand(config.shell);
         display =
           shellCommand.length > 50
             ? shellCommand.substring(0, 47) + "..."
@@ -58,7 +60,7 @@ export class ShortcutRunner {
       } else if (config.pipeline) {
         type = "pipeline";
         // Resolve platform-specific pipeline for display
-        const pipeline = this.resolvePipeline(config.pipeline);
+        const pipeline = this.#resolvePipeline(config.pipeline);
         display = pipeline.map((step) => step.command).join(" | ");
       } else {
         type = "command";
@@ -89,37 +91,37 @@ export class ShortcutRunner {
     }
 
     // Validate shortcut before execution
-    this.validateShortcut(name, shortcut);
+    this.#validateShortcut(name, shortcut);
 
     // Execute based on shortcut type
     if (shortcut.command) {
-      await this.runCommand(shortcut, passthroughArgs);
+      await this.#runCommand(shortcut, passthroughArgs);
     } else if (shortcut.shell) {
-      await this.runShell(shortcut.shell);
+      await this.#runShell(shortcut.shell);
     } else if (shortcut.pipeline) {
-      await this.runPipeline(shortcut.pipeline);
+      await this.#runPipeline(shortcut.pipeline);
     }
   }
 
   /**
    * Execute a command shortcut
    */
-  private async runCommand(
+  async #runCommand(
     shortcut: ShortcutConfig,
     passthroughArgs: string[],
   ): Promise<void> {
     const finalArgs = [...(shortcut.args || []), ...passthroughArgs];
-    await this.config.runCommand(shortcut.command!, finalArgs);
+    await this.#config.runCommand(shortcut.command!, finalArgs);
   }
 
   /**
    * Execute a shell shortcut
    * Supports both string and platform-specific shell commands
    */
-  private async runShell(shellCommand: string | PlatformShell): Promise<void> {
+  async #runShell(shellCommand: string | PlatformShell): Promise<void> {
     return new Promise((resolve, reject) => {
-      const shellConfig = this.getShellConfig();
-      const resolvedCommand = this.resolveShellCommand(shellCommand);
+      const shellConfig = this.#getShellConfig();
+      const resolvedCommand = this.#resolveShellCommand(shellCommand);
 
       const child = spawn(resolvedCommand, {
         shell: shellConfig,
@@ -144,12 +146,12 @@ export class ShortcutRunner {
    * Resolve platform-specific shell command
    * Returns the appropriate command for the current platform
    */
-  private resolveShellCommand(shellCommand: string | PlatformShell): string {
+  #resolveShellCommand(shellCommand: string | PlatformShell): string {
     if (typeof shellCommand === "string") {
       return shellCommand;
     }
 
-    return this.resolvePlatformValue(shellCommand);
+    return this.#resolvePlatformValue(shellCommand);
   }
 
   /**
@@ -157,7 +159,7 @@ export class ShortcutRunner {
    * Windows: Use PowerShell 7 (pwsh)
    * Unix: Use default shell
    */
-  private getShellConfig(): string | boolean {
+  #getShellConfig(): string | boolean {
     if (process.platform === "win32") {
       return "pwsh"; // PowerShell 7
     }
@@ -168,11 +170,11 @@ export class ShortcutRunner {
    * Execute a pipeline shortcut
    * Supports both array and platform-specific pipelines
    */
-  private async runPipeline(
+  async #runPipeline(
     pipeline: PipelineStep[] | PlatformPipeline,
   ): Promise<void> {
     return new Promise((resolve, reject) => {
-      const resolvedPipeline = this.resolvePipeline(pipeline);
+      const resolvedPipeline = this.#resolvePipeline(pipeline);
       const processes: ReturnType<typeof spawn>[] = [];
 
       // Spawn all processes in the pipeline
@@ -240,20 +242,20 @@ export class ShortcutRunner {
    * Returns the appropriate pipeline for the current platform
    * Also resolves platform-specific command/args within each step
    */
-  private resolvePipeline(
+  #resolvePipeline(
     pipeline: PipelineStep[] | PlatformPipeline,
   ): Array<{ command: string; args?: string[] }> {
     const resolvedPipeline = Array.isArray(pipeline)
       ? pipeline
-      : this.resolvePlatformPipeline(pipeline);
+      : this.#resolvePlatformPipeline(pipeline);
 
     return resolvedPipeline.map((step) => ({
-      command: this.resolvePlatformValue(step.command),
-      args: step.args ? this.resolvePlatformValue(step.args) : undefined,
+      command: this.#resolvePlatformValue(step.command),
+      args: step.args ? this.#resolvePlatformValue(step.args) : undefined,
     }));
   }
 
-  private resolvePlatformPipeline(pipeline: PlatformPipeline): PipelineStep[] {
+  #resolvePlatformPipeline(pipeline: PlatformPipeline): PipelineStep[] {
     const platform = process.platform;
 
     if (platform === "win32" && pipeline.win32) {
@@ -273,8 +275,8 @@ export class ShortcutRunner {
    * Resolve platform-specific value (command or args)
    * Returns the appropriate value for the current platform
    */
-  private resolvePlatformValue<T>(value: T | PlatformValue<T>): T {
-    if (!this.isPlatformValue(value)) {
+  #resolvePlatformValue<T>(value: T | PlatformValue<T>): T {
+    if (!this.#isPlatformValue(value)) {
       return value;
     }
 
@@ -293,7 +295,7 @@ export class ShortcutRunner {
     return value.default;
   }
 
-  private isPlatformValue<T>(value: unknown): value is PlatformValue<T> {
+  #isPlatformValue<T>(value: unknown): value is PlatformValue<T> {
     return (
       typeof value === "object" &&
       value !== null &&
@@ -306,7 +308,7 @@ export class ShortcutRunner {
    * Validate shortcut configuration
    * @throws {CircularShortcutError} if shortcut creates circular reference
    */
-  private validateShortcut(name: string, shortcut: ShortcutConfig): void {
+  #validateShortcut(name: string, shortcut: ShortcutConfig): void {
     // Prevent circular reference (shortcut calling "sx" command)
     if (shortcut.command === "sx") {
       throw new CircularShortcutError(name);
@@ -314,7 +316,7 @@ export class ShortcutRunner {
 
     // For pipeline shortcuts, check if any step calls "sx"
     if (shortcut.pipeline) {
-      const resolvedPipeline = this.resolvePipeline(shortcut.pipeline);
+      const resolvedPipeline = this.#resolvePipeline(shortcut.pipeline);
       for (const step of resolvedPipeline) {
         if (step.command === "xling" && step.args?.includes("sx")) {
           throw new CircularShortcutError(name);
@@ -324,7 +326,7 @@ export class ShortcutRunner {
 
     // For shell shortcuts, check if it contains "xling sx"
     if (shortcut.shell) {
-      const shellCommand = this.resolveShellCommand(shortcut.shell);
+      const shellCommand = this.#resolveShellCommand(shortcut.shell);
       if (shellCommand.includes("xling sx")) {
         throw new CircularShortcutError(name);
       }

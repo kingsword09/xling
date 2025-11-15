@@ -13,12 +13,12 @@ import type { PromptRequest, PromptResponse } from "./types.ts";
  * Client for a single provider using AI SDK
  */
 export class PromptClient {
-  private provider: ReturnType<typeof createOpenAICompatible>;
-  private config: ProviderConfig;
+  #provider: ReturnType<typeof createOpenAICompatible>;
+  #config: ProviderConfig;
 
   constructor(config: ProviderConfig) {
-    this.config = config;
-    this.provider = createOpenAICompatible({
+    this.#config = config;
+    this.#provider = createOpenAICompatible({
       name: config.name,
       baseURL: config.baseUrl,
       apiKey: config.apiKey,
@@ -29,7 +29,7 @@ export class PromptClient {
   /**
    * Convert AI SDK v2 usage to our internal format
    */
-  private convertUsage(
+  #convertUsage(
     usage: LanguageModelV2Usage | undefined,
   ):
     | { promptTokens: number; completionTokens: number; totalTokens: number }
@@ -50,7 +50,7 @@ export class PromptClient {
    */
   async generate(request: PromptRequest): Promise<PromptResponse> {
     const baseParams = {
-      model: this.provider(request.model || ""),
+      model: this.#provider(request.model || ""),
       temperature: request.temperature,
       maxOutputTokens: request.maxTokens,
       maxRetries: 2, // AI SDK default
@@ -72,8 +72,8 @@ export class PromptClient {
     return {
       content: result.text,
       model: request.model || "",
-      provider: this.config.name,
-      usage: this.convertUsage(result.usage),
+      provider: this.#config.name,
+      usage: this.#convertUsage(result.usage),
       finishReason: result.finishReason,
     };
   }
@@ -85,7 +85,7 @@ export class PromptClient {
     request: PromptRequest,
   ): Promise<StreamTextResult<Record<string, never>, never>> {
     const baseParams = {
-      model: this.provider(request.model || ""),
+      model: this.#provider(request.model || ""),
       temperature: request.temperature,
       maxOutputTokens: request.maxTokens,
       maxRetries: 2, // AI SDK default
@@ -106,6 +106,6 @@ export class PromptClient {
   }
 
   getProviderName(): string {
-    return this.config.name;
+    return this.#config.name;
   }
 }

@@ -72,13 +72,13 @@ export default class Wts extends Command {
       this.log(
         `Switching to worktree at ${targetPath}. Exit the shell to return.`,
       );
-      await this.openShell(targetPath);
+      await this.#openShell(targetPath);
     } catch (error) {
       this.error((error as Error).message, { exit: 1 });
     }
   }
 
-  private resolveShell(): { command: string; args: string[] } {
+  #resolveShell(): { command: string; args: string[] } {
     if (process.platform === "win32") {
       const command = process.env.COMSPEC || "cmd.exe";
       return { command, args: [] };
@@ -87,8 +87,8 @@ export default class Wts extends Command {
     return { command, args: [] };
   }
 
-  private async openShell(cwd: string): Promise<void> {
-    const { command, args } = this.resolveShell();
+  async #openShell(cwd: string): Promise<void> {
+    const { command, args } = this.#resolveShell();
 
     await new Promise<void>((resolve, reject) => {
       const child = spawn(command, args, {

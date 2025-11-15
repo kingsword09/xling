@@ -64,7 +64,7 @@ export default class SettingsList extends Command {
       });
 
       if (flags.table) {
-        this.renderDetailed(result.data as SettingsListData | undefined);
+        this.#renderDetailed(result.data as SettingsListData | undefined);
         return;
       }
 
@@ -73,13 +73,13 @@ export default class SettingsList extends Command {
         return;
       }
 
-      this.renderSummary(result.data as SettingsListData | undefined);
+      this.#renderSummary(result.data as SettingsListData | undefined);
     } catch (error) {
       this.error((error as Error).message, { exit: 1 });
     }
   }
 
-  private renderSummary(data?: SettingsListData): void {
+  #renderSummary(data?: SettingsListData): void {
     if (!data) {
       this.log("No settings found.");
       return;
@@ -90,7 +90,7 @@ export default class SettingsList extends Command {
         this.log("No settings files found.");
         return;
       }
-      this.log(this.formatFilesSummary(data.files));
+      this.log(this.#formatFilesSummary(data.files));
       return;
     }
 
@@ -99,10 +99,10 @@ export default class SettingsList extends Command {
       return;
     }
 
-    this.log(this.formatEntriesSummary(data.entries, data.filePath));
+    this.log(this.#formatEntriesSummary(data.entries, data.filePath));
   }
 
-  private renderDetailed(data?: SettingsListData): void {
+  #renderDetailed(data?: SettingsListData): void {
     if (!data) {
       this.log("No settings found.");
       return;
@@ -126,7 +126,7 @@ export default class SettingsList extends Command {
     this.log(`File: ${data.filePath}`);
   }
 
-  private formatFilesSummary(files: SettingsFileEntry[]): string {
+  #formatFilesSummary(files: SettingsFileEntry[]): string {
     const lines = files.map((file) => {
       const prefix = file.active ? "* " : "- ";
       return (
@@ -137,13 +137,10 @@ export default class SettingsList extends Command {
     return ["files:"].concat(lines).join("\n");
   }
 
-  private formatEntriesSummary(
-    entries: ConfigObject,
-    filePath: string,
-  ): string {
+  #formatEntriesSummary(entries: ConfigObject, filePath: string): string {
     const lines = ["entries:"];
     for (const [key, value] of Object.entries(entries)) {
-      const formatted = this.stringify(value);
+      const formatted = this.#stringify(value);
       if (formatted.includes("\n")) {
         lines.push(`- ${key}:`);
         for (const line of formatted.split("\n")) {
@@ -157,7 +154,7 @@ export default class SettingsList extends Command {
     return lines.join("\n");
   }
 
-  private stringify(value: ConfigValue): string {
+  #stringify(value: ConfigValue): string {
     if (value === null) return "null";
     if (typeof value === "object") {
       if (value instanceof Date) {

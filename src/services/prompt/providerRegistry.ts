@@ -17,21 +17,21 @@ import { getNormalizedPriority } from "@/domain/xling/config.ts";
  * - Provide routing API for model requests
  */
 export class ProviderRegistry {
-  private providers: ProviderConfig[];
-  private modelIndex: Map<string, ProviderConfig[]>;
-  private defaultModel?: string;
+  #providers: ProviderConfig[];
+  #modelIndex: Map<string, ProviderConfig[]>;
+  #defaultModel?: string;
 
   constructor(config: XlingConfig) {
-    this.providers = this.sortByPriority(config.prompt.providers);
-    this.defaultModel = config.prompt.defaultModel;
-    this.modelIndex = this.buildModelIndex();
+    this.#providers = this.#sortByPriority(config.prompt.providers);
+    this.#defaultModel = config.prompt.defaultModel;
+    this.#modelIndex = this.#buildModelIndex();
   }
 
   /**
    * Sort providers by priority (lower number = higher priority)
    * Undefined priority is treated as lowest priority
    */
-  private sortByPriority(providers: ProviderConfig[]): ProviderConfig[] {
+  #sortByPriority(providers: ProviderConfig[]): ProviderConfig[] {
     return [...providers].sort((a, b) => {
       const priorityA = getNormalizedPriority(a.priority);
       const priorityB = getNormalizedPriority(b.priority);
@@ -43,10 +43,10 @@ export class ProviderRegistry {
    * Build model index: model name -> [providers that support it]
    * Providers are already sorted by priority
    */
-  private buildModelIndex(): Map<string, ProviderConfig[]> {
+  #buildModelIndex(): Map<string, ProviderConfig[]> {
     const index = new Map<string, ProviderConfig[]>();
 
-    for (const provider of this.providers) {
+    for (const provider of this.#providers) {
       for (const model of provider.models) {
         if (!index.has(model)) {
           index.set(model, []);
@@ -63,42 +63,42 @@ export class ProviderRegistry {
    * Returns empty array if model is not supported
    */
   getProvidersForModel(modelId: string): ProviderConfig[] {
-    return this.modelIndex.get(modelId) || [];
+    return this.#modelIndex.get(modelId) || [];
   }
 
   /**
    * Get all available models across all providers
    */
   getAllModels(): string[] {
-    return Array.from(this.modelIndex.keys()).sort();
+    return Array.from(this.#modelIndex.keys()).sort();
   }
 
   /**
    * Get all registered providers
    */
   getAllProviders(): ProviderConfig[] {
-    return [...this.providers];
+    return [...this.#providers];
   }
 
   /**
    * Get provider by name
    */
   getProviderByName(name: string): ProviderConfig | undefined {
-    return this.providers.find((p) => p.name === name);
+    return this.#providers.find((p) => p.name === name);
   }
 
   /**
    * Get default model
    */
   getDefaultModel(): string | undefined {
-    return this.defaultModel;
+    return this.#defaultModel;
   }
 
   /**
    * Check if a model is supported by any provider
    */
   isModelSupported(modelId: string): boolean {
-    return this.modelIndex.has(modelId);
+    return this.#modelIndex.has(modelId);
   }
 
   /**
@@ -110,9 +110,9 @@ export class ProviderRegistry {
     defaultModel?: string;
   } {
     return {
-      providerCount: this.providers.length,
-      modelCount: this.modelIndex.size,
-      defaultModel: this.defaultModel,
+      providerCount: this.#providers.length,
+      modelCount: this.#modelIndex.size,
+      defaultModel: this.#defaultModel,
     };
   }
 
@@ -123,9 +123,9 @@ export class ProviderRegistry {
     const adapter = new XlingAdapter();
     const config = adapter.readConfig(adapter.resolvePath("user"));
 
-    this.providers = this.sortByPriority(config.prompt.providers);
-    this.defaultModel = config.prompt.defaultModel;
-    this.modelIndex = this.buildModelIndex();
+    this.#providers = this.#sortByPriority(config.prompt.providers);
+    this.#defaultModel = config.prompt.defaultModel;
+    this.#modelIndex = this.#buildModelIndex();
   }
 
   /**
@@ -152,10 +152,10 @@ export class ProviderRegistry {
     }
 
     // Try default model
-    if (this.defaultModel) {
-      const providers = this.getProvidersForModel(this.defaultModel);
+    if (this.#defaultModel) {
+      const providers = this.getProvidersForModel(this.#defaultModel);
       if (providers.length > 0) {
-        return { model: this.defaultModel, providers };
+        return { model: this.#defaultModel, providers };
       }
     }
 

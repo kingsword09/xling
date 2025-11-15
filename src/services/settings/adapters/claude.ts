@@ -45,7 +45,7 @@ export class ClaudeAdapter extends BaseAdapter {
     const activeFilename = path.basename(activePath);
 
     const files: SettingsFileEntry[] = [
-      this.buildEntry(activePath, scope, true),
+      this.#buildEntry(activePath, scope, true),
     ];
 
     if (fs.existsSync(directory)) {
@@ -53,16 +53,16 @@ export class ClaudeAdapter extends BaseAdapter {
       for (const entry of entries) {
         if (!entry.isFile()) continue;
         if (entry.name === activeFilename) continue;
-        if (!this.isSettingsFile(entry.name)) continue;
+        if (!this.#isSettingsFile(entry.name)) continue;
 
         const entryPath = path.join(directory, entry.name);
-        files.push(this.buildEntry(entryPath, scope, false));
+        files.push(this.#buildEntry(entryPath, scope, false));
       }
     }
 
     return {
       type: "files",
-      files: this.sortFiles(files),
+      files: this.#sortFiles(files),
     };
   }
 
@@ -108,7 +108,7 @@ export class ClaudeAdapter extends BaseAdapter {
 
     const targetPath = fsStore.resolveHome(this.resolvePath(scope));
     const directory = path.dirname(targetPath);
-    const sourcePath = this.findVariantPath(directory, variant, targetPath);
+    const sourcePath = this.#findVariantPath(directory, variant, targetPath);
 
     if (!sourcePath) {
       throw new SettingsVariantNotFoundError(variant);
@@ -183,7 +183,7 @@ export class ClaudeAdapter extends BaseAdapter {
     let label = "default";
 
     if (variantName && variantName !== "" && variantName !== "default") {
-      const existingPath = this.findVariantPath(
+      const existingPath = this.#findVariantPath(
         directory,
         variantName,
         basePath,
@@ -193,13 +193,13 @@ export class ClaudeAdapter extends BaseAdapter {
       } else {
         targetPath = path.join(directory, `settings.${variantName}.json`);
         if (!fs.existsSync(targetPath)) {
-          const seed = this.buildSeedConfig(basePath);
+          const seed = this.#buildSeedConfig(basePath);
           fsStore.writeJSON(targetPath, seed, false);
         }
       }
       label = variantName;
     } else if (!fs.existsSync(targetPath)) {
-      const seed = this.buildSeedConfig(basePath);
+      const seed = this.#buildSeedConfig(basePath);
       fsStore.writeJSON(targetPath, seed, false);
     }
 
@@ -216,7 +216,7 @@ export class ClaudeAdapter extends BaseAdapter {
     };
   }
 
-  private buildEntry(
+  #buildEntry(
     filePath: string,
     scope: Scope,
     active: boolean,
@@ -225,7 +225,7 @@ export class ClaudeAdapter extends BaseAdapter {
 
     return {
       filename: path.basename(filePath),
-      variant: this.extractVariant(filePath),
+      variant: this.#extractVariant(filePath),
       path: filePath,
       scope,
       active,
@@ -235,7 +235,7 @@ export class ClaudeAdapter extends BaseAdapter {
     };
   }
 
-  private extractVariant(filePath: string): string {
+  #extractVariant(filePath: string): string {
     const filename = path.basename(filePath);
     const match = filename.match(/^settings(?:[._-](.+))?\.json$/);
     if (!match) {
@@ -244,7 +244,7 @@ export class ClaudeAdapter extends BaseAdapter {
     return match[1] ?? "default";
   }
 
-  private buildSeedConfig(basePath: string): ConfigObject {
+  #buildSeedConfig(basePath: string): ConfigObject {
     try {
       if (fs.existsSync(basePath)) {
         const content = fs.readFileSync(basePath, "utf-8");
@@ -256,11 +256,11 @@ export class ClaudeAdapter extends BaseAdapter {
     return { ...CLAUDE_SETTINGS_TEMPLATE };
   }
 
-  private isSettingsFile(filename: string): boolean {
+  #isSettingsFile(filename: string): boolean {
     return /^settings[._-].+\.json$/.test(filename);
   }
 
-  private sortFiles(files: SettingsFileEntry[]): SettingsFileEntry[] {
+  #sortFiles(files: SettingsFileEntry[]): SettingsFileEntry[] {
     return files.sort((a, b) => {
       if (a.active && !b.active) return -1;
       if (!a.active && b.active) return 1;
@@ -268,7 +268,7 @@ export class ClaudeAdapter extends BaseAdapter {
     });
   }
 
-  private findVariantPath(
+  #findVariantPath(
     directory: string,
     profile: string,
     defaultPath: string,

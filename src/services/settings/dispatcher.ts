@@ -22,22 +22,22 @@ import { UnsupportedToolError } from "@/utils/errors.ts";
  * - SRP: only handles dispatching, not business logic
  */
 export class SettingsDispatcher {
-  private adapters: Map<ToolId, SettingsAdapter>;
+  #adapters: Map<ToolId, SettingsAdapter>;
 
   constructor() {
     // Register built-in adapters
-    this.adapters = new Map<ToolId, SettingsAdapter>();
-    this.adapters.set("claude", new ClaudeAdapter());
-    this.adapters.set("codex", new CodexAdapter());
-    this.adapters.set("gemini", new GeminiAdapter());
-    this.adapters.set("xling", new XlingAdapter());
+    this.#adapters = new Map<ToolId, SettingsAdapter>();
+    this.#adapters.set("claude", new ClaudeAdapter());
+    this.#adapters.set("codex", new CodexAdapter());
+    this.#adapters.set("gemini", new GeminiAdapter());
+    this.#adapters.set("xling", new XlingAdapter());
   }
 
   /**
    * Execute the requested settings action
    */
   async execute(payload: SettingsPayload): Promise<SettingsResult> {
-    const adapter = this.getAdapter(payload.tool);
+    const adapter = this.#getAdapter(payload.tool);
 
     switch (payload.action) {
       case "list":
@@ -91,8 +91,8 @@ export class SettingsDispatcher {
   /**
    * Return the adapter for a tool (or throw)
    */
-  private getAdapter(tool: ToolId): SettingsAdapter {
-    const adapter = this.adapters.get(tool);
+  #getAdapter(tool: ToolId): SettingsAdapter {
+    const adapter = this.#adapters.get(tool);
     if (!adapter) {
       throw new UnsupportedToolError(tool);
     }
@@ -103,13 +103,13 @@ export class SettingsDispatcher {
    * Register a new adapter (extension point)
    */
   registerAdapter(adapter: SettingsAdapter): void {
-    this.adapters.set(adapter.toolId, adapter);
+    this.#adapters.set(adapter.toolId, adapter);
   }
 
   /**
    * Return all supported tool IDs
    */
   getSupportedTools(): ToolId[] {
-    return Array.from(this.adapters.keys());
+    return Array.from(this.#adapters.keys());
   }
 }

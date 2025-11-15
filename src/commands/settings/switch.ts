@@ -68,7 +68,7 @@ export default class SettingsSwitch extends Command {
       const dispatcher = new SettingsDispatcher();
       const result =
         flags.tool === "claude"
-          ? await this.handleClaudeSwitch(dispatcher, args.profile, flags)
+          ? await this.#handleClaudeSwitch(dispatcher, args.profile, flags)
           : await dispatcher.execute({
               tool: flags.tool as ToolId,
               scope: flags.scope as Scope,
@@ -80,13 +80,13 @@ export default class SettingsSwitch extends Command {
         return;
       }
 
-      this.printResult(result, args.profile, flags);
+      this.#printResult(result, args.profile, flags);
     } catch (error) {
       this.error((error as Error).message, { exit: 1 });
     }
   }
 
-  private async handleClaudeSwitch(
+  async #handleClaudeSwitch(
     dispatcher: SettingsDispatcher,
     profile: string,
     flags: SwitchCommandFlags,
@@ -116,7 +116,7 @@ export default class SettingsSwitch extends Command {
 
     let backup = Boolean(flags.backup);
     if (!flags.force && !backup) {
-      const action = await this.promptClaudeAction();
+      const action = await this.#promptClaudeAction();
       if (action === "cancel") {
         this.log("Switch cancelled.");
         return null;
@@ -135,9 +135,7 @@ export default class SettingsSwitch extends Command {
     return result;
   }
 
-  private async promptClaudeAction(): Promise<
-    "overwrite" | "backup" | "cancel"
-  > {
+  async #promptClaudeAction(): Promise<"overwrite" | "backup" | "cancel"> {
     const rl = readline.createInterface({ input, output });
     try {
       while (true) {
@@ -162,7 +160,7 @@ export default class SettingsSwitch extends Command {
     }
   }
 
-  private printResult(
+  #printResult(
     result: SettingsResult,
     profile: string,
     flags: SwitchCommandFlags,

@@ -30,7 +30,7 @@ export class CodexAdapter extends BaseAdapter {
 
     const path = this.resolvePath(scope);
     const config = this.readConfig(path);
-    const providers = this.extractProviders(config);
+    const providers = this.#extractProviders(config);
 
     return {
       type: "entries",
@@ -120,7 +120,7 @@ export class CodexAdapter extends BaseAdapter {
     fsStore.writeTOML(path, data);
   }
 
-  private extractProviders(config: ConfigObject): ConfigObject {
+  #extractProviders(config: ConfigObject): ConfigObject {
     const providers = config.model_providers;
     if (isConfigObject(providers)) {
       return providers;
