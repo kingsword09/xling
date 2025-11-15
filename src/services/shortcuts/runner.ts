@@ -116,9 +116,7 @@ export class ShortcutRunner {
    * Execute a shell shortcut
    * Supports both string and platform-specific shell commands
    */
-  private async runShell(
-    shellCommand: string | PlatformShell,
-  ): Promise<void> {
+  private async runShell(shellCommand: string | PlatformShell): Promise<void> {
     return new Promise((resolve, reject) => {
       const shellConfig = this.getShellConfig();
       const resolvedCommand = this.resolveShellCommand(shellCommand);
