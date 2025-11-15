@@ -138,7 +138,7 @@ export default class PCommand extends Command {
       }
 
       // Build prompt from various sources
-      const prompt = await this.buildPrompt(args, flags);
+      const prompt = await this.#buildPrompt(args, flags);
 
       if (!prompt.trim()) {
         this.error(
@@ -175,7 +175,7 @@ export default class PCommand extends Command {
       if (flags.stream && !flags.json) {
         // Stream output
         const streamResult = await router.executeStream(request);
-        firstResponse = await this.displayStream(streamResult); // Use default stdout
+        firstResponse = await this.#displayStream(streamResult); // Use default stdout
 
         // Get usage from final result
         const finalResult = await streamResult.usage;
@@ -215,17 +215,17 @@ export default class PCommand extends Command {
       }
 
       // Check if should enter interactive mode
-      const shouldInteract = this.shouldEnterInteractive(flags);
+      const shouldInteract = this.#shouldEnterInteractive(flags);
 
       // Auto-ask in TTY environment (after stdin pipe completes)
       let willEnterInteractive = shouldInteract;
       if (!shouldInteract && !flags.json && process.stdout.isTTY) {
         // Ask user if they want to continue
-        willEnterInteractive = await this.askContinueConversation();
+        willEnterInteractive = await this.#askContinueConversation();
       }
 
       if (willEnterInteractive) {
-        await this.enterInteractiveMode(prompt, firstResponse, flags, router);
+        await this.#enterInteractiveMode(prompt, firstResponse, flags, router);
       }
     } catch (error) {
       if (error instanceof ModelNotSupportedError) {
@@ -243,7 +243,7 @@ export default class PCommand extends Command {
   /**
    * Determine if should enter interactive mode
    */
-  private shouldEnterInteractive(
+  #shouldEnterInteractive(
     flags: Interfaces.InferredFlags<typeof PCommand.flags>,
   ): boolean {
     // Explicit flag takes precedence
@@ -265,7 +265,7 @@ export default class PCommand extends Command {
    * Ask user if they want to continue conversation
    * Uses /dev/tty to read from terminal even when stdin is piped
    */
-  private async askContinueConversation(): Promise<boolean> {
+  async #askContinueConversation(): Promise<boolean> {
     return new Promise((resolve) => {
       let answered = false;
 
@@ -312,7 +312,7 @@ export default class PCommand extends Command {
    * Enter interactive REPL mode
    * Uses /dev/tty for proper terminal behavior when stdin is piped
    */
-  private async enterInteractiveMode(
+  async #enterInteractiveMode(
     initialPrompt: string,
     initialResponse: string,
     flags: Interfaces.InferredFlags<typeof PCommand.flags>,
@@ -448,7 +448,7 @@ export default class PCommand extends Command {
           };
 
           const streamResult = await router.executeStream(request);
-          const responseText = await this.displayStream(
+          const responseText = await this.#displayStream(
             streamResult,
             outputStream,
           );
@@ -492,7 +492,7 @@ export default class PCommand extends Command {
   /**
    * Display streaming output and return full text
    */
-  private async displayStream(
+  async #displayStream(
     streamResult: Awaited<
       ReturnType<Awaited<ReturnType<typeof createRouter>>["executeStream"]>
     >,
@@ -521,7 +521,7 @@ export default class PCommand extends Command {
   /**
    * Build prompt from various sources
    */
-  private async buildPrompt(
+  async #buildPrompt(
     args: Interfaces.InferredArgs<typeof PCommand.args>,
     flags: Interfaces.InferredFlags<typeof PCommand.flags>,
   ): Promise<string> {
@@ -551,7 +551,7 @@ export default class PCommand extends Command {
 
     // From stdin
     if (flags.stdin) {
-      const stdin = await this.readStdin();
+      const stdin = await this.#readStdin();
       if (stdin) {
         parts.push(stdin);
       }
@@ -563,7 +563,7 @@ export default class PCommand extends Command {
   /**
    * Read from stdin
    */
-  private async readStdin(): Promise<string> {
+  async #readStdin(): Promise<string> {
     return new Promise((resolve) => {
       const chunks: string[] = [];
 

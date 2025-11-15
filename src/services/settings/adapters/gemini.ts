@@ -26,7 +26,7 @@ export class GeminiAdapter extends BaseAdapter {
       case "project":
         return ".gemini/settings.json";
       case "system":
-        return this.getSystemConfigPath();
+        return this.#getSystemConfigPath();
       default:
         throw new Error(`Unsupported scope for Gemini: ${scope}`);
     }
@@ -42,7 +42,7 @@ export class GeminiAdapter extends BaseAdapter {
   /**
    * Determine the system-level config path across platforms
    */
-  private getSystemConfigPath(): string {
+  #getSystemConfigPath(): string {
     const platform = os.platform();
 
     switch (platform) {

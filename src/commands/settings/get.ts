@@ -55,8 +55,8 @@ export default class SettingsGet extends Command {
       const scope = flags.scope as Scope;
       const data =
         tool === "claude" && args.name
-          ? await this.inspectClaudeVariant(scope, args.name)
-          : await this.inspectViaDispatcher(tool, scope);
+          ? await this.#inspectClaudeVariant(scope, args.name)
+          : await this.#inspectViaDispatcher(tool, scope);
 
       if (flags.json) {
         this.log(formatJson({ success: true, data }));
@@ -78,7 +78,7 @@ export default class SettingsGet extends Command {
     }
   }
 
-  private async inspectViaDispatcher(tool: ToolId, scope: Scope) {
+  async #inspectViaDispatcher(tool: ToolId, scope: Scope) {
     const dispatcher = new SettingsDispatcher();
     const result = await dispatcher.execute({
       tool,
@@ -88,7 +88,7 @@ export default class SettingsGet extends Command {
     return result.data as InspectResult;
   }
 
-  private async inspectClaudeVariant(
+  async #inspectClaudeVariant(
     scope: Scope,
     name: string,
   ): Promise<InspectResult> {
@@ -99,14 +99,14 @@ export default class SettingsGet extends Command {
 
     const normalized = name.trim();
     if (!normalized || normalized === "default") {
-      return this.inspectViaDispatcher("claude", scope);
+      return this.#inspectViaDispatcher("claude", scope);
     }
 
     const basePath = adapter.resolvePath(scope);
     const resolvedBase = fsStore.resolveHome(basePath);
     const directory = path.dirname(resolvedBase);
     const variantPath =
-      this.findVariantPath(directory, normalized) ??
+      this.#findVariantPath(directory, normalized) ??
       path.join(directory, `settings.${normalized}.json`);
 
     if (!fs.existsSync(variantPath)) {
@@ -126,7 +126,7 @@ export default class SettingsGet extends Command {
     };
   }
 
-  private findVariantPath(directory: string, name: string): string | null {
+  #findVariantPath(directory: string, name: string): string | null {
     const candidates = [`settings.${name}.json`, `settings-${name}.json`];
 
     for (const candidate of candidates) {

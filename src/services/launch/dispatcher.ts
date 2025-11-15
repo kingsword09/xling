@@ -23,14 +23,14 @@ import { UnsupportedToolError } from "@/utils/errors.ts";
  * - LSP: adapters are interchangeable
  */
 export class LaunchDispatcher {
-  private adapters: Map<ToolId, LaunchAdapter>;
+  #adapters: Map<ToolId, LaunchAdapter>;
 
   constructor() {
-    this.adapters = new Map();
+    this.#adapters = new Map();
 
     // Register built-in adapters
-    this.adapters.set("claude", new ClaudeLaunchAdapter());
-    this.adapters.set("codex", new CodexLaunchAdapter());
+    this.#adapters.set("claude", new ClaudeLaunchAdapter());
+    this.#adapters.set("codex", new CodexLaunchAdapter());
     // Gemini adapter will be added later
   }
 
@@ -38,7 +38,7 @@ export class LaunchDispatcher {
    * Execute a launch request
    */
   async execute(payload: LaunchPayload): Promise<LaunchResult> {
-    const adapter = this.getAdapter(payload.tool);
+    const adapter = this.#getAdapter(payload.tool);
 
     // 1. Check tool availability
     const isAvailable = await adapter.validateAvailability();
@@ -101,8 +101,8 @@ export class LaunchDispatcher {
    * Resolve the adapter for a tool
    * @throws UnsupportedToolError when the tool is unknown
    */
-  private getAdapter(tool: ToolId): LaunchAdapter {
-    const adapter = this.adapters.get(tool);
+  #getAdapter(tool: ToolId): LaunchAdapter {
+    const adapter = this.#adapters.get(tool);
     if (!adapter) {
       throw new UnsupportedToolError(tool);
     }
@@ -113,13 +113,13 @@ export class LaunchDispatcher {
    * Register a new adapter (OCP extension point)
    */
   registerAdapter(adapter: LaunchAdapter): void {
-    this.adapters.set(adapter.toolId, adapter);
+    this.#adapters.set(adapter.toolId, adapter);
   }
 
   /**
    * Return all supported tool IDs
    */
   getSupportedTools(): ToolId[] {
-    return Array.from(this.adapters.keys());
+    return Array.from(this.#adapters.keys());
   }
 }

@@ -201,7 +201,12 @@ export type PlatformShell = z.infer<typeof PlatformShellSchema>;
  * Platform-specific pipeline schema
  * Supports platform-specific pipelines with fallback to default
  */
-export const PlatformPipelineSchema = z.object({
+export const PlatformPipelineSchema: z.ZodType<{
+  win32?: PipelineStep[];
+  darwin?: PipelineStep[];
+  linux?: PipelineStep[];
+  default: PipelineStep[];
+}> = z.object({
   win32: z
     .array(PipelineStepSchema)
     .min(1)
@@ -232,7 +237,15 @@ export type PlatformPipeline = z.infer<typeof PlatformPipelineSchema>;
  * 2. Shell: Execute arbitrary shell command (string or platform-specific object)
  * 3. Pipeline: Execute a series of commands with piped output (array or platform-specific object)
  */
-export const ShortcutConfigSchema = z
+export type ShortcutConfig = {
+  command?: string;
+  args?: string[];
+  shell?: string | PlatformShell;
+  pipeline?: PipelineStep[] | PlatformPipeline;
+  description?: string;
+};
+
+export const ShortcutConfigSchema: z.ZodType<ShortcutConfig> = z
   .object({
     command: z.string().min(1).optional().describe("Xling command to execute"),
     args: z.array(z.string()).optional().describe("Command arguments"),
@@ -278,8 +291,6 @@ export const ShortcutConfigSchema = z
         "'args' can only be used with 'command', not with 'shell' or 'pipeline'",
     },
   );
-
-export type ShortcutConfig = z.infer<typeof ShortcutConfigSchema>;
 
 /**
  * Xling configuration type

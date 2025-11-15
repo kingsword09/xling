@@ -44,29 +44,29 @@ const defaultLogger: Logger = {
  * Model Router with intelligent provider selection and fallback
  */
 export class ModelRouter {
-  private registry: ProviderRegistry;
-  private clients: Map<string, PromptClient>;
-  private retryPolicy: RetryPolicy;
-  private logger: Logger;
+  #registry: ProviderRegistry;
+  #clients: Map<string, PromptClient>;
+  #retryPolicy: RetryPolicy;
+  #logger: Logger;
 
   constructor(config: XlingConfig, logger?: Logger) {
-    this.registry = new ProviderRegistry(config);
-    this.clients = new Map();
-    this.retryPolicy = config.prompt.retryPolicy || {
+    this.#registry = new ProviderRegistry(config);
+    this.#clients = new Map();
+    this.#retryPolicy = config.prompt.retryPolicy || {
       maxRetries: 2,
       backoffMs: 1000,
     };
-    this.logger = logger || defaultLogger;
+    this.#logger = logger || defaultLogger;
   }
 
   /**
    * Get or create a client for a provider
    */
-  private getOrCreateClient(provider: ProviderConfig): PromptClient {
-    if (!this.clients.has(provider.name)) {
-      this.clients.set(provider.name, new PromptClient(provider));
+  #getOrCreateClient(provider: ProviderConfig): PromptClient {
+    if (!this.#clients.has(provider.name)) {
+      this.#clients.set(provider.name, new PromptClient(provider));
     }
-    return this.clients.get(provider.name)!;
+    return this.#clients.get(provider.name)!;
   }
 
   /**
@@ -74,7 +74,7 @@ export class ModelRouter {
    */
   async execute(request: PromptRequest): Promise<PromptResponse> {
     // Determine which model to use
-    const modelId = request.model || this.registry.getDefaultModel();
+    const modelId = request.model || this.#registry.getDefaultModel();
 
     if (!modelId) {
       throw new Error(
@@ -84,24 +84,24 @@ export class ModelRouter {
     }
 
     // Get providers that support this model
-    const providers = this.registry.getProvidersForModel(modelId);
+    const providers = this.#registry.getProvidersForModel(modelId);
 
     if (providers.length === 0) {
-      throw new ModelNotSupportedError(modelId, this.registry.getAllModels());
+      throw new ModelNotSupportedError(modelId, this.#registry.getAllModels());
     }
 
-    this.logger.info(
+    this.#logger.info(
       `Using model: ${modelId} (${providers.length} provider(s) available)`,
     );
 
     // Try with fallback
-    return await this.tryWithFallback(modelId, request, providers);
+    return await this.#tryWithFallback(modelId, request, providers);
   }
 
   /**
    * Try executing the request with automatic fallback to other providers
    */
-  private async tryWithFallback(
+  async #tryWithFallback(
     modelId: string,
     request: PromptRequest,
     providers: ProviderConfig[],
@@ -113,31 +113,31 @@ export class ModelRouter {
       const isLastProvider = i === providers.length - 1;
 
       try {
-        this.logger.debug(
+        this.#logger.debug(
           `Trying provider: ${provider.name} (priority: ${provider.priority || "default"})`,
         );
 
-        const client = this.getOrCreateClient(provider);
+        const client = this.#getOrCreateClient(provider);
 
         // Set model in request
         const requestWithModel = { ...request, model: modelId };
 
         // Execute with timeout
-        const result = await this.executeWithTimeout(
+        const result = await this.#executeWithTimeout(
           () => client.generate(requestWithModel),
           provider.timeout || 60000,
         );
 
-        this.logger.info(`✓ Successfully used provider: ${provider.name}`);
+        this.#logger.info(`✓ Successfully used provider: ${provider.name}`);
         return result;
       } catch (error) {
         const err = error as Error;
-        this.logger.warn(`✗ Provider ${provider.name} failed: ${err.message}`);
+        this.#logger.warn(`✗ Provider ${provider.name} failed: ${err.message}`);
 
         errors.push({ provider: provider.name, error: err });
 
         // Check if we should retry with the next provider
-        const shouldRetry = this.isRetriableError(err) && !isLastProvider;
+        const shouldRetry = this.#isRetriableError(err) && !isLastProvider;
 
         if (!shouldRetry) {
           // If it's not retriable or it's the last provider, stop here
@@ -149,7 +149,7 @@ export class ModelRouter {
 
         // Apply exponential backoff before trying next provider
         if (!isLastProvider) {
-          await this.backoff(i);
+          await this.#backoff(i);
         }
       }
     }
@@ -172,7 +172,7 @@ export class ModelRouter {
    * - 403 Forbidden
    * - 404 Not Found
    */
-  private isRetriableError(error: Error): boolean {
+  #isRetriableError(error: Error): boolean {
     const message = error.message.toLowerCase();
 
     // Network errors
@@ -221,20 +221,20 @@ export class ModelRouter {
   /**
    * Apply exponential backoff delay
    */
-  private async backoff(attempt: number): Promise<void> {
+  async #backoff(attempt: number): Promise<void> {
     const delay = Math.min(
-      this.retryPolicy.backoffMs * Math.pow(2, attempt),
+      this.#retryPolicy.backoffMs * Math.pow(2, attempt),
       30000, // Cap at 30 seconds
     );
 
-    this.logger.debug(`Backing off for ${delay}ms before next attempt`);
+    this.#logger.debug(`Backing off for ${delay}ms before next attempt`);
     await new Promise((resolve) => setTimeout(resolve, delay));
   }
 
   /**
    * Execute a function with timeout
    */
-  private async executeWithTimeout<T>(
+  async #executeWithTimeout<T>(
     fn: () => Promise<T>,
     timeoutMs: number,
   ): Promise<T> {
@@ -263,7 +263,7 @@ export class ModelRouter {
     request: PromptRequest,
   ): Promise<StreamTextResult<Record<string, never>, never>> {
     // Determine which model to use
-    const modelId = request.model || this.registry.getDefaultModel();
+    const modelId = request.model || this.#registry.getDefaultModel();
 
     if (!modelId) {
       throw new Error(
@@ -273,17 +273,17 @@ export class ModelRouter {
     }
 
     // Get providers that support this model
-    const providers = this.registry.getProvidersForModel(modelId);
+    const providers = this.#registry.getProvidersForModel(modelId);
 
     if (providers.length === 0) {
-      throw new ModelNotSupportedError(modelId, this.registry.getAllModels());
+      throw new ModelNotSupportedError(modelId, this.#registry.getAllModels());
     }
 
     // Use first provider (no fallback for streaming to keep it simple)
     const provider = providers[0];
-    const client = this.getOrCreateClient(provider);
+    const client = this.#getOrCreateClient(provider);
 
-    this.logger.debug(
+    this.#logger.debug(
       `Streaming with model: ${modelId} via provider: ${provider.name}`,
     );
 
@@ -297,14 +297,14 @@ export class ModelRouter {
    * Get registry instance
    */
   getRegistry(): ProviderRegistry {
-    return this.registry;
+    return this.#registry;
   }
 
   /**
    * Clear client cache (useful for testing)
    */
   clearClients(): void {
-    this.clients.clear();
+    this.#clients.clear();
   }
 }
 

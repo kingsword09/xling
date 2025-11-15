@@ -99,7 +99,7 @@ export class XlingAdapter extends BaseAdapter<XlingConfig> {
       fs.writeFileSync(tempPath, JSON.stringify(data, null, 2), "utf-8");
 
       // Set secure permissions (cross-platform)
-      this.setSecurePermissions(tempPath);
+      this.#setSecurePermissions(tempPath);
 
       fs.renameSync(tempPath, resolvedPath);
     } catch (error) {
@@ -114,7 +114,7 @@ export class XlingAdapter extends BaseAdapter<XlingConfig> {
    * Unix: chmod 600 (owner read/write only)
    * Windows: icacls to restrict access to current user only
    */
-  private setSecurePermissions(filePath: string): void {
+  #setSecurePermissions(filePath: string): void {
     try {
       if (process.platform === "win32") {
         // Windows: Remove inheritance and grant full control to current user only
@@ -198,7 +198,7 @@ export class XlingAdapter extends BaseAdapter<XlingConfig> {
           priority: p.priority ?? null,
           timeout: p.timeout ?? null,
           // Mask API key for security
-          apiKey: this.maskApiKey(p.apiKey),
+          apiKey: this.#maskApiKey(p.apiKey),
         })),
       },
       shortcuts: config.shortcuts || null,
@@ -350,7 +350,7 @@ export class XlingAdapter extends BaseAdapter<XlingConfig> {
   /**
    * Mask API key for display (show first 4 and last 4 characters)
    */
-  private maskApiKey(apiKey: string): string {
+  #maskApiKey(apiKey: string): string {
     if (apiKey.length <= 8) {
       return "***";
     }

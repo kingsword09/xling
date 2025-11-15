@@ -26,36 +26,36 @@ type LogArg =
   | undefined;
 
 export class Logger {
-  private level: LogLevel;
+  #level: LogLevel;
 
   constructor(level: LogLevel = LogLevel.INFO) {
-    this.level = level;
+    this.#level = level;
   }
 
   setLevel(level: LogLevel): void {
-    this.level = level;
+    this.#level = level;
   }
 
   debug(message: string, ...args: LogArg[]): void {
-    if (this.level <= LogLevel.DEBUG) {
+    if (this.#level <= LogLevel.DEBUG) {
       console.debug(`[DEBUG] ${message}`, ...args);
     }
   }
 
   info(message: string, ...args: LogArg[]): void {
-    if (this.level <= LogLevel.INFO) {
+    if (this.#level <= LogLevel.INFO) {
       console.info(`[INFO] ${message}`, ...args);
     }
   }
 
   warn(message: string, ...args: LogArg[]): void {
-    if (this.level <= LogLevel.WARN) {
+    if (this.#level <= LogLevel.WARN) {
       console.warn(`[WARN] ${message}`, ...args);
     }
   }
 
   error(message: string, ...args: LogArg[]): void {
-    if (this.level <= LogLevel.ERROR) {
+    if (this.#level <= LogLevel.ERROR) {
       console.error(`[ERROR] ${message}`, ...args);
     }
   }
