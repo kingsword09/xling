@@ -27,7 +27,7 @@ import { openInEditor, resolveEditorCommand } from "@/utils/editor.ts";
 /**
  * Xling adapter for managing prompt providers at ~/.claude/xling.json
  */
-export class XlingAdapter extends BaseAdapter {
+export class XlingAdapter extends BaseAdapter<XlingConfig> {
   readonly toolId = "xling" as const;
 
   /**
@@ -77,7 +77,7 @@ export class XlingAdapter extends BaseAdapter {
    * Unix: chmod 600
    * Windows: ACL to restrict access to current user only
    */
-  override writeConfig(
+  protected override writeConfig(
     configPath: string,
     data: XlingConfig,
     backup = true,

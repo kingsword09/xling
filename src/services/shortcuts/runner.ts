@@ -6,7 +6,12 @@
 import { spawn } from "child_process";
 import type { Config } from "@oclif/core";
 import { XlingAdapter } from "@/services/settings/adapters/xling.ts";
-import type { ShortcutConfig } from "@/domain/xling/config.ts";
+import type {
+  ShortcutConfig,
+  PlatformShell,
+  PlatformPipeline,
+  PipelineStep,
+} from "@/domain/xling/config.ts";
 import {
   ShortcutNotFoundError,
   CircularShortcutError,
@@ -112,14 +117,7 @@ export class ShortcutRunner {
    * Supports both string and platform-specific shell commands
    */
   private async runShell(
-    shellCommand:
-      | string
-      | {
-          win32?: string;
-          darwin?: string;
-          linux?: string;
-          default: string;
-        },
+    shellCommand: string | PlatformShell,
   ): Promise<void> {
     return new Promise((resolve, reject) => {
       const shellConfig = this.getShellConfig();
@@ -148,35 +146,12 @@ export class ShortcutRunner {
    * Resolve platform-specific shell command
    * Returns the appropriate command for the current platform
    */
-  private resolveShellCommand(
-    shellCommand:
-      | string
-      | {
-          win32?: string;
-          darwin?: string;
-          linux?: string;
-          default: string;
-        },
-  ): string {
-    // If it's a simple string, return as-is
+  private resolveShellCommand(shellCommand: string | PlatformShell): string {
     if (typeof shellCommand === "string") {
       return shellCommand;
     }
 
-    // Platform-specific resolution
-    const platform = process.platform;
-    if (platform === "win32" && shellCommand.win32) {
-      return shellCommand.win32;
-    }
-    if (platform === "darwin" && shellCommand.darwin) {
-      return shellCommand.darwin;
-    }
-    if (platform === "linux" && shellCommand.linux) {
-      return shellCommand.linux;
-    }
-
-    // Fallback to default
-    return shellCommand.default;
+    return this.resolvePlatformValue(shellCommand);
   }
 
   /**
@@ -196,14 +171,7 @@ export class ShortcutRunner {
    * Supports both array and platform-specific pipelines
    */
   private async runPipeline(
-    pipeline:
-      | Array<{ command: string; args?: string[] }>
-      | {
-          win32?: Array<{ command: string; args?: string[] }>;
-          darwin?: Array<{ command: string; args?: string[] }>;
-          linux?: Array<{ command: string; args?: string[] }>;
-          default: Array<{ command: string; args?: string[] }>;
-        },
+    pipeline: PipelineStep[] | PlatformPipeline,
   ): Promise<void> {
     return new Promise((resolve, reject) => {
       const resolvedPipeline = this.resolvePipeline(pipeline);
@@ -275,73 +243,65 @@ export class ShortcutRunner {
    * Also resolves platform-specific command/args within each step
    */
   private resolvePipeline(
-    pipeline:
-      | Array<{
-          command: string | { win32?: string; darwin?: string; linux?: string; default: string };
-          args?: string[] | { win32?: string[]; darwin?: string[]; linux?: string[]; default: string[] };
-        }>
-      | {
-          win32?: Array<{ command: string; args?: string[] }>;
-          darwin?: Array<{ command: string; args?: string[] }>;
-          linux?: Array<{ command: string; args?: string[] }>;
-          default: Array<{ command: string; args?: string[] }>;
-        },
+    pipeline: PipelineStep[] | PlatformPipeline,
   ): Array<{ command: string; args?: string[] }> {
-    let resolvedPipeline: Array<{
-      command: string | { win32?: string; darwin?: string; linux?: string; default: string };
-      args?: string[] | { win32?: string[]; darwin?: string[]; linux?: string[]; default: string[] };
-    }>;
+    const resolvedPipeline = Array.isArray(pipeline)
+      ? pipeline
+      : this.resolvePlatformPipeline(pipeline);
 
-    // First, resolve pipeline-level platform specificity
-    if (Array.isArray(pipeline)) {
-      resolvedPipeline = pipeline;
-    } else {
-      // Platform-specific pipeline resolution
-      const platform = process.platform;
-      if (platform === "win32" && pipeline.win32) {
-        resolvedPipeline = pipeline.win32;
-      } else if (platform === "darwin" && pipeline.darwin) {
-        resolvedPipeline = pipeline.darwin;
-      } else if (platform === "linux" && pipeline.linux) {
-        resolvedPipeline = pipeline.linux;
-      } else {
-        resolvedPipeline = pipeline.default;
-      }
-    }
-
-    // Then, resolve step-level platform specificity
     return resolvedPipeline.map((step) => ({
       command: this.resolvePlatformValue(step.command),
       args: step.args ? this.resolvePlatformValue(step.args) : undefined,
     }));
   }
 
+  private resolvePlatformPipeline(pipeline: PlatformPipeline): PipelineStep[] {
+    const platform = process.platform;
+
+    if (platform === "win32" && pipeline.win32) {
+      return pipeline.win32;
+    }
+    if (platform === "darwin" && pipeline.darwin) {
+      return pipeline.darwin;
+    }
+    if (platform === "linux" && pipeline.linux) {
+      return pipeline.linux;
+    }
+
+    return pipeline.default;
+  }
+
   /**
    * Resolve platform-specific value (command or args)
    * Returns the appropriate value for the current platform
    */
-  private resolvePlatformValue<T>(
-    value: T | { win32?: T; darwin?: T; linux?: T; default: T },
-  ): T {
-    // If it's a simple value, return as-is
-    if (typeof value !== "object" || value === null || Array.isArray(value)) {
-      return value as T;
+  private resolvePlatformValue<T>(value: T | PlatformValue<T>): T {
+    if (!this.isPlatformValue(value)) {
+      return value;
     }
 
-    const platformValue = value as { win32?: T; darwin?: T; linux?: T; default: T };
     const platform = process.platform;
 
-    if (platform === "win32" && platformValue.win32 !== undefined) {
-      return platformValue.win32;
+    if (platform === "win32" && value.win32 !== undefined) {
+      return value.win32;
     }
-    if (platform === "darwin" && platformValue.darwin !== undefined) {
-      return platformValue.darwin;
+    if (platform === "darwin" && value.darwin !== undefined) {
+      return value.darwin;
     }
-    if (platform === "linux" && platformValue.linux !== undefined) {
-      return platformValue.linux;
+    if (platform === "linux" && value.linux !== undefined) {
+      return value.linux;
     }
 
-    return platformValue.default;
+    return value.default;
+  }
+
+  private isPlatformValue<T>(value: unknown): value is PlatformValue<T> {
+    return (
+      typeof value === "object" &&
+      value !== null &&
+      !Array.isArray(value) &&
+      "default" in value
+    );
   }
 
   /**
@@ -373,3 +333,10 @@ export class ShortcutRunner {
     }
   }
 }
+
+type PlatformValue<T> = {
+  win32?: T;
+  darwin?: T;
+  linux?: T;
+  default: T;
+};

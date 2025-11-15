@@ -20,7 +20,9 @@ import * as fsStore from "@/services/settings/fsStore.ts";
 /**
  * Abstract adapter implementation
  */
-export abstract class BaseAdapter implements SettingsAdapter {
+export abstract class BaseAdapter<TConfig = ConfigObject>
+  implements SettingsAdapter
+{
   abstract readonly toolId: ToolId;
 
   /**
@@ -42,7 +44,7 @@ export abstract class BaseAdapter implements SettingsAdapter {
 
     return {
       type: "entries",
-      entries: config,
+      entries: config as ConfigObject,
       filePath: path,
     };
   }
@@ -98,14 +100,14 @@ export abstract class BaseAdapter implements SettingsAdapter {
   /**
    * Read the configuration file (subclasses may override)
    */
-  protected readConfig(path: string): ConfigObject {
-    return fsStore.readJSON(path);
+  protected readConfig(path: string): TConfig {
+    return fsStore.readJSON(path) as TConfig;
   }
 
   /**
    * Write the configuration file (subclasses may override)
    */
-  protected writeConfig(path: string, data: ConfigObject, backup = true): void {
-    fsStore.writeJSON(path, data, backup);
+  protected writeConfig(path: string, data: TConfig, backup = true): void {
+    fsStore.writeJSON(path, data as ConfigObject, backup);
   }
 }

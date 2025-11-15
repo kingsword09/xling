@@ -201,12 +201,7 @@ export type PlatformShell = z.infer<typeof PlatformShellSchema>;
  * Platform-specific pipeline schema
  * Supports platform-specific pipelines with fallback to default
  */
-export const PlatformPipelineSchema: z.ZodObject<{
-  win32: z.ZodOptional<z.ZodArray<z.ZodType<PipelineStep>, "atleastone">>;
-  darwin: z.ZodOptional<z.ZodArray<z.ZodType<PipelineStep>, "atleastone">>;
-  linux: z.ZodOptional<z.ZodArray<z.ZodType<PipelineStep>, "atleastone">>;
-  default: z.ZodArray<z.ZodType<PipelineStep>, "atleastone">;
-}> = z.object({
+export const PlatformPipelineSchema = z.object({
   win32: z
     .array(PipelineStepSchema)
     .min(1)
@@ -237,19 +232,7 @@ export type PlatformPipeline = z.infer<typeof PlatformPipelineSchema>;
  * 2. Shell: Execute arbitrary shell command (string or platform-specific object)
  * 3. Pipeline: Execute a series of commands with piped output (array or platform-specific object)
  */
-const _ShortcutConfigSchema: z.ZodEffects<
-  z.ZodEffects<
-    z.ZodObject<{
-      command: z.ZodOptional<z.ZodString>;
-      args: z.ZodOptional<z.ZodArray<z.ZodString>>;
-      shell: z.ZodOptional<z.ZodUnion<[z.ZodString, typeof PlatformShellSchema]>>;
-      pipeline: z.ZodOptional<
-        z.ZodUnion<[z.ZodArray<z.ZodType<PipelineStep>, "atleastone">, typeof PlatformPipelineSchema]>
-      >;
-      description: z.ZodOptional<z.ZodString>;
-    }>
-  >
-> = z
+export const ShortcutConfigSchema = z
   .object({
     command: z.string().min(1).optional().describe("Xling command to execute"),
     args: z.array(z.string()).optional().describe("Command arguments"),
@@ -270,9 +253,9 @@ const _ShortcutConfigSchema: z.ZodEffects<
   .refine(
     (data) => {
       // Exactly one of: command, shell, or pipeline must be specified
-      const hasCommand = !!data.command;
-      const hasShell = !!data.shell;
-      const hasPipeline = !!data.pipeline;
+      const hasCommand = Boolean(data.command);
+      const hasShell = Boolean(data.shell);
+      const hasPipeline = Boolean(data.pipeline);
       const count = [hasCommand, hasShell, hasPipeline].filter(Boolean).length;
       return count === 1;
     },
@@ -296,9 +279,7 @@ const _ShortcutConfigSchema: z.ZodEffects<
     },
   );
 
-export type ShortcutConfig = z.infer<typeof _ShortcutConfigSchema>;
-export const ShortcutConfigSchema: z.ZodType<ShortcutConfig> =
-  _ShortcutConfigSchema;
+export type ShortcutConfig = z.infer<typeof ShortcutConfigSchema>;
 
 /**
  * Xling configuration type
