@@ -282,12 +282,18 @@ export default class PCommand extends Command {
 
         rl.question("\nContinue conversation? (y/N): ", (answer) => {
           answered = true;
+          const normalized = answer.trim().toLowerCase();
+          const shouldContinue = normalized === "y" || normalized === "yes";
+          if (!shouldContinue) {
+            (ttyWriteStream ?? process.stdout).write(
+              "\nOkay, not continuing the conversation.\n",
+            );
+          }
           rl.close();
           ttyReadStream.destroy();
           ttyWriteStream.destroy();
           fs.closeSync(ttyFd);
-          const normalized = answer.trim().toLowerCase();
-          resolve(normalized === "y" || normalized === "yes");
+          resolve(shouldContinue);
         });
 
         // Auto-decline after 10 seconds
@@ -297,12 +303,15 @@ export default class PCommand extends Command {
             ttyReadStream.destroy();
             ttyWriteStream.destroy();
             fs.closeSync(ttyFd);
-            process.stdout.write("\n");
+            process.stdout.write(
+              "\nNo response received. Ending conversation prompt.\n",
+            );
             resolve(false);
           }
         }, 10000);
       } catch {
         // If /dev/tty is not available (e.g., not a TTY environment), decline
+        this.log("Skipping interactive follow-up (TTY not available).");
         resolve(false);
       }
     });
