@@ -16,24 +16,15 @@ A comprehensive skill that provides expert knowledge about all xling commands, c
 
 ## Quick Start
 
-### Option 1: Download Pre-built Package
+Skills will be automatically installed via `xling init` command in future releases.
 
-Download `xling-expert.zip` and install it in Claude Code:
+For manual installation:
 
 1. Open Claude Code
 2. Click the Skills icon in the sidebar
 3. Click "Add Skill"
-4. Select `xling-expert.zip`
+4. Select the `xling-expert` directory
 5. Enable the skill
-
-### Option 2: Build from Source
-
-```bash
-cd docs/skill
-./build-skill.sh
-```
-
-This creates `xling-expert.zip` which you can then install in Claude Code.
 
 ## Usage
 
@@ -69,20 +60,6 @@ The skill follows [Claude Code skill format](https://support.claude.com/en/artic
 - Examples and workflows
 - Troubleshooting guidance
 
-## Building Skills
-
-To rebuild the skill package:
-
-```bash
-cd docs/skill
-./build-skill.sh
-```
-
-This will:
-1. Validate the skill structure
-2. Create `xling-expert.zip`
-3. Verify the package structure
-
 ## Updating Skills
 
 To update the skill:
@@ -90,8 +67,7 @@ To update the skill:
 1. Edit `xling-expert/Skill.md`
 2. Follow the existing structure
 3. Add examples for new features
-4. Rebuild: `./build-skill.sh`
-5. Reinstall in Claude Code
+4. Reload the skill in Claude Code
 
 ## Requirements
 

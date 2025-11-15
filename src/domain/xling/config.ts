@@ -120,49 +120,142 @@ export const PromptConfigSchema: z.ZodType<{
 export type PromptConfig = z.infer<typeof PromptConfigSchema>;
 
 /**
+ * Platform-specific command/args schema for pipeline steps
+ */
+export const PlatformCommandSchema: z.ZodType<{
+  win32?: string;
+  darwin?: string;
+  linux?: string;
+  default: string;
+}> = z.object({
+  win32: z.string().min(1).optional().describe("Windows-specific command"),
+  darwin: z.string().min(1).optional().describe("macOS-specific command"),
+  linux: z.string().min(1).optional().describe("Linux-specific command"),
+  default: z.string().min(1).describe("Default command for all platforms"),
+});
+
+export type PlatformCommand = z.infer<typeof PlatformCommandSchema>;
+
+/**
+ * Platform-specific args schema for pipeline steps
+ */
+export const PlatformArgsSchema: z.ZodType<{
+  win32?: string[];
+  darwin?: string[];
+  linux?: string[];
+  default: string[];
+}> = z.object({
+  win32: z.array(z.string()).optional().describe("Windows-specific args"),
+  darwin: z.array(z.string()).optional().describe("macOS-specific args"),
+  linux: z.array(z.string()).optional().describe("Linux-specific args"),
+  default: z.array(z.string()).describe("Default args for all platforms"),
+});
+
+export type PlatformArgs = z.infer<typeof PlatformArgsSchema>;
+
+/**
  * Pipeline step schema
+ * Supports both simple and platform-specific command/args
  */
 export const PipelineStepSchema: z.ZodType<{
-  command: string;
-  args?: string[];
+  command: string | PlatformCommand;
+  args?: string[] | PlatformArgs;
 }> = z.object({
-  command: z.string().min(1, "Command cannot be empty"),
-  args: z.array(z.string()).optional(),
+  command: z
+    .union([z.string().min(1), PlatformCommandSchema])
+    .describe("Command to execute (string or platform-specific object)"),
+  args: z
+    .union([z.array(z.string()), PlatformArgsSchema])
+    .optional()
+    .describe("Command arguments (array or platform-specific object)"),
 });
 
 export type PipelineStep = z.infer<typeof PipelineStepSchema>;
 
 /**
+ * Platform-specific shell command schema
+ * Supports platform-specific commands with fallback to default
+ */
+export const PlatformShellSchema: z.ZodType<{
+  win32?: string;
+  darwin?: string;
+  linux?: string;
+  default: string;
+}> = z.object({
+  win32: z
+    .string()
+    .min(1)
+    .optional()
+    .describe("Windows-specific shell command"),
+  darwin: z.string().min(1).optional().describe("macOS-specific shell command"),
+  linux: z.string().min(1).optional().describe("Linux-specific shell command"),
+  default: z
+    .string()
+    .min(1)
+    .describe("Default shell command for all platforms"),
+});
+
+export type PlatformShell = z.infer<typeof PlatformShellSchema>;
+
+/**
+ * Platform-specific pipeline schema
+ * Supports platform-specific pipelines with fallback to default
+ */
+export const PlatformPipelineSchema = z.object({
+  win32: z
+    .array(PipelineStepSchema)
+    .min(1)
+    .optional()
+    .describe("Windows-specific pipeline"),
+  darwin: z
+    .array(PipelineStepSchema)
+    .min(1)
+    .optional()
+    .describe("macOS-specific pipeline"),
+  linux: z
+    .array(PipelineStepSchema)
+    .min(1)
+    .optional()
+    .describe("Linux-specific pipeline"),
+  default: z
+    .array(PipelineStepSchema)
+    .min(1)
+    .describe("Default pipeline for all platforms"),
+});
+
+export type PlatformPipeline = z.infer<typeof PlatformPipelineSchema>;
+
+/**
  * Shortcut configuration schema
  * Supports three types:
  * 1. Command: Execute xling command with args
- * 2. Shell: Execute arbitrary shell command
- * 3. Pipeline: Execute a series of commands with piped output
+ * 2. Shell: Execute arbitrary shell command (string or platform-specific object)
+ * 3. Pipeline: Execute a series of commands with piped output (array or platform-specific object)
  */
-export const ShortcutConfigSchema: z.ZodType<{
-  command?: string;
-  args?: string[];
-  shell?: string;
-  pipeline?: Array<{ command: string; args?: string[] }>;
-  description?: string;
-}> = z
+export const ShortcutConfigSchema = z
   .object({
     command: z.string().min(1).optional().describe("Xling command to execute"),
     args: z.array(z.string()).optional().describe("Command arguments"),
-    shell: z.string().min(1).optional().describe("Shell command to execute"),
-    pipeline: z
-      .array(PipelineStepSchema)
-      .min(1)
+    shell: z
+      .union([z.string().min(1), PlatformShellSchema])
       .optional()
-      .describe("Pipeline of commands to execute"),
+      .describe(
+        "Shell command to execute (string or platform-specific object)",
+      ),
+    pipeline: z
+      .union([z.array(PipelineStepSchema).min(1), PlatformPipelineSchema])
+      .optional()
+      .describe(
+        "Pipeline of commands to execute (array or platform-specific object)",
+      ),
     description: z.string().optional().describe("Human-readable description"),
   })
   .refine(
     (data) => {
       // Exactly one of: command, shell, or pipeline must be specified
-      const hasCommand = !!data.command;
-      const hasShell = !!data.shell;
-      const hasPipeline = !!data.pipeline;
+      const hasCommand = Boolean(data.command);
+      const hasShell = Boolean(data.shell);
+      const hasPipeline = Boolean(data.pipeline);
       const count = [hasCommand, hasShell, hasPipeline].filter(Boolean).length;
       return count === 1;
     },
@@ -189,44 +282,23 @@ export const ShortcutConfigSchema: z.ZodType<{
 export type ShortcutConfig = z.infer<typeof ShortcutConfigSchema>;
 
 /**
+ * Xling configuration type
+ */
+export interface XlingConfig {
+  prompt: PromptConfig;
+  shortcuts?: Record<string, ShortcutConfig>;
+}
+
+/**
  * Xling configuration schema
  */
-export const XlingConfigSchema: z.ZodType<{
-  prompt: {
-    providers: Array<{
-      name: string;
-      baseUrl: string;
-      apiKey: string;
-      models: string[];
-      priority?: number;
-      timeout?: number;
-      headers?: Record<string, string>;
-    }>;
-    defaultModel?: string;
-    retryPolicy?: {
-      maxRetries: number;
-      backoffMs: number;
-    };
-  };
-  shortcuts?: Record<
-    string,
-    {
-      command?: string;
-      args?: string[];
-      shell?: string;
-      pipeline?: Array<{ command: string; args?: string[] }>;
-      description?: string;
-    }
-  >;
-}> = z.object({
+export const XlingConfigSchema: z.ZodType<XlingConfig> = z.object({
   prompt: PromptConfigSchema.describe("AI prompt configuration"),
   shortcuts: z
     .record(z.string(), ShortcutConfigSchema)
     .optional()
     .describe("Command shortcuts/aliases"),
 });
-
-export type XlingConfig = z.infer<typeof XlingConfigSchema>;
 
 /**
  * Validate and parse Xling configuration

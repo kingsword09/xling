@@ -6,7 +6,12 @@
 import { spawn } from "child_process";
 import type { Config } from "@oclif/core";
 import { XlingAdapter } from "@/services/settings/adapters/xling.ts";
-import type { ShortcutConfig } from "@/domain/xling/config.ts";
+import type {
+  ShortcutConfig,
+  PlatformShell,
+  PlatformPipeline,
+  PipelineStep,
+} from "@/domain/xling/config.ts";
 import {
   ShortcutNotFoundError,
   CircularShortcutError,
@@ -44,13 +49,17 @@ export class ShortcutRunner {
         display = config.command;
       } else if (config.shell) {
         type = "shell";
+        // Resolve platform-specific shell command for display
+        const shellCommand = this.resolveShellCommand(config.shell);
         display =
-          config.shell.length > 50
-            ? config.shell.substring(0, 47) + "..."
-            : config.shell;
+          shellCommand.length > 50
+            ? shellCommand.substring(0, 47) + "..."
+            : shellCommand;
       } else if (config.pipeline) {
         type = "pipeline";
-        display = config.pipeline.map((step) => step.command).join(" | ");
+        // Resolve platform-specific pipeline for display
+        const pipeline = this.resolvePipeline(config.pipeline);
+        display = pipeline.map((step) => step.command).join(" | ");
       } else {
         type = "command";
         display = "unknown";
@@ -105,11 +114,15 @@ export class ShortcutRunner {
 
   /**
    * Execute a shell shortcut
+   * Supports both string and platform-specific shell commands
    */
-  private async runShell(shellCommand: string): Promise<void> {
+  private async runShell(shellCommand: string | PlatformShell): Promise<void> {
     return new Promise((resolve, reject) => {
-      const child = spawn(shellCommand, {
-        shell: true,
+      const shellConfig = this.getShellConfig();
+      const resolvedCommand = this.resolveShellCommand(shellCommand);
+
+      const child = spawn(resolvedCommand, {
+        shell: shellConfig,
         stdio: "inherit",
       });
 
@@ -128,26 +141,70 @@ export class ShortcutRunner {
   }
 
   /**
+   * Resolve platform-specific shell command
+   * Returns the appropriate command for the current platform
+   */
+  private resolveShellCommand(shellCommand: string | PlatformShell): string {
+    if (typeof shellCommand === "string") {
+      return shellCommand;
+    }
+
+    return this.resolvePlatformValue(shellCommand);
+  }
+
+  /**
+   * Get platform-specific shell configuration
+   * Windows: Use PowerShell 7 (pwsh)
+   * Unix: Use default shell
+   */
+  private getShellConfig(): string | boolean {
+    if (process.platform === "win32") {
+      return "pwsh"; // PowerShell 7
+    }
+    return true; // Use default shell on Unix
+  }
+
+  /**
    * Execute a pipeline shortcut
+   * Supports both array and platform-specific pipelines
    */
   private async runPipeline(
-    pipeline: Array<{ command: string; args?: string[] }>,
+    pipeline: PipelineStep[] | PlatformPipeline,
   ): Promise<void> {
     return new Promise((resolve, reject) => {
+      const resolvedPipeline = this.resolvePipeline(pipeline);
       const processes: ReturnType<typeof spawn>[] = [];
 
       // Spawn all processes in the pipeline
-      for (let i = 0; i < pipeline.length; i++) {
-        const step = pipeline[i];
+      for (let i = 0; i < resolvedPipeline.length; i++) {
+        const step = resolvedPipeline[i];
         const isFirst = i === 0;
-        const isLast = i === pipeline.length - 1;
+        const isLast = i === resolvedPipeline.length - 1;
 
-        const child = spawn(step.command, step.args || [], {
+        // On Windows, we need to use shell: true for npm-installed commands
+        // to properly resolve .cmd files
+        const command = step.command;
+        const args = step.args || [];
+
+        // Determine if we need shell on Windows
+        const isShellCommand =
+          command === "pwsh" ||
+          command === "powershell" ||
+          command === "cmd" ||
+          command.includes("\\") ||
+          command.includes("/");
+
+        const needsShell = process.platform === "win32" && !isShellCommand;
+
+        const child = spawn(command, args, {
           stdio: [
             isFirst ? "inherit" : "pipe", // stdin
             isLast ? "inherit" : "pipe", // stdout
             "inherit", // stderr
           ],
+          shell: needsShell,
+          cwd: process.cwd(), // Preserve current working directory
+          env: process.env, // Preserve environment variables
         });
 
         // Pipe output from previous process to this one
@@ -179,6 +236,73 @@ export class ShortcutRunner {
   }
 
   /**
+   * Resolve platform-specific pipeline
+   * Returns the appropriate pipeline for the current platform
+   * Also resolves platform-specific command/args within each step
+   */
+  private resolvePipeline(
+    pipeline: PipelineStep[] | PlatformPipeline,
+  ): Array<{ command: string; args?: string[] }> {
+    const resolvedPipeline = Array.isArray(pipeline)
+      ? pipeline
+      : this.resolvePlatformPipeline(pipeline);
+
+    return resolvedPipeline.map((step) => ({
+      command: this.resolvePlatformValue(step.command),
+      args: step.args ? this.resolvePlatformValue(step.args) : undefined,
+    }));
+  }
+
+  private resolvePlatformPipeline(pipeline: PlatformPipeline): PipelineStep[] {
+    const platform = process.platform;
+
+    if (platform === "win32" && pipeline.win32) {
+      return pipeline.win32;
+    }
+    if (platform === "darwin" && pipeline.darwin) {
+      return pipeline.darwin;
+    }
+    if (platform === "linux" && pipeline.linux) {
+      return pipeline.linux;
+    }
+
+    return pipeline.default;
+  }
+
+  /**
+   * Resolve platform-specific value (command or args)
+   * Returns the appropriate value for the current platform
+   */
+  private resolvePlatformValue<T>(value: T | PlatformValue<T>): T {
+    if (!this.isPlatformValue(value)) {
+      return value;
+    }
+
+    const platform = process.platform;
+
+    if (platform === "win32" && value.win32 !== undefined) {
+      return value.win32;
+    }
+    if (platform === "darwin" && value.darwin !== undefined) {
+      return value.darwin;
+    }
+    if (platform === "linux" && value.linux !== undefined) {
+      return value.linux;
+    }
+
+    return value.default;
+  }
+
+  private isPlatformValue<T>(value: unknown): value is PlatformValue<T> {
+    return (
+      typeof value === "object" &&
+      value !== null &&
+      !Array.isArray(value) &&
+      "default" in value
+    );
+  }
+
+  /**
    * Validate shortcut configuration
    * @throws {CircularShortcutError} if shortcut creates circular reference
    */
@@ -190,7 +314,8 @@ export class ShortcutRunner {
 
     // For pipeline shortcuts, check if any step calls "sx"
     if (shortcut.pipeline) {
-      for (const step of shortcut.pipeline) {
+      const resolvedPipeline = this.resolvePipeline(shortcut.pipeline);
+      for (const step of resolvedPipeline) {
         if (step.command === "xling" && step.args?.includes("sx")) {
           throw new CircularShortcutError(name);
         }
@@ -198,8 +323,18 @@ export class ShortcutRunner {
     }
 
     // For shell shortcuts, check if it contains "xling sx"
-    if (shortcut.shell && shortcut.shell.includes("xling sx")) {
-      throw new CircularShortcutError(name);
+    if (shortcut.shell) {
+      const shellCommand = this.resolveShellCommand(shortcut.shell);
+      if (shellCommand.includes("xling sx")) {
+        throw new CircularShortcutError(name);
+      }
     }
   }
 }
+
+type PlatformValue<T> = {
+  win32?: T;
+  darwin?: T;
+  linux?: T;
+  default: T;
+};

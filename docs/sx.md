@@ -71,7 +71,9 @@ Properties:
 
 #### 2. Shell Type (Shell Commands)
 
-Execute arbitrary shell commands with full shell syntax support:
+Execute arbitrary shell commands with full shell syntax support.
+
+**Simple Shell Command (Cross-platform)**:
 
 ```json
 {
@@ -82,8 +84,30 @@ Execute arbitrary shell commands with full shell syntax support:
 }
 ```
 
+**Platform-Specific Shell Command**:
+
+```json
+{
+  "gcm": {
+    "shell": {
+      "win32": "git add -N . && git diff HEAD | xling p --stdin 'Generate commit message'",
+      "darwin": "git diff HEAD; git ls-files -o --exclude-standard | while read file; do git diff --no-index /dev/null \"$file\"; done | xling p --stdin 'Generate commit message'",
+      "linux": "git diff HEAD; git ls-files -o --exclude-standard | while read file; do git diff --no-index /dev/null \"$file\"; done | xling p --stdin 'Generate commit message'",
+      "default": "git diff HEAD | xling p --stdin 'Generate commit message'"
+    },
+    "description": "Generate commit message (platform-specific)"
+  }
+}
+```
+
 Properties:
-- **`shell`** (required): Shell command string to execute
+- **`shell`** (required): Shell command string OR platform-specific object
+  - **String**: Single command for all platforms
+  - **Object**: Platform-specific commands with fallback
+    - `win32`: Windows-specific command (optional)
+    - `darwin`: macOS-specific command (optional)
+    - `linux`: Linux-specific command (optional)
+    - `default`: Fallback command for all platforms (required)
 - **`description`** (optional): Human-readable description
 
 **Use cases**:
@@ -91,10 +115,18 @@ Properties:
 - Commands with redirects (`>`, `<`)
 - Complex shell expressions
 - Integration with external tools
+- Platform-specific syntax (e.g., `/dev/null` vs `NUL`)
+
+**Platform Support**:
+- **Windows**: Uses PowerShell 7 (`pwsh`). Requires PowerShell 7+ to be installed.
+- **macOS/Linux**: Uses the default system shell (`/bin/sh` or `$SHELL`)
+- **Platform Resolution**: Automatically selects the appropriate command based on `process.platform`
 
 #### 3. Pipeline Type (Command Pipelines)
 
-Execute a series of commands with piped output:
+Execute a series of commands with piped output.
+
+**Simple Pipeline (Cross-platform)**:
 
 ```json
 {
@@ -108,15 +140,84 @@ Execute a series of commands with piped output:
 }
 ```
 
+**Platform-Specific Pipeline (Entire Pipeline)**:
+
+```json
+{
+  "analyze": {
+    "pipeline": {
+      "win32": [
+        { "command": "powershell", "args": ["-Command", "Get-ChildItem -Recurse *.ts | Measure-Object -Line"] },
+        { "command": "xling", "args": ["p", "--stdin", "Analyze TypeScript files"] }
+      ],
+      "darwin": [
+        { "command": "find", "args": [".", "-name", "*.ts", "-exec", "wc", "-l", "{}", "+"] },
+        { "command": "xling", "args": ["p", "--stdin", "Analyze TypeScript files"] }
+      ],
+      "linux": [
+        { "command": "find", "args": [".", "-name", "*.ts", "-exec", "wc", "-l", "{}", "+"] },
+        { "command": "xling", "args": ["p", "--stdin", "Analyze TypeScript files"] }
+      ],
+      "default": [
+        { "command": "git", "args": ["ls-files", "*.ts"] },
+        { "command": "xling", "args": ["p", "--stdin", "List TypeScript files"] }
+      ]
+    },
+    "description": "Analyze TypeScript files (platform-specific)"
+  }
+}
+```
+
+**Platform-Specific Pipeline Steps (Recommended - Less Repetition)**:
+
+```json
+{
+  "gcm": {
+    "pipeline": [
+      {
+        "command": {
+          "win32": "pwsh",
+          "default": "sh"
+        },
+        "args": {
+          "win32": ["-NoProfile", "-Command", "$diff = git diff HEAD; $untracked = git ls-files --others --exclude-standard | ForEach-Object { git diff --no-index NUL $_ 2>$null }; \"$diff`n$untracked\""],
+          "default": ["-c", "git diff HEAD; git ls-files --others --exclude-standard | while read file; do git diff --no-index /dev/null \"$file\" 2>/dev/null || true; done"]
+        }
+      },
+      {
+        "command": "xling",
+        "args": ["p", "--stdin", "分析代码变更并生成提交信息建议，分为中英文版本"]
+      }
+    ],
+    "description": "Generate commit message for all changes"
+  }
+}
+```
+
 Properties:
-- **`pipeline`** (required): Array of command steps
-  - Each step has `command` (required) and `args` (optional)
+- **`pipeline`** (required): Array of command steps OR platform-specific object
+  - **Array**: Pipeline for all platforms
+    - Each step has:
+      - `command` (required): String OR platform-specific object
+      - `args` (optional): Array OR platform-specific object
+  - **Object**: Platform-specific entire pipelines with fallback
+    - `win32`: Windows-specific pipeline (optional)
+    - `darwin`: macOS-specific pipeline (optional)
+    - `linux`: Linux-specific pipeline (optional)
+    - `default`: Fallback pipeline for all platforms (required)
 - **`description`** (optional): Human-readable description
+
+**Three Ways to Configure Platform-Specific Pipelines**:
+
+1. **Entire Pipeline**: Different pipeline for each platform (most flexible, most repetition)
+2. **Per-Step**: Platform-specific command/args within each step (recommended, less repetition)
+3. **Mixed**: Combine both approaches as needed
 
 **Use cases**:
 - Structured command pipelines
 - Better error handling than shell pipes
-- Cross-platform compatibility
+- Platform-specific command sequences
+- Cross-platform compatibility with fallback
 
 ## Examples
 
@@ -213,6 +314,8 @@ xling x -t claude -c --no-yolo
 
 ### Git Integration Shortcuts (Shell Type)
 
+**Simple Cross-Platform Shortcuts**:
+
 ```json
 {
   "shortcuts": {
@@ -227,6 +330,24 @@ xling x -t claude -c --no-yolo
     "glp": {
       "shell": "git log --oneline -20 | xling p --stdin 'Summarize recent commits'",
       "description": "Recent commits with AI summary"
+    }
+  }
+}
+```
+
+**Platform-Specific Shortcuts**:
+
+```json
+{
+  "shortcuts": {
+    "gcm": {
+      "shell": {
+        "win32": "git add -N . && git diff HEAD | xling p --stdin 'Analyze changes and generate commit message'",
+        "darwin": "git diff HEAD; git ls-files -o --exclude-standard | while read file; do git diff --no-index /dev/null \"$file\" 2>/dev/null || true; done | xling p --stdin 'Analyze changes and generate commit message'",
+        "linux": "git diff HEAD; git ls-files -o --exclude-standard | while read file; do git diff --no-index /dev/null \"$file\" 2>/dev/null || true; done | xling p --stdin 'Analyze changes and generate commit message'",
+        "default": "git diff HEAD | xling p --stdin 'Analyze changes and generate commit message'"
+      },
+      "description": "Generate commit message for all changes including untracked files"
     }
   }
 }
@@ -263,12 +384,24 @@ xling x -t claude -c --no-yolo
 - **Test shortcuts**: Run `xling sx --list` to verify your configuration is valid
 - **Combine with passthrough args**: Shortcuts can be customized on-the-fly with additional arguments
 
+## Platform Requirements
+
+**Windows Users:**
+- PowerShell 7+ is required for shell-type shortcuts
+- Install from: https://github.com/PowerShell/PowerShell/releases
+- Command and pipeline types work without PowerShell 7
+
+**All Platforms:**
+- Shell commands use platform-specific shells (PowerShell 7 on Windows, default shell on Unix)
+- Pipeline commands are cross-platform compatible
+
 ## Security Notes
 
-- Shortcuts only execute xling commands, not arbitrary shell commands
-- They run with the same permissions as your user account
+- Shell-type shortcuts execute commands with full shell access
+- Command and pipeline types only execute specified commands
+- All shortcuts run with the same permissions as your user account
 - Shortcuts are stored locally in `~/.claude/xling.json` (not shared)
-- The config file should have `600` permissions (owner read/write only)
+- The config file has restricted permissions (600 on Unix, ACL on Windows)
 
 ## Error Handling
 

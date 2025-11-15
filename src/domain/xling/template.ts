@@ -129,6 +129,16 @@ export const EXAMPLE_MULTI_PROVIDER_CONFIG: XlingConfig = {
       shell: "git status --short | xling p --stdin 'Explain these changes'",
       description: "Git status with AI explanation",
     },
+    gcm: {
+      shell: {
+        win32:
+          "git add -N . && git diff HEAD | xling p --stdin 'Analyze changes and generate commit message in both Chinese and English'",
+        default:
+          "git diff HEAD; git ls-files --others --exclude-standard | while read file; do git diff --no-index /dev/null \"$file\" 2>/dev/null || true; done | xling p --stdin 'Analyze changes and generate commit message in both Chinese and English'",
+      },
+      description:
+        "Generate commit message for all changes (platform-specific)",
+    },
     pipe: {
       pipeline: [
         { command: "git", args: ["log", "--oneline", "-10"] },
