@@ -46,6 +46,10 @@ describe("CodexAdapter", () => {
       const adapter = new TestCodexAdapter(configPath);
       const result = await adapter.list("user");
 
+      if (result.type !== "entries") {
+        throw new Error("Expected entries list data from CodexAdapter.list");
+      }
+
       expect(result.type).toBe("entries");
       expect(result.filePath).toBe(configPath);
       expect(result.entries).toMatchObject({

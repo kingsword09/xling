@@ -65,6 +65,10 @@ describe("ClaudeAdapter", () => {
       const adapter = new TestClaudeAdapter(activePath);
       const result = await adapter.list("user");
 
+      if (result.type !== "files") {
+        throw new Error("Expected files list data from ClaudeAdapter.list");
+      }
+
       expect(result.type).toBe("files");
       expect(result.files).toHaveLength(3);
 
