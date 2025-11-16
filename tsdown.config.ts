@@ -11,4 +11,5 @@ export default defineConfig({
   outExtensions: () => ({ js: ".js" }),
   external: ["@oclif/core", "smol-toml", "zod", "cli-table3"],
   shims: true,
+  minify: true,
 });

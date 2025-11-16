@@ -79,6 +79,7 @@ export interface LaunchAdapter {
     yolo?: boolean;
     resume?: boolean;
     continue?: boolean;
+    settings?: string;
   }): LaunchCommandSpec;
 
   /**
