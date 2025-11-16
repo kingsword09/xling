@@ -31,7 +31,9 @@ export default class X extends Command {
       $ xling x                          # Start Claude Code (fastest way!)
       $ xling x -c                       # Continue last Claude conversation
       $ xling x -r                       # Resume a Claude conversation (list)
+      $ xling x -s hxi                   # Start Claude with hxi settings variant
       $ xling x -t codex -c              # Continue last Codex session
+      $ xling x -t codex -s oss          # Start Codex with oss profile
       $ xling x --tool codex             # Start Codex
       $ xling x --no-yolo                # Start Claude without yolo
       $ xling x -- chat "Hello"          # Start Claude with arguments
@@ -52,12 +54,16 @@ export default class X extends Command {
       command: "<%= config.bin %> <%= command.id %> -r",
     },
     {
+      description: "Start Claude with hxi settings variant",
+      command: "<%= config.bin %> <%= command.id %> -s hxi",
+    },
+    {
       description: "Continue last Codex session",
       command: "<%= config.bin %> <%= command.id %> -t codex -c",
     },
     {
-      description: "Start Codex",
-      command: "<%= config.bin %> <%= command.id %> --tool codex",
+      description: "Start Codex with oss profile",
+      command: "<%= config.bin %> <%= command.id %> -t codex -s oss",
     },
     {
       description: "Start Claude without yolo mode",
@@ -101,6 +107,11 @@ export default class X extends Command {
       description: "Working directory for the launched process",
       char: "C",
     }),
+    settings: Flags.string({
+      description:
+        "Settings configuration (Claude: variant name or file path; Codex: profile name)",
+      char: "s",
+    }),
   };
 
   // Allow extra args after -- so we can pass them through
@@ -124,6 +135,7 @@ export default class X extends Command {
         continue: flags.continue,
         resume: flags.resume,
         cwd: flags.cwd,
+        settings: flags.settings,
         args: passthroughArgs as string[],
       });
 

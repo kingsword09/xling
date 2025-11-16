@@ -31,6 +31,7 @@ export abstract class BaseLaunchAdapter implements LaunchAdapter {
     yolo?: boolean;
     resume?: boolean;
     continue?: boolean;
+    settings?: string;
   }): LaunchCommandSpec;
 
   /**

@@ -105,6 +105,7 @@ export interface LaunchPayload {
   cwd?: string; // working directory
   resume?: boolean; // show session picker (claude -r, codex resume)
   continue?: boolean; // continue most recent session (claude -c, codex resume --last)
+  settings?: string; // settings variant/profile or file path (tool-specific)
 }
 
 /**

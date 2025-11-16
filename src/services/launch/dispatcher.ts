@@ -55,6 +55,7 @@ export class LaunchDispatcher {
       yolo,
       resume: payload.resume,
       continue: payload.continue,
+      settings: payload.settings,
     });
 
     // 3. Spawn the process
