@@ -11,6 +11,7 @@ import type {
   Turn,
   ParticipantDriver,
   ControlCommand,
+  CodeRequest,
 } from "../../domain/discuss/types.js";
 import { ApiParticipantDriver } from "./participants/apiParticipant.js";
 import { CliParticipantDriver } from "./participants/cliParticipant.js";
@@ -21,8 +22,11 @@ import {
   displayTurnFooter,
   displaySpecialTurnHeader,
   assignParticipantNumbers,
+  displayParticipantList,
 } from "./display/participantDisplay.js";
 import { parseControlCommand } from "./control/commandParser.js";
+import { CodeAdvisor } from "./code/codeAdvisor.js";
+import { createInterface } from "node:readline/promises";
 
 /**
  * Discussion Orchestrator
@@ -32,10 +36,15 @@ export class DiscussionOrchestrator {
   private router: ModelRouter;
   private drivers: Map<string, ParticipantDriver>;
   private context!: DiscussionContext;
+  private codeAdvisor: CodeAdvisor | null = null;
+  private manualMode: boolean;
+  private manualNextParticipant?: Participant;
+  private manualPrompt?: string;
 
-  constructor(router: ModelRouter) {
+  constructor(router: ModelRouter, options?: { manual?: boolean }) {
     this.router = router;
     this.drivers = new Map();
+    this.manualMode = options?.manual === true;
   }
 
   /**
@@ -45,17 +54,29 @@ export class DiscussionOrchestrator {
     config: DiscussionConfig,
     initialPrompt: string
   ): Promise<DiscussionContext> {
+    const trimmed = initialPrompt.trim();
+    const normalizedInitialPrompt = trimmed.length > 0 ? trimmed : undefined;
+
     // Assign participant numbers
     const participants = assignParticipantNumbers(config.participants);
 
+    const configWithPrompt: DiscussionConfig = {
+      ...config,
+      participants,
+      metadata: normalizedInitialPrompt
+        ? { ...config.metadata, initialPrompt: normalizedInitialPrompt }
+        : config.metadata,
+    };
+
     // Initialize context
     this.context = {
-      config: { ...config, participants },
+      config: configWithPrompt,
       turns: [],
       currentTurnIndex: 0,
       status: "active",
       startTime: new Date(),
       participants,
+      initialPrompt: normalizedInitialPrompt,
     };
 
     // Create and validate drivers
@@ -78,8 +99,15 @@ export class DiscussionOrchestrator {
       );
     }
 
+    if (this.manualMode) {
+      await this.promptManualTurnSelection();
+    }
+
     // Determine next participant
-    const participant = this.getNextParticipant();
+    const participant =
+      this.manualNextParticipant ?? this.getNextParticipant();
+    this.manualNextParticipant = undefined;
+
     if (!participant) {
       throw new Error("No participant available for next turn");
     }
@@ -91,7 +119,15 @@ export class DiscussionOrchestrator {
     }
 
     // Build prompt
-    const turnPrompt = prompt || this.buildTurnPrompt(participant);
+    let turnPrompt = prompt || this.buildTurnPrompt(participant);
+
+    // Fetch code context if participant needs it
+    if (participant.codeNeeds) {
+      const codeContext = await this.fetchCodeContext(participant);
+      if (codeContext) {
+        turnPrompt = `${turnPrompt}\n\n=== Code Context ===\n${codeContext}\n=== End Code Context ===`;
+      }
+    }
 
     // Display turn header
     console.log(
@@ -128,6 +164,14 @@ export class DiscussionOrchestrator {
         content,
         timestamp: new Date().toISOString(),
         metadata: {
+          tokens: (() => {
+            const tokenGetter =
+              (driver as { getTokenUsage?: () => number | undefined })
+                .getTokenUsage;
+            return typeof tokenGetter === "function"
+              ? tokenGetter.call(driver)
+              : undefined;
+          })(),
           duration,
           language: this.context.config.language,
         },
@@ -158,6 +202,9 @@ export class DiscussionOrchestrator {
    * Check if discussion should terminate
    */
   shouldTerminate(): boolean {
+    if (this.context.status !== "active") {
+      return true;
+    }
     const config = this.context.config.orchestration;
 
     // Check max turns
@@ -290,12 +337,74 @@ export class DiscussionOrchestrator {
   }
 
   /**
+   * Manual turn selection and prompt override
+   */
+  private async promptManualTurnSelection(): Promise<void> {
+    if (!this.manualMode) return;
+    if (!process.stdin.isTTY) {
+      console.warn("[Manual mode] No TTY available, skipping manual selection.");
+      return;
+    }
+
+    const rl = createInterface({
+      input: process.stdin,
+      output: process.stdout,
+    });
+
+    let cancelled = false;
+    rl.on("SIGINT", () => {
+      cancelled = true;
+      rl.close();
+    });
+
+    try {
+      console.log("\n[Manual Mode] Select next participant by number (default: current order)");
+      this.context.participants.forEach((p) => {
+        console.log(`#${p.number} ${p.name} (${p.role})`);
+      });
+
+      const numberAnswer = await rl.question("Next speaker #: ");
+      if (cancelled) throw new Error("Manual mode interrupted");
+      const promptOverride = await rl.question("Custom prompt (optional): ");
+      if (cancelled) throw new Error("Manual mode interrupted");
+
+      if (numberAnswer.trim()) {
+        const num = Number(numberAnswer.trim());
+        if (!Number.isNaN(num)) {
+          const participant = this.context.participants.find((p) => p.number === num);
+          if (participant) {
+            this.manualNextParticipant = participant;
+          }
+        }
+      }
+
+      this.manualPrompt = promptOverride.trim() || undefined;
+    } catch (error) {
+      if (cancelled) {
+        this.abort();
+        throw new Error("Manual mode interrupted by user");
+      }
+      throw error;
+    } finally {
+      rl.close();
+    }
+  }
+
+  /**
    * Build prompt for current turn
    */
   private buildTurnPrompt(participant: Participant): string {
+    if (this.manualPrompt) {
+      const prompt = this.manualPrompt;
+      this.manualPrompt = undefined;
+      return prompt;
+    }
+
     // Use scenario's initial prompt for first turn
     if (this.context.currentTurnIndex === 0) {
-      const initialPrompt = this.context.config.metadata?.initialPrompt;
+      const initialPrompt =
+        this.context.initialPrompt ||
+        this.context.config.metadata?.initialPrompt;
       return (
         initialPrompt ||
         `Please provide your analysis as the ${participant.role}.`
@@ -307,6 +416,37 @@ export class DiscussionOrchestrator {
   }
 
   /**
+   * Fetch code context for a participant using CodeAdvisor
+   */
+  private async fetchCodeContext(participant: Participant): Promise<string | null> {
+    if (!participant.codeNeeds) {
+      return null;
+    }
+
+    try {
+      // Initialize CodeAdvisor lazily
+      if (!this.codeAdvisor) {
+        this.codeAdvisor = new CodeAdvisor();
+      }
+
+      const request: CodeRequest = {
+        topic: participant.codeNeeds.topic,
+        specificNeeds: participant.codeNeeds.specificNeeds,
+        focus: participant.codeNeeds.focus,
+      };
+
+      const context = await this.codeAdvisor.requestCodeContext(request);
+      return context;
+    } catch (error) {
+      console.warn(
+        `Failed to fetch code context for ${participant.name}:`,
+        error instanceof Error ? error.message : error
+      );
+      return null;
+    }
+  }
+
+  /**
    * Check if content is a control command
    */
   private isControlCommand(content: string): boolean {
@@ -315,6 +455,7 @@ export class DiscussionOrchestrator {
 
   /**
    * Handle control command from human participant
+   * Control commands do NOT consume turns
    */
   private handleControlCommand(
     content: string,
@@ -327,7 +468,7 @@ export class DiscussionOrchestrator {
 
     console.log(`\n[Control Command] ${content}`);
 
-    // Create a special turn for the command
+    // Create a special turn for the command (but don't increment turn index)
     const turn: Turn = {
       index: this.context.currentTurnIndex,
       participantId: participant.id,
@@ -339,11 +480,17 @@ export class DiscussionOrchestrator {
       },
     };
 
+    // Add to turns history but DON'T increment currentTurnIndex
+    // This allows the participant to try again without consuming a turn
     this.context.turns.push(turn);
-    this.context.currentTurnIndex++;
 
     // Process command
     this.processControlCommand(command);
+
+    // For pass/quit we advance or terminate to avoid getting stuck
+    if (command.type === "pass") {
+      this.context.currentTurnIndex++;
+    }
 
     return turn;
   }
@@ -361,6 +508,11 @@ export class DiscussionOrchestrator {
         this.resume();
         break;
 
+      case "quit":
+        console.log("\n[Quit] Terminating discussion...");
+        this.abort();
+        break;
+
       case "next":
         // Next participant will be handled by getNextParticipant
         // This is just recorded for now
@@ -370,18 +522,55 @@ export class DiscussionOrchestrator {
         break;
 
       case "pass":
-        console.log("Turn skipped");
+        console.log("[Pass] Turn skipped - you can speak again");
         break;
 
       case "help":
         console.log("\n=== Control Commands ===");
         console.log("next #N - Set next speaker");
         console.log("ask #N message - Ask specific participant");
-        console.log("pass - Skip turn");
+        console.log("pass - Skip turn (doesn't consume turn)");
         console.log("pause - Pause discussion");
+        console.log("quit - End discussion");
         console.log("list - Show participants");
         console.log("history - Show recent turns");
+        console.log("help - Show this help");
         break;
+
+      case "list":
+        console.log(
+          displayParticipantList(this.context.participants, {
+            language: this.context.config.language,
+            maxTurns: this.context.config.orchestration.maxTurns,
+            turnOrder: this.context.config.orchestration.turnOrder,
+          })
+        );
+        break;
+
+      case "history": {
+        const recent = this.context.turns.slice(-5);
+        console.log("\n=== Recent Turns ===");
+        for (const turn of recent) {
+          console.log(
+            `#${turn.index + 1} ${turn.participantName}: ${turn.content.slice(0, 120)}`
+          );
+        }
+        break;
+      }
+
+      case "summary": {
+        const grouped = new Map<string, string>();
+        for (const turn of this.context.turns) {
+          if (!grouped.has(turn.participantName)) {
+            grouped.set(turn.participantName, turn.content.slice(0, 200));
+          }
+        }
+        console.log("\n=== Quick Summary (first message per participant) ===");
+        for (const [name, content] of grouped.entries()) {
+          console.log(`- ${name}: ${content}`);
+        }
+        break;
+      }
 
       default:
         console.log(`Command '${command.type}' not yet implemented`);

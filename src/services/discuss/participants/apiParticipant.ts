@@ -19,6 +19,7 @@ import { injectLanguageInstruction } from "../language/injector.js";
  */
 export class ApiParticipantDriver extends BaseParticipantDriver {
   private router: ModelRouter;
+  private lastTokens?: number;
 
   constructor(participant: Participant, router: ModelRouter) {
     super(participant);
@@ -54,6 +55,7 @@ export class ApiParticipantDriver extends BaseParticipantDriver {
         this.timeout
       );
       const duration = Date.now() - startTime;
+      this.lastTokens = response.usage?.totalTokens;
 
       console.debug(
         `${this.getParticipantInfo()} completed turn in ${duration}ms (${response.usage?.totalTokens || 0} tokens)`
@@ -159,5 +161,9 @@ export class ApiParticipantDriver extends BaseParticipantDriver {
    */
   getModelInfo(): string {
     return this.participant.config.api?.model || "unknown";
+  }
+
+  getTokenUsage(): number | undefined {
+    return this.lastTokens;
   }
 }

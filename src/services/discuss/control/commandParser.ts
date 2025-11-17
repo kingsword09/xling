@@ -9,7 +9,7 @@ import type { ControlCommand } from "../../../domain/discuss/types.js";
  * Parse a control command from user input
  */
 export function parseControlCommand(input: string): ControlCommand | null {
-  const trimmed = input.trim();
+  const trimmed = input.trim().replace(/^\//, "");
 
   if (!trimmed) {
     return null;

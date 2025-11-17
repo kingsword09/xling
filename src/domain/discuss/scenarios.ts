@@ -17,7 +17,7 @@ export const CODE_REVIEW_SCENARIO: DiscussionScenario = {
     {
       role: "Security Expert",
       type: "api",
-      preferredModels: ["gpt-4o", "gpt-4-turbo", "claude-opus-4"],
+      preferredModels: ["claude-sonnet-4.5", "gemini-2.5-pro", "gpt-5.1-poe"],
       systemPrompt: `You are a security expert specializing in application security.
 Focus on:
 - Security vulnerabilities (SQL injection, XSS, CSRF, etc.)
@@ -33,7 +33,7 @@ Provide specific, actionable security recommendations.`,
     {
       role: "Performance Engineer",
       type: "api",
-      preferredModels: ["claude-sonnet-4", "claude-opus-4", "gpt-4o"],
+      preferredModels: ["claude-sonnet-4.5", "gemini-2.5-pro", "gpt-4.1-mini"],
       systemPrompt: `You are a performance engineering expert.
 Focus on:
 - Algorithmic complexity analysis (Big O notation)
@@ -49,7 +49,7 @@ Identify performance bottlenecks and suggest optimizations.`,
     {
       role: "Code Quality Reviewer",
       type: "api",
-      preferredModels: ["gpt-4o-mini", "claude-sonnet-4", "gpt-4o"],
+      preferredModels: ["gpt-4.1-mini", "claude-haiku-4.5", "gemini-2.5-pro"],
       systemPrompt: `You are a code quality and maintainability expert.
 Focus on:
 - Code readability and clarity
@@ -111,7 +111,7 @@ export const ARCHITECTURE_SCENARIO: DiscussionScenario = {
     {
       role: "System Architect",
       type: "api",
-      preferredModels: ["o1", "claude-opus-4", "gpt-4o"],
+      preferredModels: ["claude-sonnet-4.5", "gemini-2.5-pro", "gpt-5.1-poe"],
       systemPrompt: `You are a senior system architect.
 Focus on:
 - Overall system design and structure
@@ -127,7 +127,7 @@ Provide high-level architectural guidance.`,
     {
       role: "Database Specialist",
       type: "api",
-      preferredModels: ["gpt-4o", "claude-sonnet-4"],
+      preferredModels: ["gemini-2.5-pro", "claude-sonnet-4.5", "gpt-4.1-mini"],
       systemPrompt: `You are a database architecture expert.
 Focus on:
 - Data modeling and schema design
@@ -143,7 +143,7 @@ Provide database-specific recommendations.`,
     {
       role: "DevOps Engineer",
       type: "api",
-      preferredModels: ["gpt-4o", "claude-sonnet-4"],
+      preferredModels: ["gpt-4.1-mini", "claude-haiku-4.5", "gemini-2.5-pro"],
       systemPrompt: `You are a DevOps and infrastructure expert.
 Focus on:
 - Deployment strategies and CI/CD
@@ -190,7 +190,7 @@ export const BRAINSTORM_SCENARIO: DiscussionScenario = {
     {
       role: "Innovator",
       type: "api",
-      preferredModels: ["claude-sonnet-4", "gpt-4o", "claude-opus-4"],
+      preferredModels: ["claude-sonnet-4.5", "gemini-2.5-pro", "gpt-5.1-poe"],
       systemPrompt: `You are a technical innovator and creative thinker.
 Focus on:
 - Novel and creative solutions
@@ -205,7 +205,7 @@ Don't worry about constraints - propose bold, innovative ideas.`,
     {
       role: "Pragmatist",
       type: "api",
-      preferredModels: ["gpt-4o", "gpt-4-turbo"],
+      preferredModels: ["gpt-4.1-mini", "gemini-2.5-pro", "grok-4-fast"],
       systemPrompt: `You are a practical, results-oriented engineer.
 Focus on:
 - Feasibility and implementation difficulty
@@ -221,7 +221,7 @@ Ground innovative ideas in reality.`,
     {
       role: "Devil's Advocate",
       type: "api",
-      preferredModels: ["gpt-4o", "claude-sonnet-4"],
+      preferredModels: ["gemini-2.5-pro", "claude-sonnet-4.5", "gpt-4.1-mini"],
       systemPrompt: `You challenge ideas constructively.
 Focus on:
 - Potential problems and risks
@@ -268,7 +268,7 @@ export const DECISION_SCENARIO: DiscussionScenario = {
     {
       role: "Technical Lead",
       type: "api",
-      preferredModels: ["o1", "claude-opus-4", "gpt-4o"],
+      preferredModels: ["claude-sonnet-4.5", "gemini-2.5-pro", "gpt-5.1-poe"],
       systemPrompt: `You are a technical lead making strategic decisions.
 Focus on:
 - Trade-off analysis
@@ -284,7 +284,7 @@ Provide balanced, strategic guidance.`,
     {
       role: "Cost Analyst",
       type: "api",
-      preferredModels: ["gpt-4o", "claude-sonnet-4"],
+      preferredModels: ["gpt-4.1-mini", "gemini-2.5-pro", "grok-4-fast"],
       systemPrompt: `You analyze financial and resource costs.
 Focus on:
 - Licensing costs
@@ -300,7 +300,7 @@ Provide cost-benefit analysis.`,
     {
       role: "Security Advisor",
       type: "api",
-      preferredModels: ["gpt-4o", "claude-sonnet-4"],
+      preferredModels: ["claude-sonnet-4.5", "gemini-2.5-pro", "gpt-4.1-mini"],
       systemPrompt: `You evaluate security and compliance aspects.
 Focus on:
 - Security implications
@@ -345,7 +345,7 @@ export const BUG_TRIAGE_SCENARIO: DiscussionScenario = {
     {
       role: "Bug Hunter",
       type: "api",
-      preferredModels: ["gpt-4o", "claude-sonnet-4"],
+      preferredModels: ["gemini-2.5-pro", "claude-sonnet-4.5", "gpt-4.1-mini"],
       systemPrompt: `You specialize in root cause analysis.
 Focus on:
 - Identifying the root cause
@@ -360,7 +360,7 @@ Provide systematic bug analysis.`,
     {
       role: "Impact Assessor",
       type: "api",
-      preferredModels: ["gpt-4o", "claude-sonnet-4"],
+      preferredModels: ["gpt-4.1-mini", "gemini-2.5-pro", "claude-haiku-4.5"],
       systemPrompt: `You assess bug severity and impact.
 Focus on:
 - User impact assessment
@@ -375,7 +375,7 @@ Provide prioritization recommendations.`,
     {
       role: "Fix Strategist",
       type: "api",
-      preferredModels: ["claude-sonnet-4", "gpt-4o"],
+      preferredModels: ["claude-sonnet-4.5", "gemini-2.5-pro", "gpt-5.1-poe"],
       systemPrompt: `You develop fix strategies.
 Focus on:
 - Potential fix approaches

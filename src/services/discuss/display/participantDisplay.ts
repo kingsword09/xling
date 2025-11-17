@@ -11,6 +11,61 @@ import type {
 } from "../../../domain/discuss/types.js";
 
 /**
+ * ANSI color codes for terminal output
+ */
+const COLORS = {
+  reset: "\x1b[0m",
+  red: "\x1b[91m",      // Bright red for Security
+  yellow: "\x1b[93m",   // Bright yellow for Performance
+  green: "\x1b[92m",    // Bright green for Quality
+  blue: "\x1b[94m",     // Bright blue for Architect
+  cyan: "\x1b[96m",     // Bright cyan for Human
+  magenta: "\x1b[95m",  // Bright magenta for CLI tools
+  white: "\x1b[97m",    // Bright white for default
+} as const;
+
+/**
+ * Get color for participant based on role/type
+ */
+function getParticipantColor(participant: Participant): string {
+  const role = participant.role.toLowerCase();
+  const type = participant.type;
+
+  // Color by type first
+  if (type === "human") {
+    return COLORS.cyan;
+  }
+  if (type === "cli") {
+    return COLORS.magenta;
+  }
+
+  // Color by role for API participants
+  if (role.includes("security") || role.includes("安全")) {
+    return COLORS.red;
+  }
+  if (role.includes("performance") || role.includes("性能")) {
+    return COLORS.yellow;
+  }
+  if (role.includes("quality") || role.includes("质量")) {
+    return COLORS.green;
+  }
+  if (role.includes("architect") || role.includes("架构")) {
+    return COLORS.blue;
+  }
+
+  // Default color
+  return COLORS.white;
+}
+
+/**
+ * Colorize text with participant's color
+ */
+function colorize(text: string, participant: Participant): string {
+  const color = getParticipantColor(participant);
+  return `${color}${text}${COLORS.reset}`;
+}
+
+/**
  * Assign sequential numbers to participants
  */
 export function assignParticipantNumbers(
@@ -61,12 +116,14 @@ export function getModelInfo(participant: Participant): string {
 }
 
 /**
- * Format participant for display
+ * Format participant for display with color
  */
 export function formatParticipant(participant: Participant): string {
   const modelInfo = getModelInfo(participant);
   const typeLabel = participant.type.toUpperCase();
-  return `#${participant.number} - ${participant.name} - ${modelInfo} (${typeLabel})`;
+  const number = colorize(`#${participant.number}`, participant);
+  const name = colorize(participant.name, participant);
+  return `${number} - ${name} - ${modelInfo} (${typeLabel})`;
 }
 
 /**
@@ -105,8 +162,10 @@ export function displayParticipantList(
     for (const p of group.participants) {
       const modelInfo = getModelInfo(p);
       const typeLabel = p.type.toUpperCase();
+      const number = colorize(`#${p.number}`, p);
+      const name = colorize(p.name, p);
       lines.push(
-        `  #${p.number} - ${p.name} - ${modelInfo} (${typeLabel})`
+        `  ${number} - ${name} - ${modelInfo} (${typeLabel})`
       );
     }
     lines.push("");
@@ -139,18 +198,12 @@ export function displayParticipantList(
       options?.language
     )
   );
-  lines.push(
-    translate(
-      "Press Ctrl+P to pause and take manual control",
-      options?.language
-    )
-  );
 
   return lines.join("\n");
 }
 
 /**
- * Display turn header
+ * Display turn header with color
  */
 export function displayTurnHeader(
   turn: Turn,
@@ -159,11 +212,13 @@ export function displayTurnHeader(
 ): string {
   const separator = "━".repeat(70);
   const modelInfo = getModelInfo(participant);
+  const number = colorize(`#${participant.number}`, participant);
+  const name = colorize(participant.name, participant);
 
   const lines: string[] = [];
   lines.push(separator);
   lines.push(
-    `Turn ${turn.index + 1}/${totalTurns} - #${participant.number} ${participant.name} (${modelInfo})`
+    `Turn ${turn.index + 1}/${totalTurns} - ${number} ${name} (${modelInfo})`
   );
   lines.push(separator);
 
@@ -189,7 +244,7 @@ export function displayTurnFooter(turn: Turn): string {
 }
 
 /**
- * Display special turn (ask, summary, etc.)
+ * Display special turn (ask, summary, etc.) with color
  */
 export function displaySpecialTurnHeader(
   type: string,
@@ -198,11 +253,13 @@ export function displaySpecialTurnHeader(
 ): string {
   const separator = "━".repeat(70);
   const modelInfo = getModelInfo(participant);
+  const number = colorize(`#${participant.number}`, participant);
+  const name = colorize(participant.name, participant);
 
   const lines: string[] = [];
   lines.push(separator);
   lines.push(
-    `${type} - #${participant.number} ${participant.name} (${modelInfo})`
+    `${type} - ${number} ${name} (${modelInfo})`
   );
   if (message) {
     lines.push(`Question: ${message}`);
@@ -213,7 +270,7 @@ export function displaySpecialTurnHeader(
 }
 
 /**
- * Display human input prompt
+ * Display human input prompt with color
  */
 export function displayHumanInputPrompt(
   participant: Participant,
@@ -221,23 +278,26 @@ export function displayHumanInputPrompt(
   totalTurns: number
 ): string {
   const separator = "━".repeat(70);
+  const number = colorize(`#${participant.number}`, participant);
+  const name = colorize(participant.name, participant);
 
   const lines: string[] = [];
   lines.push(separator);
   lines.push(
-    `Turn ${turn}/${totalTurns} - #${participant.number} ${participant.name}`
+    `Turn ${turn}/${totalTurns} - ${number} ${name}`
   );
   lines.push(separator);
   lines.push("");
   lines.push("Your turn to speak. Commands available:");
   lines.push("  - Type your response (end with Ctrl+D or type 'EOF')");
-  lines.push("  - 'pass' - Skip this turn");
+  lines.push("  - 'pass' - Skip this turn (doesn't consume turn)");
   lines.push("  - 'ask #N [message]' - Ask specific participant #N");
   lines.push("  - 'next #N' - Set participant #N to speak next");
   lines.push("  - 'pause' - Pause discussion for manual control");
   lines.push("  - 'summary' - Request summary from all participants");
   lines.push("  - 'list' - Show participant list");
   lines.push("  - 'history' - Show recent turns");
+  lines.push("  - 'quit' - End discussion");
   lines.push("  - 'help' - Show all commands");
   lines.push("");
   lines.push("> ");
@@ -270,7 +330,7 @@ export function displayPauseMenu(): string {
 }
 
 /**
- * Display participant list in pause mode
+ * Display participant list in pause mode with color
  */
 export function displayParticipantStats(
   participants: Participant[],
@@ -287,8 +347,10 @@ export function displayParticipantStats(
     if (!participant) continue;
 
     const modelInfo = getModelInfo(participant);
+    const number = colorize(`#${stat.number}`, participant);
+    const name = colorize(stat.name, participant);
     lines.push(
-      `  #${stat.number} - ${stat.name} - ${modelInfo} (${stat.turnCount} turns, ${stat.totalTokens} tokens)`
+      `  ${number} - ${name} - ${modelInfo} (${stat.turnCount} turns, ${stat.totalTokens} tokens)`
     );
   }
 

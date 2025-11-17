@@ -173,6 +173,19 @@ interface Turn {
 
 ---
 
+## Prompt 流程（首轮种子 & 续写）
+
+- **首轮种子**：`DiscussionOrchestrator.start(config, initialPrompt)` 会将 `initialPrompt` 写入运行时上下文与 `config.metadata.initialPrompt`。`executeTurn()` 的首轮默认提示优先级为：
+  1. `context.initialPrompt`（来自调用方传入的初始提示）
+  2. `config.metadata.initialPrompt`（持久化的默认开场）
+  3. 回退文案：`"Please provide your analysis as the <role>."`
+- **后续轮次**：若未显式传入 `prompt`，使用 `Based on the discussion so far...` 的默认续写提示。
+- **人工覆盖**：调用方仍可为任意轮传入自定义 `prompt`，用于插入新上下文或纠偏。
+
+这一流程确保示例脚本和 CLI 将开场意图传递给参与者，避免讨论从无上下文开始的回归。
+
+---
+
 ## Built-in Scenarios
 
 ### 1. Code Review Council (`code-review`)

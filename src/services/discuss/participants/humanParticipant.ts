@@ -56,6 +56,7 @@ export class HumanParticipantDriver extends BaseParticipantDriver {
       // Display the prompt with context
       console.log(prompt);
       console.log("");
+      console.log("(Prefix control commands with '/' e.g. /pass, /list, /next #2)");
 
       // Display input instructions
       const instructions = displayHumanInputPrompt(
@@ -124,6 +125,7 @@ export class HumanParticipantDriver extends BaseParticipantDriver {
 
       const lines: string[] = [];
       let isFirstLine = true;
+      let resolved = false; // Track if we've already resolved
 
       rl.on("line", (line) => {
         // Check for EOF marker
@@ -134,6 +136,7 @@ export class HumanParticipantDriver extends BaseParticipantDriver {
 
         // Check for control commands on first line
         if (isFirstLine && isControlCommand(line)) {
+          resolved = true; // Mark as resolved
           rl.close();
           resolve(line); // Return the command as-is
           return;
@@ -144,6 +147,11 @@ export class HumanParticipantDriver extends BaseParticipantDriver {
       });
 
       rl.on("close", () => {
+        // Don't reject if we already resolved with a control command
+        if (resolved) {
+          return;
+        }
+
         const content = lines.join("\n").trim();
         if (content) {
           resolve(content);

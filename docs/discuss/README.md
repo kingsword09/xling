@@ -39,7 +39,6 @@ Xling Discuss is a powerful multi-role AI discussion system that enables multipl
 ### 1. Run the Example
 
 ```bash
-cd /Users/kingsword09/aispace/xling
 bun run examples/discuss-example.ts
 ```
 
@@ -147,7 +146,10 @@ const discussionConfig = {
 
 // Start discussion
 const orchestrator = new DiscussionOrchestrator(router);
-await orchestrator.start(discussionConfig, "Initial prompt...");
+await orchestrator.start(
+  discussionConfig,
+  "Initial prompt..."
+);
 
 // Run discussion loop
 while (!orchestrator.shouldTerminate()) {
