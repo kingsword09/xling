@@ -7,6 +7,7 @@
       "dependencies": {
         "@ai-sdk/openai-compatible": "^1.0.27",
         "@oclif/core": "^4.8.0",
+        "@openai/codex-sdk": "^0.58.0",
         "ai": "^5.0.93",
         "cli-table3": "^0.6.5",
         "smol-toml": "^1.4.2",
@@ -235,6 +236,8 @@
     "@oclif/plugin-warn-if-update-available": ["@oclif/plugin-warn-if-update-available@3.1.52", "", { "dependencies": { "@oclif/core": "^4", "ansis": "^3.17.0", "debug": "^4.4.3", "http-call": "^5.2.2", "lodash": "^4.17.21", "registry-auth-token": "^5.1.0" } }, "sha512-CAtBcMBjtuYwv2lf1U3tavAAhFtG3lYvrpestPjfIUyGSoc5kJZME1heS8Ao7IxNgp5sHFm1wNoU2vJbHJKLQg=="],
 
     "@oclif/test": ["@oclif/test@4.1.14", "", { "dependencies": { "ansis": "^3.17.0", "debug": "^4.4.3" }, "peerDependencies": { "@oclif/core": ">= 3.0.0" } }, "sha512-FKPUBOnC1KnYZBcYOMNmt0DfdqTdSo2Vx8OnqgnMslHVPRPqrUF1bxfEHaw5W/+vOQLwF7MiEPq8DObpXfJJbg=="],
+
+    "@openai/codex-sdk": ["@openai/codex-sdk@0.58.0", "", {}, "sha512-Z5vK294gUS9cn7bpU/lJtgzqJy1UqIGee7WMP+1Z4a6AxDcTxFCLZI4YkH9praJfrgoj5bFeu+3V9HIoBBTzcw=="],
 
     "@opentelemetry/api": ["@opentelemetry/api@1.9.0", "", {}, "sha512-3giAOQvZiH5F9bMlMiv8+GSPMeqg0dbaeo58/0SlA9sxSqZhnUtxzX9/2FzyhS9sWQf5S0GJE0AKBrFqjpeYcg=="],
 

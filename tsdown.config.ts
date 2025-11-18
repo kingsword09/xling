@@ -9,7 +9,13 @@ export default defineConfig({
   platform: "node",
   target: "node20",
   outExtensions: () => ({ js: ".js" }),
-  external: ["@oclif/core", "smol-toml", "zod", "cli-table3"],
+  external: [
+    "@oclif/core",
+    "smol-toml",
+    "zod",
+    "cli-table3",
+    "@openai/codex-sdk",
+  ],
   shims: true,
   minify: true,
 });

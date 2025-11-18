@@ -26,6 +26,9 @@ Together, `xling` is more than just a tool; it's an intelligent partner that amp
 
 - **Unified Interface**: Manage settings for multiple AI CLI tools with a single command
 - **Quick Launcher**: Just type `xling x` to start Claude Code instantly with yolo mode
+- **Codex SDK Integration**: Programmatic AI automation with `codex:run` for CI/CD and scripts
+- **Real-time Streaming**: Monitor long-running Codex tasks with `codex:stream` for live progress
+- **Thread Management**: Continue multi-turn conversations with `codex:threads` for persistent context
 - **Command Shortcuts**: Define custom aliases for frequently used commands with `sx`
 - **Multiple Scopes**: Support for user, project, local, and system-level configurations
 - **Profile Switching**: Switch between different configuration profiles (Codex)
@@ -67,6 +70,9 @@ place.
 ### Command Overview
 
 - `x`: Launch Claude Code or Codex with resume flags, yolo toggle, and passthrough args.
+- `codex:run`: Execute non-interactive Codex tasks programmatically (SDK-powered automation).
+- `codex:stream`: Execute Codex tasks with real-time streaming output and progress monitoring.
+- `codex:threads`: Manage Codex conversation threads (list/view/resume/delete) for multi-turn conversations.
 - `sx`: Execute command shortcuts/aliases defined in xling config.
 - `settings:list|get|set|switch|inspect`: Inspect, edit, and switch Claude, Codex, or Gemini configs across scopes.
 - `git:prc|prr|prv`: Create, checkout, and view GitHub pull requests with automatic gh/git fallbacks.
@@ -77,6 +83,9 @@ place.
 #### Launching AI tools
 
 - [`x` – quick launcher](docs/x.md): fire up Claude Code or Codex with resume/yolo controls and passthrough args.
+- [`codex:run` – SDK automation](docs/codex-sdk.md): execute non-interactive Codex tasks programmatically for CI/CD and scripts.
+- [`codex:stream` – real-time streaming](docs/codex-sdk.md): execute Codex tasks with live progress monitoring and event streaming.
+- [`codex:threads` – thread management](docs/codex-sdk.md): manage persistent conversation threads for multi-turn dialogues.
 - [`sx` – shortcut execute](docs/sx.md): run predefined command shortcuts with optional passthrough args.
 
 #### Settings management
