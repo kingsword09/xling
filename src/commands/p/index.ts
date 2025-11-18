@@ -64,8 +64,6 @@ export default class PCommand extends Command {
     },
   ];
 
-
-
   static flags: Interfaces.FlagInput = {
     tool: Flags.string({
       description:
