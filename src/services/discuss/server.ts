@@ -99,7 +99,7 @@ export async function createDiscussServer(port: number = 3000): Promise<http.Ser
         fs.createReadStream(fullPath).pipe(res);
         return;
       }
-    } catch (e) {
+    } catch {
       // ignore
     }
 
@@ -118,7 +118,7 @@ function readBody(req: http.IncomingMessage): Promise<any> {
     req.on("end", () => {
       try {
         resolve(JSON.parse(body));
-      } catch (e) {
+      } catch {
         resolve({});
       }
     });

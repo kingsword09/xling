@@ -53,7 +53,7 @@ export default class DiscussCommand extends Command {
     return new Promise(() => {});
   }
 
-  async #runCLI(flags: { topic?: string; models?: string }) {
+  async #runCLI(flags: Interfaces.InferredFlags<typeof DiscussCommand.flags>) {
     const router = await createRouter();
     const availableModels = router.getRegistry().getAllModels();
 
@@ -78,63 +78,12 @@ export default class DiscussCommand extends Command {
 
     this.log(`\nStarting discussion on "${topic}" with: ${selectedModels.join(", ")}\n`);
 
-    const room = new ChatRoom(router, (message) => {
-      if (message.role === "system") {
-        this.log(`\n[System]: ${message.content}`);
-      } else {
-        // We might want to handle streaming better in CLI, but for now just log complete messages
-        // or if we want streaming, we'd need to handle cursor position.
-        // For simplicity in this MVP, we'll just log the final message content if it's not empty.
-        // But ChatRoom emits streaming updates too.
-        // Let's just log when a message is "done" or handle stream chunks?
-        // The ChatRoom emits every chunk for streaming.
-        // To avoid spamming console, we should probably only log the full message at the end?
-        // Or use process.stdout.write.
-        
-        // Actually ChatRoom emits cumulative content in streaming mode.
-        // So we should clear line and rewrite?
-        // For CLI simplicity, let's just print the final message.
-        // But ChatRoom doesn't explicitly say "done".
-        // We can check if the message ID changed or use a different event?
-        // The current ChatRoom implementation calls onMessage for every chunk.
-        
-        // Let's just implement a simple "clear and write" for the current message ID.
-      }
-    });
-
-    // We need a way to handle CLI output better for streaming.
-    // Since ChatRoom is generic, we might need to adapt it.
-    // For now, let's just let it run and maybe it will be a bit messy or we can improve ChatRoom later.
-    // Actually, let's improve ChatRoom to emit "start", "chunk", "end" events?
-    // Or just handle it here.
-    
-    let lastMessageId = "";
-    
-    // Re-instantiate room with a smarter callback
-    const cliRoom = new ChatRoom(router, (message) => {
-      if (message.role === "system") return; // Handled separately or just ignore for stream
-      
-      if (message.id !== lastMessageId) {
-        process.stdout.write(`\n\n[${message.model}]: `);
-        lastMessageId = message.id;
-      }
-      
-      // This is tricky because message.content is cumulative.
-      // We need to print only the new part.
-      // Or use readline.cursorTo to rewrite the line.
-      // Let's just print the whole thing for now, it will be spammy.
-      // Better: track length printed so far.
-    });
-    
-    // Wait, I can't re-instantiate easily because I need to pass the callback to constructor.
-    // Let's just use a map to track printed length.
     const printedLengths = new Map<string, number>();
     
     const smartRoom = new ChatRoom(router, (message) => {
        if (message.role === "system") {
-         // System messages are usually one-off
          if (!printedLengths.has(message.id)) {
-            console.log(`\n[System]: ${message.content}`);
+            this.log(`\n[System]: ${message.content}`);
             printedLengths.set(message.id, message.content.length);
          }
          return;
