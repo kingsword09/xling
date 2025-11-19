@@ -1,116 +1,126 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useChat } from './hooks/useChat';
-import { MessageBubble } from './components/MessageBubble';
-import { ModelSelector } from './components/ModelSelector';
+import React, { useState, useEffect } from 'react';
+import { Sidebar } from '@/ui/components/Sidebar';
+import { ChatInterface } from '@/ui/components/ChatInterface';
+import { NewSessionDialog } from '@/ui/components/NewSessionDialog';
+import { Sheet, SheetContent } from '@/ui/components/ui/sheet';
+import { Button } from '@/ui/components/ui/button';
+import { Menu } from 'lucide-react';
+
+interface Session {
+  id: string;
+  name: string;
+  createdAt: number;
+}
 
 function App() {
-  const {
-    messages,
-    isDiscussing,
-    availableModels,
-    startDiscussion,
-    stopDiscussion,
-    nextTurn,
-  } = useChat();
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+  const [isNewSessionOpen, setIsNewSessionOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const [topic, setTopic] = useState('');
-  const [selectedModels, setSelectedModels] = useState<string[]>([]);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  // Auto-scroll to bottom
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
-
-  const handleStart = () => {
-    if (!topic.trim() || selectedModels.length < 2) return;
-    startDiscussion(topic, selectedModels);
+  const fetchSessions = async () => {
+    const res = await fetch('/api/sessions');
+    const data = await res.json();
+    setSessions(data.sessions);
+    
+    // Auto-select first session if none selected
+    if (!currentSessionId && data.sessions.length > 0) {
+      setCurrentSessionId(data.sessions[0].id);
+    }
   };
 
+  useEffect(() => {
+    fetchSessions();
+    
+    // Poll for session list updates? Or use stream?
+    // For simplicity, just fetch on mount. 
+    // In a real app, we'd listen to "session-created" events.
+  }, []);
+
+  const handleCreateSession = async (data: { name: string; topic: string; models: string[] }) => {
+    const res = await fetch('/api/sessions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    const newSession = await res.json();
+    await fetchSessions();
+    setCurrentSessionId(newSession.session.id);
+  };
+
+  const handleDeleteSession = async (id: string) => {
+    await fetch(`/api/sessions/${id}`, { method: 'DELETE' });
+    await fetchSessions();
+    if (currentSessionId === id) {
+      setCurrentSessionId(null);
+    }
+  };
+
+  const currentSession = sessions.find(s => s.id === currentSessionId);
+
   return (
-    <div className="flex h-screen bg-gray-100 overflow-hidden">
-      {/* Sidebar */}
-      <div className="w-80 bg-white border-r border-gray-200 flex flex-col shadow-xl z-10">
-        <div className="p-6 border-b border-gray-100">
-          <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-            xling discuss
-          </h1>
-          <p className="text-sm text-gray-500 mt-1">Multi-Agent Chat Room</p>
-        </div>
+    <div className="flex h-screen bg-background overflow-hidden">
+      {/* Desktop Sidebar */}
+      <div className="hidden md:block w-64 h-full">
+        <Sidebar
+          sessions={sessions}
+          currentSessionId={currentSessionId}
+          onSelectSession={setCurrentSessionId}
+          onCreateSession={() => setIsNewSessionOpen(true)}
+          onDeleteSession={handleDeleteSession}
+        />
+      </div>
 
-        <div className="p-6 flex-1 overflow-y-auto space-y-6">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Topic
-            </label>
-            <textarea
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none h-24 text-sm"
-              placeholder="What should we discuss?"
-              value={topic}
-              onChange={(e) => setTopic(e.target.value)}
-              disabled={isDiscussing}
-            />
-          </div>
-
-          <ModelSelector
-            availableModels={availableModels}
-            selectedModels={selectedModels}
-            onChange={setSelectedModels}
-            disabled={isDiscussing}
+      {/* Mobile Sidebar */}
+      <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+        <SheetContent side="left" className="p-0 w-64">
+          <Sidebar
+            sessions={sessions}
+            currentSessionId={currentSessionId}
+            onSelectSession={(id) => {
+              setCurrentSessionId(id);
+              setIsMobileMenuOpen(false);
+            }}
+            onCreateSession={() => {
+              setIsNewSessionOpen(true);
+              setIsMobileMenuOpen(false);
+            }}
+            onDeleteSession={handleDeleteSession}
           />
+        </SheetContent>
+      </Sheet>
+
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col h-full relative">
+        {/* Mobile Menu Trigger */}
+        <div className="md:hidden absolute top-4 left-4 z-10">
+          <Button variant="ghost" size="icon" onClick={() => setIsMobileMenuOpen(true)}>
+            <Menu className="h-6 w-6" />
+          </Button>
         </div>
 
-        <div className="p-6 border-t border-gray-100 bg-gray-50">
-          {!isDiscussing ? (
-            <button
-              onClick={handleStart}
-              disabled={!topic.trim() || selectedModels.length < 2}
-              className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-medium rounded-lg shadow-lg shadow-blue-500/30 transition-all transform hover:scale-[1.02] active:scale-[0.98]"
-            >
-              Start Discussion
-            </button>
-          ) : (
-            <div className="space-y-3">
-              <button
-                onClick={nextTurn}
-                className="w-full py-2 px-4 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 font-medium rounded-lg transition-colors"
-              >
-                Trigger Next Turn
-              </button>
-              <button
-                onClick={stopDiscussion}
-                className="w-full py-2 px-4 bg-red-50 hover:bg-red-100 text-red-600 font-medium rounded-lg transition-colors"
-              >
-                Stop Discussion
-              </button>
+        {currentSessionId && currentSession ? (
+          <ChatInterface 
+            key={currentSessionId} // Force remount on session change
+            sessionId={currentSessionId} 
+            sessionName={currentSession.name} 
+          />
+        ) : (
+          <div className="flex-1 flex items-center justify-center text-muted-foreground">
+            <div className="text-center">
+              <h3 className="text-lg font-medium mb-2">No Active Discussion</h3>
+              <p className="mb-4">Select a chat or create a new one.</p>
+              <Button onClick={() => setIsNewSessionOpen(true)}>Create New Discussion</Button>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
-      {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col bg-gray-50/50">
-        <div className="flex-1 overflow-y-auto p-8">
-          <div className="max-w-3xl mx-auto space-y-6">
-            {messages.length === 0 ? (
-              <div className="text-center py-20">
-                <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <svg className="w-10 h-10 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" />
-                  </svg>
-                </div>
-                <h3 className="text-xl font-medium text-gray-900">Ready to Start</h3>
-                <p className="text-gray-500 mt-2">Select models and a topic to begin the discussion.</p>
-              </div>
-            ) : (
-              messages.map((msg) => (
-                <MessageBubble key={msg.id} message={msg} />
-              ))
-            )}
-            <div ref={messagesEndRef} />
-          </div>
-        </div>
-      </div>
+      <NewSessionDialog 
+        open={isNewSessionOpen} 
+        onOpenChange={setIsNewSessionOpen}
+        onCreate={handleCreateSession}
+      />
     </div>
   );
 }
