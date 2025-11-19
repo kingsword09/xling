@@ -13,6 +13,7 @@ export default class Wta extends Command {
   static description = `
     Create a new git worktree with automatic path generation.
     Defaults to main branch if not specified.
+    Use --select to choose a branch from an interactive list.
   `;
 
   static examples: Command.Example[] = [
@@ -28,6 +29,10 @@ export default class Wta extends Command {
       description: "Add worktree with custom path",
       command:
         "<%= config.bin %> <%= command.id %> -b feature/login -p ../my-worktree",
+    },
+    {
+      description: "Pick a branch interactively",
+      command: "<%= config.bin %> <%= command.id %> --select",
     },
   ];
 
@@ -49,6 +54,10 @@ export default class Wta extends Command {
       description: "Detach HEAD in new worktree",
       default: false,
     }),
+    select: Flags.boolean({
+      description: "Use an interactive selector to choose the branch",
+      default: false,
+    }),
   };
 
   async run(): Promise<void> {
@@ -61,6 +70,7 @@ export default class Wta extends Command {
       path: flags.path,
       force: flags.force,
       detach: flags.detach,
+      interactive: flags.select,
     };
 
     try {

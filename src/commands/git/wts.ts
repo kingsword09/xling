@@ -15,6 +15,7 @@ export default class Wts extends Command {
     Find a matching worktree, then start a subshell rooted there.
     Defaults to the main branch if no branch/directory is provided.
     Use --path-only for scripting (outputs the path for cd $(...)).
+    Use --select to pick a worktree from an interactive list.
   `;
 
   static examples: Command.Example[] = [
@@ -30,6 +31,10 @@ export default class Wts extends Command {
       description: "Switch by directory name",
       command: "cd $(<%= config.bin %> <%= command.id %> -b xling-feature)",
     },
+    {
+      description: "Use interactive selector to pick a worktree",
+      command: "cd $(<%= config.bin %> <%= command.id %> --select)",
+    },
   ];
 
   static flags: Interfaces.FlagInput = {
@@ -41,6 +46,10 @@ export default class Wts extends Command {
       description: "Only print the worktree path (useful for cd $(...))",
       default: false,
     }),
+    select: Flags.boolean({
+      description: "Use an interactive selector to choose the worktree",
+      default: false,
+    }),
   };
 
   async run(): Promise<void> {
@@ -50,6 +59,7 @@ export default class Wts extends Command {
     const request: GitWorktreeRequest = {
       action: "switch",
       branch: flags.branch,
+      interactive: flags.select,
     };
 
     try {
