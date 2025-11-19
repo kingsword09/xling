@@ -52,13 +52,13 @@ export class ChatRoom {
     const lastAssistantMsg = [...this.#messages]
       .reverse()
       .find((m) => m.role === "assistant");
-    
+
     let nextSpeakerIndex = 0;
     if (lastAssistantMsg && lastAssistantMsg.model) {
       const lastIndex = this.#participants.indexOf(lastAssistantMsg.model);
       nextSpeakerIndex = (lastIndex + 1) % this.#participants.length;
     }
-    
+
     const nextSpeaker = this.#participants[nextSpeakerIndex];
 
     // Construct prompt
@@ -71,7 +71,7 @@ export class ChatRoom {
 
     const prompt = `You are ${nextSpeaker} in a group chat.
 The topic is: "${this.#topic}".
-The other participants are: ${this.#participants.filter(p => p !== nextSpeaker).join(", ")}.
+The other participants are: ${this.#participants.filter((p) => p !== nextSpeaker).join(", ")}.
 
 Here is the conversation history:
 ${historyText}
@@ -80,7 +80,7 @@ Respond to the conversation as ${nextSpeaker}. Keep your response concise and co
 
     const msgId = crypto.randomUUID();
     const timestamp = Date.now();
-    
+
     // Initial placeholder message
     this.#onMessage({
       id: msgId,
@@ -98,7 +98,7 @@ Respond to the conversation as ${nextSpeaker}. Keep your response concise and co
       };
 
       const result = await this.#router.executeStream(request);
-      
+
       let fullContent = "";
       for await (const chunk of result.textStream) {
         if (!this.#isDiscussing) break;

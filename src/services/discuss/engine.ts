@@ -28,7 +28,12 @@ export interface DiscussionConfig {
   thinkingTimeMs: number; // Delay before AI speaks
 }
 
-export type DiscussionStatus = "idle" | "discussing" | "paused" | "thinking" | "speaking";
+export type DiscussionStatus =
+  | "idle"
+  | "discussing"
+  | "paused"
+  | "thinking"
+  | "speaking";
 export type DiscussionMode = "auto" | "manual";
 
 export class DiscussionEngine extends EventEmitter {
@@ -38,14 +43,17 @@ export class DiscussionEngine extends EventEmitter {
   #status: DiscussionStatus = "idle";
   #mode: DiscussionMode = "auto";
   #config: DiscussionConfig;
-  
+
   #currentSpeakerId: string | null = null;
   #lastSpeakerId: string | null = null;
   #currentMessage: ChatMessage | null = null;
   #abortController: AbortController | null = null;
   #autoTimer: NodeJS.Timeout | null = null;
 
-  constructor(router: ModelRouter, config: Partial<DiscussionConfig> & { topic: string }) {
+  constructor(
+    router: ModelRouter,
+    config: Partial<DiscussionConfig> & { topic: string },
+  ) {
     super();
     this.#router = router;
     this.#config = {
@@ -66,7 +74,9 @@ export class DiscussionEngine extends EventEmitter {
 
     if (
       participant.model &&
-      Array.from(this.#participants.values()).some((p) => p.model === participant.model)
+      Array.from(this.#participants.values()).some(
+        (p) => p.model === participant.model,
+      )
     ) {
       throw new Error(`Model "${participant.model}" is already participating.`);
     }
@@ -80,7 +90,11 @@ export class DiscussionEngine extends EventEmitter {
     this.emit("participants-updated", Array.from(this.#participants.values()));
     this.#addSystemMessage(`${stored.name} joined the discussion.`);
 
-    if (this.#status === "discussing" && this.#mode === "auto" && !this.#currentSpeakerId) {
+    if (
+      this.#status === "discussing" &&
+      this.#mode === "auto" &&
+      !this.#currentSpeakerId
+    ) {
       this.#scheduleNextTurn();
     }
   }
@@ -99,7 +113,11 @@ export class DiscussionEngine extends EventEmitter {
 
     if (removingActiveSpeaker) {
       this.#abortCurrentTurn();
-    } else if (this.#status === "discussing" && this.#mode === "auto" && !this.#currentSpeakerId) {
+    } else if (
+      this.#status === "discussing" &&
+      this.#mode === "auto" &&
+      !this.#currentSpeakerId
+    ) {
       this.#scheduleNextTurn();
     }
   }
@@ -135,12 +153,16 @@ export class DiscussionEngine extends EventEmitter {
   setMode(mode: DiscussionMode): void {
     this.#mode = mode;
     this.emit("mode-changed", mode);
-    
+
     if (mode === "manual") {
       this.#clearAutoTimer();
     }
-    
-    if (mode === "auto" && this.#status === "discussing" && !this.#currentSpeakerId) {
+
+    if (
+      mode === "auto" &&
+      this.#status === "discussing" &&
+      !this.#currentSpeakerId
+    ) {
       this.#scheduleNextTurn();
     }
   }
@@ -162,7 +184,7 @@ export class DiscussionEngine extends EventEmitter {
     const systemMsg: ChatMessage = {
       id: crypto.randomUUID(),
       role: "system",
-      content: `Topic: ${this.#config.topic}\nParticipants: ${this.participants.map(p => `${p.name} (${p.type})`).join(", ")}`,
+      content: `Topic: ${this.#config.topic}\nParticipants: ${this.participants.map((p) => `${p.name} (${p.type})`).join(", ")}`,
       senderId: "system",
       timestamp: Date.now(),
     };
@@ -184,7 +206,7 @@ export class DiscussionEngine extends EventEmitter {
     if (this.#status !== "paused") return;
     this.#status = "discussing";
     this.emit("status-changed", this.#status);
-    
+
     if (this.#mode === "auto" && !this.#currentSpeakerId) {
       this.#scheduleNextTurn();
     }
@@ -222,7 +244,7 @@ export class DiscussionEngine extends EventEmitter {
     // For now, let's just append and let the flow continue
     // Ideally, if AI is speaking, we might want to cancel it?
     // Let's keep it simple: Human message is just added.
-    
+
     const msg: ChatMessage = {
       id: crypto.randomUUID(),
       role: participant.type === "human" ? "user" : "assistant",
@@ -235,8 +257,12 @@ export class DiscussionEngine extends EventEmitter {
 
     // If we were waiting for a turn, this might change who speaks next or context
     // If in auto mode and idle, ensure loop continues
-    if (this.#status === "discussing" && this.#mode === "auto" && !this.#currentSpeakerId) {
-       this.#scheduleNextTurn();
+    if (
+      this.#status === "discussing" &&
+      this.#mode === "auto" &&
+      !this.#currentSpeakerId
+    ) {
+      this.#scheduleNextTurn();
     }
   }
 
@@ -261,7 +287,8 @@ export class DiscussionEngine extends EventEmitter {
 
   async generateSummary(modelId: string): Promise<string> {
     const participant = this.#participants.get(modelId);
-    if (!participant || !participant.model) throw new Error("Invalid summarizer");
+    if (!participant || !participant.model)
+      throw new Error("Invalid summarizer");
 
     const prompt = `Please summarize the discussion so far on the topic "${this.#config.topic}".
     
@@ -285,12 +312,15 @@ Provide a concise summary of the key points and conclusions.`;
     this.#clearAutoTimer();
     if (this.#status !== "discussing" || this.#mode !== "auto") return;
 
-    this.#autoTimer = setTimeout(() => {
-      const nextId = this.#selectNextSpeaker();
-      if (nextId) {
-        this.#executeTurn(nextId);
-      }
-    }, this.#config.thinkingTimeMs);
+    this.#autoTimer = setTimeout(
+      () => {
+        const nextId = this.#selectNextSpeaker();
+        if (nextId) {
+          this.#executeTurn(nextId);
+        }
+      },
+      this.#config.thinkingTimeMs,
+    );
   }
 
   #selectNextSpeaker(): string | null {
@@ -299,7 +329,8 @@ Provide a concise summary of the key points and conclusions.`;
 
     const aiIds = aiParticipants.map((p) => p.id);
     const lastMsg = this.#history[this.#history.length - 1];
-    const lastMsgAi = lastMsg && aiIds.includes(lastMsg.senderId) ? lastMsg.senderId : null;
+    const lastMsgAi =
+      lastMsg && aiIds.includes(lastMsg.senderId) ? lastMsg.senderId : null;
     const referenceId = this.#lastSpeakerId ?? lastMsgAi;
 
     const candidates =
@@ -331,7 +362,7 @@ Provide a concise summary of the key points and conclusions.`;
 
     this.#abortController = new AbortController();
     const abortController = this.#abortController; // Capture locally to prevent race conditions
-    
+
     const msgId = crypto.randomUUID();
     const timestamp = Date.now();
     let content = "";
@@ -349,7 +380,7 @@ Provide a concise summary of the key points and conclusions.`;
 
     try {
       const prompt = this.#constructPrompt(participant);
-      
+
       const request: PromptRequest = {
         messages: [{ role: "user", content: prompt }],
         model: participant.model,
@@ -370,7 +401,7 @@ Provide a concise summary of the key points and conclusions.`;
         if (abortController.signal.aborted) break;
         content += chunk;
         if (this.#currentMessage) {
-            this.#currentMessage.content = content;
+          this.#currentMessage.content = content;
         }
         this.emit("message-chunk", { id: msgId, delta: chunk, content });
       }
@@ -385,12 +416,11 @@ Provide a concise summary of the key points and conclusions.`;
         });
         participant.errorCount = 0; // Reset errors on success
       }
-
     } catch (error) {
       console.error(`Error in turn for ${participant.name}:`, error);
       participant.errorCount++;
       this.emit("error", { participantId, error: (error as Error).message });
-      
+
       if (participant.errorCount > this.#config.maxErrors) {
         this.emit("participant-dropped", participantId);
         this.removeParticipant(participantId);
@@ -405,13 +435,17 @@ Provide a concise summary of the key points and conclusions.`;
       if (this.#abortController === abortController) {
         this.#abortController = null;
       }
-      
+
       if (!this.#currentSpeakerId && this.#status === "speaking") {
         this.#status = "discussing";
         this.emit("status-changed", this.#status);
       }
 
-      if (this.#mode === "auto" && this.#status === "discussing" && !this.#currentSpeakerId) {
+      if (
+        this.#mode === "auto" &&
+        this.#status === "discussing" &&
+        !this.#currentSpeakerId
+      ) {
         this.#scheduleNextTurn();
       }
     }
@@ -442,12 +476,14 @@ Respond now as ${participant.name}:`;
   #formatHistory(): string {
     // Get last N messages to fit context
     // Simple slice for now, could be token-based later
-    const recent = this.#history.slice(-20); 
-    return recent.map(m => {
-      const p = this.#participants.get(m.senderId);
-      const name = p ? p.name : (m.role === "system" ? "System" : "Unknown");
-      return `[${name}]: ${m.content}`;
-    }).join("\n\n");
+    const recent = this.#history.slice(-20);
+    return recent
+      .map((m) => {
+        const p = this.#participants.get(m.senderId);
+        const name = p ? p.name : m.role === "system" ? "System" : "Unknown";
+        return `[${name}]: ${m.content}`;
+      })
+      .join("\n\n");
   }
 
   #addMessage(msg: ChatMessage): void {
@@ -488,7 +524,11 @@ Respond now as ${participant.name}:`;
       this.emit("status-changed", this.#status);
     }
 
-    if (!options?.skipReschedule && this.#mode === "auto" && this.#status === "discussing") {
+    if (
+      !options?.skipReschedule &&
+      this.#mode === "auto" &&
+      this.#status === "discussing"
+    ) {
       this.#scheduleNextTurn();
     }
   }

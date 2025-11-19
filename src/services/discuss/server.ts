@@ -25,14 +25,14 @@ class SessionManager {
       topic: name, // Default topic to session name initially
       ...config,
     });
-    
+
     const session: Session = {
       id,
       name,
       engine,
       createdAt: Date.now(),
     };
-    
+
     this.#sessions.set(id, session);
     return session;
   }
@@ -42,11 +42,13 @@ class SessionManager {
   }
 
   getAllSessions(): Omit<Session, "engine">[] {
-    return Array.from(this.#sessions.values()).map(({ id, name, createdAt }) => ({
-      id,
-      name,
-      createdAt,
-    })).sort((a, b) => b.createdAt - a.createdAt);
+    return Array.from(this.#sessions.values())
+      .map(({ id, name, createdAt }) => ({
+        id,
+        name,
+        createdAt,
+      }))
+      .sort((a, b) => b.createdAt - a.createdAt);
   }
 
   deleteSession(id: string): boolean {
@@ -59,7 +61,9 @@ class SessionManager {
   }
 }
 
-export async function createDiscussServer(port: number = 3000): Promise<http.Server> {
+export async function createDiscussServer(
+  port: number = 3000,
+): Promise<http.Server> {
   const router = await createRouter();
   const sessions = new SessionManager(router);
   const clients = new Set<http.ServerResponse>();
@@ -76,15 +80,27 @@ export async function createDiscussServer(port: number = 3000): Promise<http.Ser
 
   const attachEngineListeners = (session: Session) => {
     const { engine, id } = session;
-    const wrap = (type: string, payload: any) => ({ type, sessionId: id, ...payload });
+    const wrap = (type: string, payload: any) => ({
+      type,
+      sessionId: id,
+      ...payload,
+    });
 
-    engine.on("status-changed", (status) => broadcast(wrap("status", { status })));
-    engine.on("turn-start", (participantId) => broadcast(wrap("turn-start", { participantId })));
+    engine.on("status-changed", (status) =>
+      broadcast(wrap("status", { status })),
+    );
+    engine.on("turn-start", (participantId) =>
+      broadcast(wrap("turn-start", { participantId })),
+    );
     engine.on("message", (message) => broadcast(wrap("message", { message })));
     engine.on("message-chunk", (chunk) => broadcast(wrap("chunk", { chunk })));
     engine.on("error", (error) => broadcast(wrap("error", { error })));
-    engine.on("participant-dropped", (id) => broadcast(wrap("participant-dropped", { id })));
-    engine.on("participants-updated", (participants) => broadcast(wrap("participants", { participants })));
+    engine.on("participant-dropped", (id) =>
+      broadcast(wrap("participant-dropped", { id })),
+    );
+    engine.on("participants-updated", (participants) =>
+      broadcast(wrap("participants", { participants })),
+    );
     engine.on("mode-changed", (mode) => broadcast(wrap("mode", { mode })));
     engine.on("history-cleared", () => broadcast(wrap("history-cleared", {})));
   };
@@ -136,7 +152,7 @@ export async function createDiscussServer(port: number = 3000): Promise<http.Ser
         timeoutMs: 30000,
       });
       attachEngineListeners(session);
-      
+
       // Initialize participants if provided
       if (body.models) {
         body.models.forEach((model: string, i: number) => {
@@ -152,20 +168,30 @@ export async function createDiscussServer(port: number = 3000): Promise<http.Ser
           name: "User",
           type: "human",
         });
-        
+
         // Auto-start the session
         session.engine.start();
       }
 
       res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ session: { id: session.id, name: session.name, createdAt: session.createdAt } }));
+      res.end(
+        JSON.stringify({
+          session: {
+            id: session.id,
+            name: session.name,
+            createdAt: session.createdAt,
+          },
+        }),
+      );
       return;
     }
 
     // Session-specific actions
     // URL pattern: /api/sessions/:id/:action
-    const sessionMatch = url.pathname.match(/^\/api\/sessions\/([^/]+)(?:\/(.+))?$/);
-    
+    const sessionMatch = url.pathname.match(
+      /^\/api\/sessions\/([^/]+)(?:\/(.+))?$/,
+    );
+
     if (sessionMatch) {
       const sessionId = sessionMatch[1];
       const action = sessionMatch[2];
@@ -180,27 +206,29 @@ export async function createDiscussServer(port: number = 3000): Promise<http.Ser
       }
 
       if (!session) {
-         res.writeHead(404, { "Content-Type": "application/json" });
-         res.end(JSON.stringify({ error: "Session not found" }));
-         return;
+        res.writeHead(404, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Session not found" }));
+        return;
       }
 
       if (session) {
         if (!action) {
           // GET session details
           if (req.method === "GET") {
-             res.writeHead(200, { "Content-Type": "application/json" });
-             res.end(JSON.stringify({ 
-               id: session.id, 
-               name: session.name, 
-               topic: session.engine.topic,
-               status: session.engine.status,
-               mode: session.engine.mode,
-               participants: session.engine.participants,
-               history: session.engine.history,
-               currentMessage: session.engine.currentMessage
-             }));
-             return;
+            res.writeHead(200, { "Content-Type": "application/json" });
+            res.end(
+              JSON.stringify({
+                id: session.id,
+                name: session.name,
+                topic: session.engine.topic,
+                status: session.engine.status,
+                mode: session.engine.mode,
+                participants: session.engine.participants,
+                history: session.engine.history,
+                currentMessage: session.engine.currentMessage,
+              }),
+            );
+            return;
           }
         } else if (req.method === "POST") {
           const engine = session.engine;
@@ -214,7 +242,9 @@ export async function createDiscussServer(port: number = 3000): Promise<http.Ser
               if (body.topic) engine.updateConfig({ topic: body.topic });
               if (body.models) {
                 // Reset participants
-                engine.participants.forEach(p => engine.removeParticipant(p.id));
+                engine.participants.forEach((p) =>
+                  engine.removeParticipant(p.id),
+                );
                 body.models.forEach((model: string, i: number) => {
                   engine.addParticipant({
                     id: `model-${i}`,
@@ -253,7 +283,7 @@ export async function createDiscussServer(port: number = 3000): Promise<http.Ser
               if (body.participantId) {
                 engine.setNextSpeaker(body.participantId);
               } else {
-                const ais = engine.participants.filter(p => p.type === "ai");
+                const ais = engine.participants.filter((p) => p.type === "ai");
                 const random = ais[Math.floor(Math.random() * ais.length)];
                 if (random) engine.setNextSpeaker(random.id);
               }
@@ -283,7 +313,8 @@ export async function createDiscussServer(port: number = 3000): Promise<http.Ser
                 engine.addParticipant(newParticipant);
 
                 const explicitStart = body.start === true;
-                const defaultStart = body.start === undefined && engine.mode === "auto";
+                const defaultStart =
+                  body.start === undefined && engine.mode === "auto";
                 const shouldStart = explicitStart || defaultStart;
                 const canStart =
                   engine.status !== "idle" &&
@@ -309,7 +340,7 @@ export async function createDiscussServer(port: number = 3000): Promise<http.Ser
               res.end("Action not found");
               return;
           }
-          
+
           res.writeHead(200, { "Content-Type": "application/json" });
           res.end(JSON.stringify(responsePayload));
           return;
@@ -322,7 +353,7 @@ export async function createDiscussServer(port: number = 3000): Promise<http.Ser
       res.writeHead(200, {
         "Content-Type": "text/event-stream",
         "Cache-Control": "no-cache",
-        "Connection": "keep-alive",
+        Connection: "keep-alive",
       });
       clients.add(res);
 
@@ -339,19 +370,19 @@ export async function createDiscussServer(port: number = 3000): Promise<http.Ser
     // Static File Serving
     let filePath = url.pathname;
     if (filePath === "/") filePath = "/index.html";
-    
+
     const possiblePaths = [
       path.resolve(process.cwd(), "dist/ui"),
       path.resolve(__dirname, "../../ui"),
       path.resolve(__dirname, "../../../dist/ui"),
     ];
 
-    let distPath = possiblePaths.find(p => fs.existsSync(p));
-    
+    let distPath = possiblePaths.find((p) => fs.existsSync(p));
+
     if (!distPath) {
-       res.writeHead(404);
-       res.end("UI not found. Please run `bun run build`.");
-       return;
+      res.writeHead(404);
+      res.end("UI not found. Please run `bun run build`.");
+      return;
     }
 
     const fullPath = path.join(distPath, filePath.substring(1));
@@ -370,12 +401,12 @@ export async function createDiscussServer(port: number = 3000): Promise<http.Ser
 
     // SPA fallback
     if (filePath.indexOf(".") === -1) {
-       const indexHtml = path.join(distPath, "index.html");
-       if (fs.existsSync(indexHtml)) {
-         res.writeHead(200, { "Content-Type": "text/html" });
-         fs.createReadStream(indexHtml).pipe(res);
-         return;
-       }
+      const indexHtml = path.join(distPath, "index.html");
+      if (fs.existsSync(indexHtml)) {
+        res.writeHead(200, { "Content-Type": "text/html" });
+        fs.createReadStream(indexHtml).pipe(res);
+        return;
+      }
     }
 
     res.writeHead(404);
@@ -403,13 +434,21 @@ function readBody(req: http.IncomingMessage): Promise<any> {
 
 function getContentType(ext: string): string {
   switch (ext) {
-    case ".html": return "text/html";
-    case ".js": return "text/javascript";
-    case ".css": return "text/css";
-    case ".json": return "application/json";
-    case ".png": return "image/png";
-    case ".jpg": return "image/jpeg";
-    case ".svg": return "image/svg+xml";
-    default: return "application/octet-stream";
+    case ".html":
+      return "text/html";
+    case ".js":
+      return "text/javascript";
+    case ".css":
+      return "text/css";
+    case ".json":
+      return "application/json";
+    case ".png":
+      return "image/png";
+    case ".jpg":
+      return "image/jpeg";
+    case ".svg":
+      return "image/svg+xml";
+    default:
+      return "application/octet-stream";
   }
 }

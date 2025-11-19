@@ -1,8 +1,8 @@
-import React from 'react';
-import { MessageSquarePlus, MessageSquare, Trash2 } from 'lucide-react';
-import { Button } from '@/ui/components/ui/button';
-import { ScrollArea } from '@/ui/components/ui/scroll-area';
-import { cn } from '@/ui/lib/utils';
+import React from "react";
+import { MessageSquarePlus, Trash2 } from "lucide-react";
+import { Button } from "@/ui/components/ui/button";
+import { ScrollArea } from "@/ui/components/ui/scroll-area";
+import { cn } from "@/ui/lib/utils";
 
 interface Session {
   id: string;
@@ -25,17 +25,21 @@ export function Sidebar({
   onSelectSession,
   onCreateSession,
   onDeleteSession,
-  className
+  className,
 }: SidebarProps) {
   return (
     <div className={cn("flex flex-col h-full bg-transparent", className)}>
       <div className="p-3">
-        <Button onClick={onCreateSession} className="w-full justify-start gap-2 shadow-none border-0 bg-transparent hover:bg-background/50 text-primary font-normal px-2" variant="ghost">
+        <Button
+          onClick={onCreateSession}
+          className="w-full justify-start gap-2 shadow-none border-0 bg-transparent hover:bg-background/50 text-primary font-normal px-2"
+          variant="ghost"
+        >
           <MessageSquarePlus className="h-5 w-5" />
           <span className="text-base">New Discussion</span>
         </Button>
       </div>
-      
+
       <ScrollArea className="flex-1 px-2">
         <div className="space-y-0.5 pb-4">
           {sessions.length === 0 && (
@@ -43,20 +47,27 @@ export function Sidebar({
               No conversations
             </div>
           )}
-          {sessions.map(session => (
+          {sessions.map((session) => (
             <div
               key={session.id}
               className={cn(
                 "group flex items-center justify-between rounded-md px-3 py-2 text-[13px] cursor-pointer transition-colors",
-                currentSessionId === session.id 
-                  ? "bg-primary text-primary-foreground" 
-                  : "text-foreground hover:bg-background/50"
+                currentSessionId === session.id
+                  ? "bg-primary text-primary-foreground"
+                  : "text-foreground hover:bg-background/50",
               )}
               onClick={() => onSelectSession(session.id)}
             >
               <div className="flex flex-col overflow-hidden gap-0.5">
                 <span className="truncate font-medium">{session.name}</span>
-                <span className={cn("text-[11px] truncate", currentSessionId === session.id ? "text-primary-foreground/80" : "text-muted-foreground")}>
+                <span
+                  className={cn(
+                    "text-[11px] truncate",
+                    currentSessionId === session.id
+                      ? "text-primary-foreground/80"
+                      : "text-muted-foreground",
+                  )}
+                >
                   {new Date(session.createdAt).toLocaleDateString()}
                 </span>
               </div>
@@ -65,9 +76,9 @@ export function Sidebar({
                 size="icon"
                 className={cn(
                   "h-6 w-6 transition-all rounded-md",
-                  currentSessionId === session.id 
-                    ? "text-primary-foreground/60 hover:text-primary-foreground hover:bg-primary-foreground/20" 
-                    : "text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10"
+                  currentSessionId === session.id
+                    ? "text-primary-foreground/60 hover:text-primary-foreground hover:bg-primary-foreground/20"
+                    : "text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10",
                 )}
                 onClick={(e) => {
                   e.stopPropagation();

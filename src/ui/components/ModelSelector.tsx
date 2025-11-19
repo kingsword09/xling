@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 
 interface ModelSelectorProps {
   availableModels: string[];
@@ -15,7 +15,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
 }) => {
   const toggleModel = (model: string) => {
     if (selectedModels.includes(model)) {
-      onChange(selectedModels.filter(m => m !== model));
+      onChange(selectedModels.filter((m) => m !== model));
     } else {
       onChange([...selectedModels, model]);
     }
@@ -27,11 +27,11 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
         Participants ({selectedModels.length})
       </label>
       <div className="max-h-48 overflow-y-auto border border-gray-200 rounded-lg p-2 bg-gray-50">
-        {availableModels.map(model => (
+        {availableModels.map((model) => (
           <label
             key={model}
             className={`flex items-center p-2 rounded cursor-pointer hover:bg-gray-100 transition-colors ${
-              disabled ? 'opacity-50 cursor-not-allowed' : ''
+              disabled ? "opacity-50 cursor-not-allowed" : ""
             }`}
           >
             <input

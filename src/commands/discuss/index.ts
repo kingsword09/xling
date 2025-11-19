@@ -47,18 +47,19 @@ export default class DiscussCommand extends Command {
     this.log("Starting Web UI...");
     const port = 3000;
     const server = await createDiscussServer(port);
-    
+
     const address = server.address();
-    const actualPort = typeof address === "object" && address ? address.port : port;
+    const actualPort =
+      typeof address === "object" && address ? address.port : port;
     const url = `http://localhost:${actualPort}`;
     this.log(`Server running at ${url}`);
-    
+
     // Open browser
     // @ts-ignore
     await open.default(url);
-    
+
     this.log("Press Ctrl+C to stop");
-    
+
     // Keep process alive
     return new Promise(() => {});
   }
@@ -78,8 +79,13 @@ export default class DiscussCommand extends Command {
     if (selectedModels.length === 0) {
       this.log("Available models:");
       availableModels.forEach((m, i) => this.log(`${i + 1}. ${m}`));
-      const indices = await this.#prompt("Select models (comma-separated indices, e.g. 1,2): ");
-      selectedModels = indices.split(",").map(i => availableModels[parseInt(i.trim()) - 1]).filter(Boolean);
+      const indices = await this.#prompt(
+        "Select models (comma-separated indices, e.g. 1,2): ",
+      );
+      selectedModels = indices
+        .split(",")
+        .map((i) => availableModels[parseInt(i.trim()) - 1])
+        .filter(Boolean);
     }
 
     if (selectedModels.length < 2) {
@@ -110,7 +116,9 @@ export default class DiscussCommand extends Command {
       type: "human",
     });
 
-    this.log(`\nStarting discussion on "${topic}" with: ${selectedModels.join(", ")}\n`);
+    this.log(
+      `\nStarting discussion on "${topic}" with: ${selectedModels.join(", ")}\n`,
+    );
     this.log("Controls:");
     this.log("  [Space] Pause/Resume");
     this.log("  [m]     Toggle Auto/Manual Mode");
@@ -122,7 +130,7 @@ export default class DiscussCommand extends Command {
 
     // Setup Event Listeners
     engine.on("turn-start", (participantId) => {
-      const p = engine.participants.find(p => p.id === participantId);
+      const p = engine.participants.find((p) => p.id === participantId);
       process.stdout.write(`\n\n[${p?.name}]: `);
     });
 
@@ -131,13 +139,15 @@ export default class DiscussCommand extends Command {
     });
 
     engine.on("error", ({ participantId, error }) => {
-      const p = engine.participants.find(p => p.id === participantId);
+      const p = engine.participants.find((p) => p.id === participantId);
       console.error(`\n[Error] ${p?.name}: ${error.message}`);
     });
 
     engine.on("participant-dropped", (participantId) => {
-      const p = engine.participants.find(p => p.id === participantId);
-      console.error(`\n[System] ${p?.name} has left the chat (too many errors).`);
+      const p = engine.participants.find((p) => p.id === participantId);
+      console.error(
+        `\n[System] ${p?.name} has left the chat (too many errors).`,
+      );
     });
 
     // Start
@@ -153,7 +163,7 @@ export default class DiscussCommand extends Command {
       if (key.ctrl && key.name === "c") {
         process.exit();
       }
-      
+
       if (key.name === "q") {
         engine.stop();
         process.exit();
@@ -161,7 +171,7 @@ export default class DiscussCommand extends Command {
 
       // Ignore keys if we are in input mode (handled by prompt)
       // But since we are in raw mode, we need to handle input manually if we want a prompt
-      // This is tricky with raw mode + readline. 
+      // This is tricky with raw mode + readline.
       // Strategy: Pause raw mode, use readline, then resume raw mode.
 
       if (key.name === "space") {
@@ -184,11 +194,14 @@ export default class DiscussCommand extends Command {
           // We can expose a method to just "trigger next" in engine or use setNextSpeaker with logic here
           // Let's just force a turn if idle
           if (engine.status === "discussing" || engine.status === "paused") {
-             // We need to know who is next. 
-             // Let's add a helper in engine or just pick one here.
-             const aiParticipants = engine.participants.filter(p => p.type === "ai");
-             const random = aiParticipants[Math.floor(Math.random() * aiParticipants.length)];
-             engine.setNextSpeaker(random.id);
+            // We need to know who is next.
+            // Let's add a helper in engine or just pick one here.
+            const aiParticipants = engine.participants.filter(
+              (p) => p.type === "ai",
+            );
+            const random =
+              aiParticipants[Math.floor(Math.random() * aiParticipants.length)];
+            engine.setNextSpeaker(random.id);
           }
         } else {
           this.log("\n[System] Switch to Manual mode [m] to use Next [n]");
@@ -200,10 +213,10 @@ export default class DiscussCommand extends Command {
         engine.pause();
         process.stdin.setRawMode(false);
         process.stdout.write("\n[User]: ");
-        
+
         const rl = readline.createInterface({
           input: process.stdin,
-          output: process.stdout
+          output: process.stdout,
         });
 
         rl.question("", (answer) => {
@@ -219,21 +232,23 @@ export default class DiscussCommand extends Command {
       if (key.name === "s") {
         engine.pause();
         process.stdin.setRawMode(false);
-        
-        const aiParticipants = engine.participants.filter(p => p.type === "ai");
+
+        const aiParticipants = engine.participants.filter(
+          (p) => p.type === "ai",
+        );
         this.log("\nSelect summarizer:");
         aiParticipants.forEach((p, i) => this.log(`${i + 1}. ${p.name}`));
-        
+
         const rl = readline.createInterface({
           input: process.stdin,
-          output: process.stdout
+          output: process.stdout,
         });
 
         rl.question("Choice: ", async (answer) => {
           rl.close();
           const idx = parseInt(answer) - 1;
           const summarizer = aiParticipants[idx];
-          
+
           if (summarizer) {
             this.log(`\nGenerating summary with ${summarizer.name}...\n`);
             try {
@@ -245,12 +260,12 @@ export default class DiscussCommand extends Command {
               this.log(`Error: ${(e as Error).message}`);
             }
           }
-          
+
           process.exit();
         });
       }
     });
-    
+
     // Keep process alive
     return new Promise(() => {});
   }

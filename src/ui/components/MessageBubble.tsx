@@ -1,13 +1,13 @@
-import React from 'react';
-import { Message } from '../hooks/useChat';
+import React from "react";
+import { Message } from "../hooks/useChat";
 
 interface MessageBubbleProps {
   message: Message;
 }
 
 export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
-  const isUser = message.role === 'user';
-  const isSystem = message.role === 'system';
+  const isUser = message.role === "user";
+  const isSystem = message.role === "system";
 
   if (isSystem) {
     return (
@@ -20,10 +20,12 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
   }
 
   return (
-    <div className={`flex flex-col mb-4 ${isUser ? 'items-end' : 'items-start'}`}>
+    <div
+      className={`flex flex-col mb-4 ${isUser ? "items-end" : "items-start"}`}
+    >
       <div className="flex items-baseline gap-2 mb-1">
         <span className="text-sm font-semibold text-gray-700">
-          {message.model || 'User'}
+          {message.model || "User"}
         </span>
         <span className="text-xs text-gray-400">
           {new Date(message.timestamp).toLocaleTimeString()}
@@ -32,8 +34,8 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
       <div
         className={`max-w-[80%] rounded-2xl px-4 py-3 shadow-sm ${
           isUser
-            ? 'bg-blue-600 text-white rounded-br-none'
-            : 'bg-white border border-gray-200 text-gray-800 rounded-bl-none'
+            ? "bg-blue-600 text-white rounded-br-none"
+            : "bg-white border border-gray-200 text-gray-800 rounded-bl-none"
         }`}
       >
         <div className="whitespace-pre-wrap">{message.content}</div>

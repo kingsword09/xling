@@ -1,8 +1,14 @@
-import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/ui/components/ui/dialog';
-import { Button } from '@/ui/components/ui/button';
-import { Input } from '@/ui/components/ui/input';
-import { ScrollArea } from '@/ui/components/ui/scroll-area';
+import React, { useState, useEffect } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/ui/components/ui/dialog";
+import { Button } from "@/ui/components/ui/button";
+import { Input } from "@/ui/components/ui/input";
+import { ScrollArea } from "@/ui/components/ui/scroll-area";
 
 interface NewSessionDialogProps {
   open: boolean;
@@ -10,21 +16,25 @@ interface NewSessionDialogProps {
   onCreate: (data: { name: string; topic: string; models: string[] }) => void;
 }
 
-export function NewSessionDialog({ open, onOpenChange, onCreate }: NewSessionDialogProps) {
-  const [name, setName] = useState('');
-  const [topic, setTopic] = useState('');
+export function NewSessionDialog({
+  open,
+  onOpenChange,
+  onCreate,
+}: NewSessionDialogProps) {
+  const [name, setName] = useState("");
+  const [topic, setTopic] = useState("");
   const [availableModels, setAvailableModels] = useState<string[]>([]);
   const [selectedModels, setSelectedModels] = useState<string[]>([]);
 
   useEffect(() => {
     if (open) {
-      fetch('/api/models')
-        .then(res => res.json())
-        .then(data => setAvailableModels(data.models || []))
+      fetch("/api/models")
+        .then((res) => res.json())
+        .then((data) => setAvailableModels(data.models || []))
         .catch(() => setAvailableModels([]));
-      
-      setName('');
-      setTopic('');
+
+      setName("");
+      setTopic("");
       setSelectedModels([]);
     }
   }, [open]);
@@ -44,25 +54,42 @@ export function NewSessionDialog({ open, onOpenChange, onCreate }: NewSessionDia
         <div className="grid gap-4 py-4">
           <div className="space-y-2">
             <label className="text-sm font-medium">Session Name</label>
-            <Input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. AI Ethics" />
+            <Input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g. AI Ethics"
+            />
           </div>
           <div className="space-y-2">
             <label className="text-sm font-medium">Topic</label>
-            <Input value={topic} onChange={e => setTopic(e.target.value)} placeholder="What to discuss?" />
+            <Input
+              value={topic}
+              onChange={(e) => setTopic(e.target.value)}
+              placeholder="What to discuss?"
+            />
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-medium">Participants (Select at least 2)</label>
+            <label className="text-sm font-medium">
+              Participants (Select at least 2)
+            </label>
             <ScrollArea className="h-[200px] border rounded-md p-2">
               <div className="space-y-2">
-                {availableModels.map(model => (
-                  <label key={model} className="flex items-center space-x-2 cursor-pointer hover:bg-muted p-1 rounded">
+                {availableModels.map((model) => (
+                  <label
+                    key={model}
+                    className="flex items-center space-x-2 cursor-pointer hover:bg-muted p-1 rounded"
+                  >
                     <input
                       type="checkbox"
                       className="rounded border-gray-300"
                       checked={selectedModels.includes(model)}
-                      onChange={e => {
-                        if (e.target.checked) setSelectedModels([...selectedModels, model]);
-                        else setSelectedModels(selectedModels.filter(m => m !== model));
+                      onChange={(e) => {
+                        if (e.target.checked)
+                          setSelectedModels([...selectedModels, model]);
+                        else
+                          setSelectedModels(
+                            selectedModels.filter((m) => m !== model),
+                          );
                       }}
                     />
                     <span className="text-sm">{model}</span>
@@ -73,7 +100,10 @@ export function NewSessionDialog({ open, onOpenChange, onCreate }: NewSessionDia
           </div>
         </div>
         <DialogFooter>
-          <Button onClick={handleSubmit} disabled={!name || !topic || selectedModels.length < 2}>
+          <Button
+            onClick={handleSubmit}
+            disabled={!name || !topic || selectedModels.length < 2}
+          >
             Create Session
           </Button>
         </DialogFooter>
