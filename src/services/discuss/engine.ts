@@ -60,19 +60,48 @@ export class DiscussionEngine extends EventEmitter {
   // --- Management ---
 
   addParticipant(participant: Omit<Participant, "errorCount">): void {
-    this.#participants.set(participant.id, {
+    if (this.#participants.has(participant.id)) {
+      throw new Error(`Participant id "${participant.id}" already exists.`);
+    }
+
+    if (
+      participant.model &&
+      Array.from(this.#participants.values()).some((p) => p.model === participant.model)
+    ) {
+      throw new Error(`Model "${participant.model}" is already participating.`);
+    }
+
+    const stored: Participant = {
       ...participant,
       errorCount: 0,
-    });
+    };
+
+    this.#participants.set(participant.id, stored);
     this.emit("participants-updated", Array.from(this.#participants.values()));
+    this.#addSystemMessage(`${stored.name} joined the discussion.`);
+
+    if (this.#status === "discussing" && this.#mode === "auto" && !this.#currentSpeakerId) {
+      this.#scheduleNextTurn();
+    }
   }
 
   removeParticipant(id: string): void {
+    const removed = this.#participants.get(id);
+    if (!removed) return;
+
+    const removingActiveSpeaker = this.#currentSpeakerId === id;
     this.#participants.delete(id);
     if (this.#lastSpeakerId === id) {
       this.#lastSpeakerId = null;
     }
     this.emit("participants-updated", Array.from(this.#participants.values()));
+    this.#addSystemMessage(`${removed.name} left the discussion.`);
+
+    if (removingActiveSpeaker) {
+      this.#abortCurrentTurn();
+    } else if (this.#status === "discussing" && this.#mode === "auto" && !this.#currentSpeakerId) {
+      this.#scheduleNextTurn();
+    }
   }
 
   get participants(): Participant[] {
@@ -97,6 +126,10 @@ export class DiscussionEngine extends EventEmitter {
 
   get topic(): string {
     return this.#config.topic;
+  }
+
+  get currentSpeakerId(): string | null {
+    return this.#currentSpeakerId;
   }
 
   setMode(mode: DiscussionMode): void {
@@ -160,9 +193,14 @@ export class DiscussionEngine extends EventEmitter {
   stop(): void {
     this.#status = "idle";
     this.#clearAutoTimer();
-    this.#abortCurrentTurn();
+    this.#abortCurrentTurn({ skipReschedule: true });
     this.#lastSpeakerId = null;
     this.emit("status-changed", this.#status);
+  }
+
+  interrupt(): void {
+    if (!this.#currentSpeakerId) return;
+    this.#abortCurrentTurn();
   }
 
   // --- Interaction ---
@@ -195,15 +233,20 @@ export class DiscussionEngine extends EventEmitter {
 
   setNextSpeaker(participantId: string): void {
     if (this.#status !== "discussing" && this.#status !== "paused") return;
-    
-    // If someone is already speaking, maybe queue it? 
-    // For now, assume this is called when idle or to force next
-    if (this.#currentSpeakerId) {
-      // Already speaking
+
+    this.#clearAutoTimer();
+
+    if (this.#currentSpeakerId && this.#currentSpeakerId !== participantId) {
+      this.#abortCurrentTurn();
+    } else if (this.#currentSpeakerId === participantId) {
       return;
     }
 
-    this.#clearAutoTimer();
+    if (this.#status === "paused") {
+      this.#status = "discussing";
+      this.emit("status-changed", this.#status);
+    }
+
     this.#executeTurn(participantId);
   }
 
@@ -231,7 +274,7 @@ Provide a concise summary of the key points and conclusions.`;
 
   #scheduleNextTurn(): void {
     this.#clearAutoTimer();
-    if (this.#status !== "discussing") return;
+    if (this.#status !== "discussing" || this.#mode !== "auto") return;
 
     this.#autoTimer = setTimeout(() => {
       const nextId = this.#selectNextSpeaker();
@@ -344,37 +387,40 @@ Provide a concise summary of the key points and conclusions.`;
         this.removeParticipant(participantId);
       }
     } finally {
-      this.#currentSpeakerId = null;
-      this.#currentMessage = null;
-      this.#abortController = null;
+      if (this.#currentSpeakerId === participantId) {
+        this.#currentSpeakerId = null;
+      }
+      if (this.#currentMessage && this.#currentMessage.id === msgId) {
+        this.#currentMessage = null;
+      }
+      if (this.#abortController === abortController) {
+        this.#abortController = null;
+      }
       
-      // Always return to discussing state if we were speaking
-      if (this.#status === "speaking") {
+      if (!this.#currentSpeakerId && this.#status === "speaking") {
         this.#status = "discussing";
         this.emit("status-changed", this.#status);
       }
 
-      // Ensure we schedule next turn if in auto mode, even after error
-      if (this.#mode === "auto" && this.#status === "discussing") {
+      if (this.#mode === "auto" && this.#status === "discussing" && !this.#currentSpeakerId) {
         this.#scheduleNextTurn();
       }
     }
   }
 
   #constructPrompt(participant: Participant): string {
-    const otherNames = this.participants
-      .filter(p => p.id !== participant.id)
-      .map(p => p.name)
+    const allNames = this.participants
+      .map((p) => `${p.name}${p.model ? ` (${p.model})` : ""}`)
       .join(", ");
 
     return `You are ${participant.name} in a group discussion.
 Topic: "${this.#config.topic}"
-Participants: ${otherNames}
+Active participants: ${allNames}
 
 Instructions:
 1. Speak naturally as your character.
 2. Keep responses concise (1-3 paragraphs).
-3. If you want to refer to a specific person, use @Name (e.g., @Claude).
+3. If you want to refer to a specific person, use @Name (e.g., @Claude) and acknowledge any new arrivals.
 4. Do not repeat yourself or others excessively.
 5. Advance the conversation with new insights or questions.
 
@@ -400,6 +446,17 @@ Respond now as ${participant.name}:`;
     this.emit("message", msg);
   }
 
+  #addSystemMessage(content: string): void {
+    const msg: ChatMessage = {
+      id: crypto.randomUUID(),
+      role: "system",
+      content,
+      senderId: "system",
+      timestamp: Date.now(),
+    };
+    this.#addMessage(msg);
+  }
+
   #clearAutoTimer(): void {
     if (this.#autoTimer) {
       clearTimeout(this.#autoTimer);
@@ -407,10 +464,23 @@ Respond now as ${participant.name}:`;
     }
   }
 
-  #abortCurrentTurn(): void {
+  #abortCurrentTurn(options?: { skipReschedule?: boolean }): void {
     if (this.#abortController) {
       this.#abortController.abort();
       this.#abortController = null;
+    }
+
+    const hadSpeaker = Boolean(this.#currentSpeakerId);
+    this.#currentSpeakerId = null;
+    this.#currentMessage = null;
+
+    if (hadSpeaker && this.#status === "speaking") {
+      this.#status = "discussing";
+      this.emit("status-changed", this.#status);
+    }
+
+    if (!options?.skipReschedule && this.#mode === "auto" && this.#status === "discussing") {
+      this.#scheduleNextTurn();
     }
   }
 }

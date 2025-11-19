@@ -206,6 +206,8 @@ export async function createDiscussServer(port: number = 3000): Promise<http.Ser
           const engine = session.engine;
           const body = await readBody(req);
 
+          let responsePayload: Record<string, unknown> = { success: true };
+
           switch (action) {
             case "start":
               // Update config if provided
@@ -238,6 +240,9 @@ export async function createDiscussServer(port: number = 3000): Promise<http.Ser
             case "resume":
               engine.resume();
               break;
+            case "interrupt":
+              engine.interrupt();
+              break;
             case "mode":
               engine.setMode(body.mode);
               break;
@@ -257,13 +262,45 @@ export async function createDiscussServer(port: number = 3000): Promise<http.Ser
               try {
                 const summary = await engine.generateSummary(body.modelId);
                 res.writeHead(200, { "Content-Type": "application/json" });
-                res.end(JSON.stringify({ summary }));
+                res.end(JSON.stringify({ summary, success: true }));
                 return;
               } catch (e) {
                 res.writeHead(500, { "Content-Type": "application/json" });
                 res.end(JSON.stringify({ error: (e as Error).message }));
                 return;
               }
+            case "add-participant":
+              try {
+                const newParticipant = {
+                  id: body.id || `model-${Date.now()}`,
+                  name: body.name || body.model,
+                  model: body.model,
+                  type: body.type || "ai",
+                };
+                engine.addParticipant(newParticipant);
+
+                const explicitStart = body.start === true;
+                const defaultStart = body.start === undefined && engine.mode === "auto";
+                const shouldStart = explicitStart || defaultStart;
+                const canStart =
+                  engine.status !== "idle" &&
+                  (!engine.currentSpeakerId || engine.status === "paused");
+
+                if (shouldStart && canStart) {
+                  engine.setNextSpeaker(newParticipant.id);
+                }
+
+                responsePayload.participant = newParticipant;
+              } catch (error) {
+                res.writeHead(400, { "Content-Type": "application/json" });
+                res.end(JSON.stringify({ error: (error as Error).message }));
+                return;
+              }
+              break;
+            case "remove-participant":
+              engine.removeParticipant(body.participantId);
+              responsePayload.removed = true;
+              break;
             default:
               res.writeHead(404);
               res.end("Action not found");
@@ -271,7 +308,7 @@ export async function createDiscussServer(port: number = 3000): Promise<http.Ser
           }
           
           res.writeHead(200, { "Content-Type": "application/json" });
-          res.end(JSON.stringify({ success: true }));
+          res.end(JSON.stringify(responsePayload));
           return;
         }
       }
