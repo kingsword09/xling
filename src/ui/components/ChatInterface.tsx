@@ -437,79 +437,76 @@ export function ChatInterface({ sessionId, sessionName }: ChatInterfaceProps) {
     <>
     <div className="flex flex-col h-full">
       {/* Header */}
-      <header className="flex items-center justify-between border-b px-6 py-3 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <header className="flex items-center justify-between px-6 py-3 bg-background/80 backdrop-blur-md border-b z-10 sticky top-0">
         <div className="flex items-center gap-4">
-          <div className="md:hidden">
-            {/* Mobile menu trigger would go here */}
+          <div className="md:hidden w-8">
+            {/* Spacer for mobile menu trigger */}
           </div>
           <div>
-            <h1 className="text-lg font-semibold">{sessionName}</h1>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <span className={cn("flex h-2 w-2 rounded-full", status === 'discussing' || status === 'speaking' ? "bg-green-500 animate-pulse" : "bg-yellow-500")} />
+            <h1 className="text-sm font-semibold text-foreground">{sessionName}</h1>
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <span className={cn("flex h-1.5 w-1.5 rounded-full", status === 'discussing' || status === 'speaking' ? "bg-green-500" : "bg-gray-300")} />
               <span className="capitalize">{status}</span>
-              <span>•</span>
-              <span className="capitalize">{mode} Mode</span>
               <span>•</span>
               <span>{participants.length} participants</span>
             </div>
-            {topic && <p className="text-xs text-muted-foreground mt-1 line-clamp-1">{topic}</p>}
           </div>
         </div>
         <div className="flex items-center gap-2">
           {mode === 'manual' && (
             <Button
-              variant="outline"
+              variant="ghost"
               size="sm"
               onClick={handleNextTurn}
               disabled={manualTurnDisabled}
-              className="gap-2"
+              className="text-primary hover:text-primary/80 hover:bg-primary/10"
             >
-              <SkipForward className="h-4 w-4" />
-              Next Turn
+              <SkipForward className="h-4 w-4 mr-1" />
+              Next
             </Button>
           )}
           {status === 'paused' ? (
-            <Button size="sm" onClick={handleResume} className="gap-2 bg-green-600 hover:bg-green-700">
-              <Play className="h-4 w-4" />
+            <Button size="sm" variant="ghost" onClick={handleResume} className="text-green-600 hover:text-green-700 hover:bg-green-50">
+              <Play className="h-4 w-4 mr-1 fill-current" />
               Resume
             </Button>
           ) : (
             <Button
               size="sm"
-              variant="outline"
+              variant="ghost"
               onClick={handlePause}
-              className="gap-2"
+              className="text-foreground hover:bg-secondary"
               disabled={status === 'idle'}
             >
-              <Pause className="h-4 w-4" />
+              <Pause className="h-4 w-4 mr-1" />
               Pause
             </Button>
           )}
           <Button
             size="sm"
-            variant="outline"
+            variant="ghost"
             onClick={handleInterrupt}
             disabled={status !== 'speaking'}
-            className="gap-2"
+            className="text-foreground hover:bg-secondary"
           >
-            <Ban className="h-4 w-4" />
+            <Ban className="h-4 w-4 mr-1" />
             Interrupt
           </Button>
           <Button
             size="sm"
-            variant="destructive"
+            variant="ghost"
             onClick={handleStop}
             disabled={status === 'idle'}
-            className="gap-2"
+            className="text-destructive hover:bg-destructive/10 hover:text-destructive"
           >
             Stop
           </Button>
           <Button
             size="sm"
-            variant="secondary"
+            variant="ghost"
             disabled={summaryDisabled}
             onClick={openSummaryDialog}
-            className="gap-2"
+            className="text-primary hover:text-primary/80 hover:bg-primary/10"
           >
             Summarize
           </Button>
@@ -517,24 +514,24 @@ export function ChatInterface({ sessionId, sessionName }: ChatInterfaceProps) {
             variant="ghost"
             size="icon"
             onClick={() => setShowParticipants(!showParticipants)}
-            className={cn(showParticipants && "bg-accent text-accent-foreground")}
+            className={cn("text-muted-foreground hover:text-foreground", showParticipants && "bg-secondary text-foreground")}
           >
             <Users className="h-5 w-5" />
           </Button>
         </div>
       </header>
 
-      <div className="flex flex-1 min-h-0 overflow-hidden">
+      <div className="flex flex-1 min-h-0 overflow-hidden relative bg-background">
         <div className="flex flex-1 flex-col min-w-0">
             {error && (
-                <div className="px-6 py-3">
-                <Card className="flex items-center gap-3 border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+                <div className="px-6 py-2 z-20">
+                <div className="flex items-center gap-3 bg-destructive/10 p-3 rounded-lg text-sm text-destructive">
                     <AlertCircle className="h-4 w-4 shrink-0" />
-                    <span className="flex-1">{error}</span>
-                    <Button variant="ghost" size="sm" onClick={() => setError(null)}>
-                    Dismiss
+                    <span className="flex-1 font-medium">{error}</span>
+                    <Button variant="ghost" size="sm" onClick={() => setError(null)} className="h-auto p-1 hover:bg-destructive/10 rounded-full">
+                     Dismiss
                     </Button>
-                </Card>
+                </div>
                 </div>
             )}
 
@@ -543,10 +540,10 @@ export function ChatInterface({ sessionId, sessionName }: ChatInterfaceProps) {
                 <ScrollArea
                 className="flex-1 h-full"
                 viewportRef={scrollViewportRef}
-                viewportClassName="p-4"
+                viewportClassName="p-4 md:px-6 md:py-6"
                 viewportProps={{ onScroll: handleScroll }}
                 >
-                <div className="space-y-4 max-w-3xl mx-auto pb-4">
+                <div className="space-y-6 max-w-4xl mx-auto pb-8">
                 {messages.map((msg) => {
                     const isUser = msg.role === 'user';
                     const isSystem = msg.role === 'system';
@@ -554,8 +551,8 @@ export function ChatInterface({ sessionId, sessionName }: ChatInterfaceProps) {
 
                     if (isSystem) {
                     return (
-                        <div key={msg.id} className="flex justify-center my-4">
-                        <span className="bg-muted/50 text-muted-foreground text-xs px-3 py-1 rounded-full">
+                        <div key={msg.id} className="flex justify-center my-6">
+                        <span className="text-muted-foreground text-[11px] font-medium uppercase tracking-wider px-2">
                             {msg.content}
                         </span>
                         </div>
@@ -566,22 +563,40 @@ export function ChatInterface({ sessionId, sessionName }: ChatInterfaceProps) {
                     <div
                         key={msg.id}
                         className={cn(
-                        "flex gap-3 max-w-3xl transition-opacity duration-200",
-                        isUser ? "flex-row-reverse" : "flex-row"
+                        "flex gap-3 max-w-3xl transition-all duration-300",
+                        isUser ? "ml-auto flex-row-reverse" : "mr-auto flex-row"
                         )}
                     >
-                        <Avatar className="h-8 w-8 border shrink-0">
-                        <AvatarFallback className={isUser ? "bg-primary/10 text-primary" : "bg-secondary text-secondary-foreground"}>
-                            {isUser ? <User className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
-                        </AvatarFallback>
-                        </Avatar>
-                        <div className={cn("flex w-max max-w-[80%] flex-col gap-2 rounded-lg px-3 py-2 text-sm", msg.role === 'user' ? "ml-auto bg-primary text-primary-foreground" : "bg-muted text-foreground")}>
-                        <div className="font-semibold text-xs opacity-70 mb-1">
-                            {msg.role === 'user' ? 'You' : sender?.name || msg.role}
-                        </div>
-                        <div className="markdown-container min-h-[20px]">
-                            <Streamdown>{msg.content}</Streamdown>
-                        </div>
+                        {!isUser && (
+                          <Avatar className="h-8 w-8 border-0 shrink-0 mt-1">
+                            <AvatarFallback className="text-xs font-medium bg-secondary text-secondary-foreground">
+                                {sender?.name?.substring(0, 2).toUpperCase() || <Bot className="h-4 w-4" />}
+                            </AvatarFallback>
+                          </Avatar>
+                        )}
+                        
+                        <div className={cn("flex flex-col gap-1 max-w-[85%]", isUser ? "items-end" : "items-start")}>
+                          {!isUser && (
+                            <span className="text-[11px] text-muted-foreground ml-1">
+                              {sender?.name}
+                            </span>
+                          )}
+                          
+                          <div className={cn(
+                            "px-4 py-2.5 shadow-sm text-[15px] leading-relaxed",
+                            isUser 
+                              ? "bg-primary text-primary-foreground rounded-[20px] rounded-tr-sm" 
+                              : "bg-secondary text-secondary-foreground rounded-[20px] rounded-tl-sm"
+                          )}>
+                            <div className={cn("markdown-container min-h-[20px]", isUser ? "prose-invert" : "prose-neutral dark:prose-invert")}>
+                                <Streamdown>{msg.content}</Streamdown>
+                            </div>
+                          </div>
+                          
+                          {/* Timestamp - visible on hover could be better, but for now keep it simple */}
+                          {/* <span className="text-[10px] text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity px-1">
+                            {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </span> */}
                         </div>
                     </div>
                     );
@@ -589,23 +604,23 @@ export function ChatInterface({ sessionId, sessionName }: ChatInterfaceProps) {
                 </div>
                 </ScrollArea>
                 {!isAtBottom && hasNewActivity && (
-                <div className="pointer-events-none absolute bottom-6 left-0 right-0 flex justify-center">
+                <div className="pointer-events-none absolute bottom-6 left-0 right-0 flex justify-center z-20">
                     <Button
                     size="sm"
                     variant="secondary"
-                    className="pointer-events-auto shadow-md"
+                    className="pointer-events-auto shadow-sm rounded-full bg-background/90 backdrop-blur border hover:bg-background text-xs"
                     onClick={handleJumpToBottom}
                     >
-                    New messages • Jump to bottom
+                    New messages ↓
                     </Button>
                 </div>
                 )}
             </div>
 
             {/* Input Area */}
-            <div className="p-4 border-t bg-background">
-                <form onSubmit={handleSend} className="max-w-3xl mx-auto flex gap-2 relative">
-                  <div className="relative flex-1">
+            <div className="p-4 bg-background border-t relative z-20">
+                <form onSubmit={handleSend} className="max-w-4xl mx-auto flex gap-3 relative items-end">
+                  <div className="relative flex-1 bg-secondary/50 rounded-[20px] border border-transparent focus-within:border-border focus-within:bg-background transition-all duration-200">
                     <Input
                       ref={inputRef}
                       value={input}
@@ -614,38 +629,47 @@ export function ChatInterface({ sessionId, sessionName }: ChatInterfaceProps) {
                       onKeyUp={handleInputKeyUp}
                       onClick={handleInputClick}
                       onBlur={resetMention}
-                      placeholder={canSendMessage ? "Type a message..." : "Discussion is stopped. Resume to chat."}
+                      placeholder={canSendMessage ? "iMessage" : "Discussion stopped"}
                       disabled={!canSendMessage}
-                      className="flex-1"
+                      className="flex-1 bg-transparent border-0 focus-visible:ring-0 h-10 px-4 rounded-[20px] text-[15px] placeholder:text-muted-foreground"
                     />
                     {mentionActive && (
-                      <div className="absolute bottom-full z-20 mb-2 w-full rounded-md border bg-background shadow-lg">
+                      <div className="absolute bottom-full left-0 mb-2 w-64 rounded-xl border bg-background/95 backdrop-blur-xl shadow-lg overflow-hidden">
                         {mentionSuggestions.length === 0 ? (
-                          <div className="px-3 py-2 text-sm text-muted-foreground">No participants found</div>
+                          <div className="px-4 py-3 text-sm text-muted-foreground">No participants found</div>
                         ) : (
                           mentionSuggestions.map((participant, index) => (
                             <button
                               key={participant.id}
                               type="button"
                               className={cn(
-                                "flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground",
-                                index === mentionHighlightIndex && "bg-accent text-accent-foreground",
+                                "flex w-full items-center gap-3 px-4 py-2 text-sm transition-colors",
+                                index === mentionHighlightIndex ? "bg-primary text-primary-foreground" : "hover:bg-secondary",
                               )}
                               onMouseDown={(event) => {
                                 event.preventDefault();
                                 insertMention(participant);
                               }}
                             >
-                              <Bot className="h-4 w-4" />
-                              <span>{participant.name}</span>
+                              <span className="font-medium">{participant.name}</span>
                             </button>
                           ))
                         )}
                       </div>
                     )}
                   </div>
-                  <Button type="submit" size="icon" disabled={!input.trim() || !canSendMessage}>
-                    <Send className="h-4 w-4" />
+                  <Button 
+                    type="submit" 
+                    size="icon" 
+                    disabled={!input.trim() || !canSendMessage}
+                    className={cn(
+                      "h-8 w-8 rounded-full transition-all duration-200 shrink-0 mb-1",
+                      input.trim() && canSendMessage 
+                        ? "bg-primary text-primary-foreground hover:bg-primary/90" 
+                        : "bg-secondary text-muted-foreground"
+                    )}
+                  >
+                    <Send className="h-4 w-4 ml-0.5" />
                   </Button>
                 </form>
             </div>

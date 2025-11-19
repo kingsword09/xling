@@ -28,39 +28,51 @@ export function Sidebar({
   className
 }: SidebarProps) {
   return (
-    <div className={cn("flex flex-col h-full bg-muted/30 border-r", className)}>
-      <div className="p-4 border-b">
-        <Button onClick={onCreateSession} className="w-full justify-start gap-2" variant="default">
-          <MessageSquarePlus className="h-4 w-4" />
-          New Chat
+    <div className={cn("flex flex-col h-full bg-transparent", className)}>
+      <div className="p-3">
+        <Button onClick={onCreateSession} className="w-full justify-start gap-2 shadow-none border-0 bg-transparent hover:bg-background/50 text-primary font-normal px-2" variant="ghost">
+          <MessageSquarePlus className="h-5 w-5" />
+          <span className="text-base">New Discussion</span>
         </Button>
       </div>
       
-      <ScrollArea className="flex-1">
-        <div className="p-2 space-y-1">
+      <ScrollArea className="flex-1 px-2">
+        <div className="space-y-0.5 pb-4">
+          {sessions.length === 0 && (
+            <div className="text-center text-sm text-muted-foreground py-8">
+              No conversations
+            </div>
+          )}
           {sessions.map(session => (
             <div
               key={session.id}
               className={cn(
-                "group flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground cursor-pointer transition-colors",
-                currentSessionId === session.id ? "bg-accent text-accent-foreground" : "text-muted-foreground"
+                "group flex items-center justify-between rounded-md px-3 py-2 text-[13px] cursor-pointer transition-colors",
+                currentSessionId === session.id 
+                  ? "bg-primary text-primary-foreground" 
+                  : "text-foreground hover:bg-background/50"
               )}
               onClick={() => onSelectSession(session.id)}
             >
-              <div className="flex items-center gap-2 overflow-hidden">
-                <MessageSquare className="h-4 w-4 shrink-0" />
-                <span className="truncate">{session.name}</span>
+              <div className="flex flex-col overflow-hidden gap-0.5">
+                <span className="truncate font-medium">{session.name}</span>
+                <span className={cn("text-[11px] truncate", currentSessionId === session.id ? "text-primary-foreground/80" : "text-muted-foreground")}>
+                  {new Date(session.createdAt).toLocaleDateString()}
+                </span>
               </div>
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                className={cn(
+                  "h-6 w-6 opacity-0 group-hover:opacity-100 transition-all rounded-md",
+                  currentSessionId === session.id ? "hover:bg-primary-foreground/20 text-primary-foreground" : "hover:bg-destructive/10 hover:text-destructive"
+                )}
                 onClick={(e) => {
                   e.stopPropagation();
                   onDeleteSession(session.id);
                 }}
               >
-                <Trash2 className="h-3 w-3 text-muted-foreground hover:text-destructive" />
+                <Trash2 className="h-3.5 w-3.5" />
               </Button>
             </div>
           ))}

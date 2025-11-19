@@ -59,9 +59,9 @@ function App() {
   const currentSession = sessions.find(s => s.id === currentSessionId);
 
   return (
-    <div className="flex h-screen bg-background overflow-hidden">
+    <div className="flex h-screen overflow-hidden bg-background">
       {/* Desktop Sidebar */}
-      <div className="hidden md:block w-64 h-full">
+      <div className="hidden md:block w-[280px] h-full shrink-0 border-r bg-secondary/30 backdrop-blur-xl">
         <Sidebar
           sessions={sessions}
           currentSessionId={currentSessionId}
@@ -73,7 +73,7 @@ function App() {
 
       {/* Mobile Sidebar */}
       <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
-        <SheetContent side="left" className="p-0 w-64">
+        <SheetContent side="left" className="p-0 w-[280px] border-r-0 bg-secondary/95 backdrop-blur-xl">
           <Sidebar
             sessions={sessions}
             currentSessionId={currentSessionId}
@@ -91,29 +91,36 @@ function App() {
       </Sheet>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col h-full relative">
+      <div className="flex-1 flex flex-col h-full relative min-w-0 bg-background">
         {/* Mobile Menu Trigger */}
-        <div className="md:hidden absolute top-4 left-4 z-10">
-          <Button variant="ghost" size="icon" onClick={() => setIsMobileMenuOpen(true)}>
-            <Menu className="h-6 w-6" />
+        <div className="md:hidden absolute top-3 left-4 z-20">
+          <Button variant="ghost" size="icon" onClick={() => setIsMobileMenuOpen(true)} className="hover:bg-secondary">
+            <Menu className="h-5 w-5" />
           </Button>
         </div>
 
-        {currentSessionId && currentSession ? (
-          <ChatInterface 
-            key={currentSessionId} // Force remount on session change
-            sessionId={currentSessionId} 
-            sessionName={currentSession.name} 
-          />
-        ) : (
-          <div className="flex-1 flex items-center justify-center text-muted-foreground">
-            <div className="text-center">
-              <h3 className="text-lg font-medium mb-2">No Active Discussion</h3>
-              <p className="mb-4">Select a chat or create a new one.</p>
-              <Button onClick={() => setIsNewSessionOpen(true)}>Create New Discussion</Button>
+        <div className="flex-1 h-full overflow-hidden flex flex-col">
+          {currentSessionId && currentSession ? (
+            <ChatInterface 
+              key={currentSessionId} // Force remount on session change
+              sessionId={currentSessionId} 
+              sessionName={currentSession.name} 
+            />
+          ) : (
+            <div className="flex-1 flex items-center justify-center text-muted-foreground">
+              <div className="text-center p-8">
+                <div className="w-16 h-16 bg-secondary rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <Menu className="h-8 w-8 text-muted-foreground" />
+                </div>
+                <h3 className="text-xl font-semibold mb-2 text-foreground">No Active Discussion</h3>
+                <p className="mb-6 max-w-xs mx-auto text-sm">Select a chat from the sidebar or start a new discussion to begin.</p>
+                <Button onClick={() => setIsNewSessionOpen(true)} size="lg" className="rounded-full px-6">
+                  Create New Discussion
+                </Button>
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       <NewSessionDialog 
