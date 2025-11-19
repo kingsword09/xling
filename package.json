@@ -12,14 +12,16 @@
   },
   "type": "module",
   "files": [
-    "dist"
+    "dist",
+    "dist/ui"
   ],
   "bin": {
     "xling": "./dist/run.js"
   },
   "scripts": {
-    "build": "tsdown",
+    "build": "tsdown && bun run build:ui",
     "dev": "tsdown --watch",
+    "build:ui": "vite build",
     "test": "vitest",
     "test:watch": "vitest --watch",
     "test:coverage": "vitest --coverage",
@@ -62,13 +64,21 @@
     "oxlint": "^1.28.0",
     "tsdown": "^0.16.1",
     "typescript": "^5.9.3",
-    "vitest": "^4.0.8"
+    "vitest": "^4.0.8",
+    "vite": "^5.4.11",
+    "@vitejs/plugin-react": "^4.3.3",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.15"
   },
   "dependencies": {
     "@ai-sdk/openai-compatible": "^1.0.27",
     "@oclif/core": "^4.8.0",
     "ai": "^5.0.93",
     "cli-table3": "^0.6.5",
+    "open": "^11.0.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
     "smol-toml": "^1.4.2",
     "zod": "^4.1.12"
   }
