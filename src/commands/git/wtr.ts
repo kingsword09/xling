@@ -13,6 +13,7 @@ export default class Wtr extends Command {
   static description = `
     Remove a git worktree by branch name, directory name, or path.
     Intelligently matches branch or directory names.
+    Use --select to pick which worktree to remove from an interactive list.
   `;
 
   static examples: Command.Example[] = [
@@ -32,6 +33,10 @@ export default class Wtr extends Command {
       description: "Force remove worktree",
       command: "<%= config.bin %> <%= command.id %> -b main -f",
     },
+    {
+      description: "Pick a worktree to remove interactively",
+      command: "<%= config.bin %> <%= command.id %> --select",
+    },
   ];
 
   static flags: Interfaces.FlagInput = {
@@ -48,6 +53,11 @@ export default class Wtr extends Command {
       description: "Force removal",
       default: false,
     }),
+    select: Flags.boolean({
+      description:
+        "Use an interactive selector to choose the worktree to remove",
+      default: false,
+    }),
   };
 
   async run(): Promise<void> {
@@ -59,6 +69,7 @@ export default class Wtr extends Command {
       branch: flags.branch,
       path: flags.path,
       force: flags.force,
+      interactive: flags.select,
     };
 
     try {

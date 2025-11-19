@@ -12,6 +12,9 @@ import { runCommand } from "@/utils/runner.ts";
 import { GitCommandError } from "@/utils/errors.ts";
 import path from "node:path";
 import { existsSync } from "node:fs";
+import readline from "node:readline";
+import type { Key } from "node:readline";
+import type { ReadStream, WriteStream } from "node:tty";
 
 /**
  * Get repository name from current directory
@@ -85,30 +88,154 @@ function parseWorktreeList(output: string): WorktreeStatus[] {
 }
 
 /**
- * Find worktree by branch name or path pattern
- * @param identifier Branch name or path pattern
- * @param cwd Working directory
- * @returns Worktree path if found
+ * Get all worktrees for the current repo
  */
-async function findWorktree(
-  identifier: string,
-  cwd: string,
-): Promise<string | null> {
-  const listResult = await runCommand(
+async function getWorktrees(cwd: string): Promise<WorktreeStatus[]> {
+  const result = await runCommand("git", ["worktree", "list", "--porcelain"], {
+    cwd,
+    throwOnError: false,
+  });
+
+  if (!result.success) {
+    throw new GitCommandError("git worktree list", result.stderr);
+  }
+
+  return parseWorktreeList(result.stdout);
+}
+
+/**
+ * Get local branches for selection
+ */
+async function getLocalBranches(cwd: string): Promise<string[]> {
+  const result = await runCommand(
     "git",
-    ["worktree", "list", "--porcelain"],
+    ["branch", "--format=%(refname:short)", "--sort=-committerdate"],
     {
       cwd,
       throwOnError: false,
     },
   );
 
-  if (!listResult.success) {
-    return null;
+  if (!result.success) {
+    throw new GitCommandError(
+      "git branch --format=%(refname:short)",
+      result.stderr,
+    );
   }
 
-  const worktrees = parseWorktreeList(listResult.stdout);
+  return result.stdout
+    .split("\n")
+    .map((branch) => branch.trim())
+    .filter(Boolean);
+}
 
+/**
+ * Reusable interactive selector
+ */
+type SelectionOption<T> = { label: string; value: T };
+
+async function selectOption<T>(
+  title: string,
+  options: SelectionOption<T>[],
+  initialIndex = 0,
+): Promise<T> {
+  if (options.length === 0) {
+    throw new Error("No options available for selection.");
+  }
+
+  const stdin = process.stdin as ReadStream;
+  const stdout = process.stdout as WriteStream;
+
+  if (!stdin.isTTY || !stdout.isTTY) {
+    throw new Error(
+      "Interactive selection requires a TTY. Remove --select to continue.",
+    );
+  }
+
+  readline.emitKeypressEvents(stdin);
+  stdin.resume();
+
+  const originalRawMode = Boolean(stdin.isRaw);
+  if (stdin.setRawMode) {
+    stdin.setRawMode(true);
+  }
+
+  let index = Math.min(Math.max(initialIndex, 0), options.length - 1);
+  let renderedLines = 0;
+
+  const render = (): void => {
+    stdout.moveCursor(0, -renderedLines);
+    stdout.clearScreenDown();
+
+    const lines = [
+      title,
+      "Use ↑/↓ then Enter to confirm. Press q or Ctrl+C to cancel.",
+      ...options.map((option, optionIndex) => {
+        const prefix = optionIndex === index ? "➜" : " ";
+        const line = `${prefix} ${option.label}`;
+        return optionIndex === index ? `\x1B[36m${line}\x1B[0m` : line;
+      }),
+    ];
+
+    stdout.write(lines.join("\n") + "\n");
+    renderedLines = lines.length;
+  };
+
+  return await new Promise<T>((resolve, reject) => {
+    const cleanup = (error?: Error, value?: T): void => {
+      stdin.off("keypress", onKeypress);
+      if (stdin.setRawMode) {
+        stdin.setRawMode(originalRawMode);
+      }
+      stdin.pause();
+      stdout.write("\x1B[?25h\n");
+      if (error) {
+        reject(error);
+      } else {
+        resolve(value as T);
+      }
+    };
+
+    const onKeypress = (_: string, key: Key): void => {
+      if (!key) {
+        return;
+      }
+
+      if (key.name === "up") {
+        index = (index - 1 + options.length) % options.length;
+        render();
+        return;
+      }
+
+      if (key.name === "down") {
+        index = (index + 1) % options.length;
+        render();
+        return;
+      }
+
+      if (key.name === "return") {
+        cleanup(undefined, options[index].value);
+        return;
+      }
+
+      if ((key.name === "c" && key.ctrl) || key.name === "q") {
+        cleanup(new Error("Selection cancelled."));
+      }
+    };
+
+    stdin.on("keypress", onKeypress);
+    stdout.write("\x1B[?25l");
+    render();
+  });
+}
+
+/**
+ * Find worktree by branch name or path pattern within a list
+ */
+function findWorktree(
+  identifier: string,
+  worktrees: WorktreeStatus[],
+): string | null {
   // First, try exact branch name match
   const exactMatch = worktrees.find((wt) => wt.branch === identifier);
   if (exactMatch) {
@@ -144,32 +271,28 @@ export async function manageWorktree(
   cwd?: string,
 ): Promise<GitCommandResult> {
   const currentCwd = cwd || process.cwd();
-  const { action, path: userPath, branch, force, detach } = request;
+  const {
+    action,
+    path: userPath,
+    branch,
+    force,
+    detach,
+    interactive,
+  } = request;
 
   switch (action) {
     case "list": {
-      const result = await runCommand(
-        "git",
-        ["worktree", "list", "--porcelain"],
-        {
-          cwd: currentCwd,
-          throwOnError: false,
-        },
-      );
+      const worktrees = await getWorktrees(currentCwd);
 
-      if (!result.success) {
-        throw new GitCommandError("git worktree list", result.stderr);
-      }
-
-      const worktrees = parseWorktreeList(result.stdout);
-
-      // Format worktrees in a friendly way
-      const worktreeList = worktrees
-        .map(
-          (wt, idx) =>
-            `  [${idx + 1}] ${wt.path}\n      Branch: ${wt.branch || "detached"}`,
-        )
-        .join("\n\n");
+      const worktreeList =
+        worktrees.length === 0
+          ? "  (no worktrees found)"
+          : worktrees
+              .map(
+                (wt, idx) =>
+                  `  [${idx + 1}] ${wt.path}\n      Branch: ${wt.branch || "detached"}`,
+              )
+              .join("\n\n");
 
       return {
         success: true,
@@ -179,31 +302,44 @@ export async function manageWorktree(
     }
 
     case "switch": {
-      // Get list of worktrees
-      const listResult = await runCommand(
-        "git",
-        ["worktree", "list", "--porcelain"],
-        {
-          cwd: currentCwd,
-          throwOnError: false,
-        },
-      );
-
-      if (!listResult.success) {
-        throw new GitCommandError("git worktree list", listResult.stderr);
-      }
-
-      const worktrees = parseWorktreeList(listResult.stdout);
+      const worktrees = await getWorktrees(currentCwd);
 
       if (worktrees.length === 0) {
         throw new Error("No worktrees found");
+      }
+
+      if (interactive) {
+        const inferredPath =
+          (branch && findWorktree(branch, worktrees)) || null;
+        const initialIndex =
+          inferredPath !== null
+            ? Math.max(
+                0,
+                worktrees.findIndex((wt) => wt.path === inferredPath),
+              )
+            : 0;
+
+        const selected = await selectOption(
+          "Select worktree to switch to:",
+          worktrees.map((wt) => ({
+            label: `${wt.branch || "detached"} — ${wt.path}`,
+            value: wt,
+          })),
+          initialIndex,
+        );
+
+        return {
+          success: true,
+          message: selected.path,
+          details: { path: selected.path, branch: selected.branch },
+        };
       }
 
       // Default to main branch if not specified
       const targetBranch = branch || "main";
 
       // Find worktree by branch/directory name
-      const foundPath = await findWorktree(targetBranch, currentCwd);
+      const foundPath = findWorktree(targetBranch, worktrees);
       if (!foundPath) {
         throw new Error(
           `Could not find worktree matching "${targetBranch}". Use --list to see available worktrees.`,
@@ -221,26 +357,47 @@ export async function manageWorktree(
     case "add": {
       // Use main branch if not specified
       let targetBranch = branch || "main";
+      const worktrees = await getWorktrees(currentCwd);
 
-      // Check if branch is already used by another worktree
-      const listResult = await runCommand(
-        "git",
-        ["worktree", "list", "--porcelain"],
-        { cwd: currentCwd, throwOnError: false },
-      );
+      if (interactive) {
+        const branches = await getLocalBranches(currentCwd);
 
-      if (listResult.success) {
-        const worktrees = parseWorktreeList(listResult.stdout);
-        const existingWorktree = worktrees.find(
-          (wt) => wt.branch === targetBranch,
-        );
-
-        if (existingWorktree) {
+        if (branches.length === 0) {
           throw new Error(
-            `Branch "${targetBranch}" is already used by worktree at "${existingWorktree.path}".\n` +
-              `Choose a different branch name, or switch that worktree to another branch first.`,
+            "No local branches found. Create one or fetch remote branches before adding a worktree.",
           );
         }
+
+        const options = branches.map((branchName) => {
+          const alreadyUsed = worktrees.some((wt) => wt.branch === branchName);
+          const label = alreadyUsed
+            ? `${branchName} (already has a worktree)`
+            : branchName;
+          return { label, value: branchName };
+        });
+
+        const defaultIndex = Math.max(
+          0,
+          options.findIndex((option) => option.value === targetBranch),
+        );
+
+        targetBranch = await selectOption(
+          "Select branch to create a worktree for:",
+          options,
+          defaultIndex,
+        );
+      }
+
+      // Check if branch is already used by another worktree
+      const existingWorktree = worktrees.find(
+        (wt) => wt.branch === targetBranch,
+      );
+
+      if (existingWorktree) {
+        throw new Error(
+          `Branch "${targetBranch}" is already used by worktree at "${existingWorktree.path}".\n` +
+            `Choose a different branch name, or switch that worktree to another branch first.`,
+        );
       }
 
       // Auto-generate path if not provided
@@ -279,12 +436,38 @@ export async function manageWorktree(
     }
 
     case "remove": {
+      const worktrees = await getWorktrees(currentCwd);
       // Determine what to remove: by name (branch/worktree) or by path
       let targetPath: string;
 
-      if (branch) {
+      if (interactive) {
+        if (worktrees.length === 0) {
+          throw new Error("No worktrees found");
+        }
+
+        const inferredPath =
+          (branch && findWorktree(branch, worktrees)) || userPath || null;
+        const initialIndex =
+          inferredPath !== null
+            ? Math.max(
+                0,
+                worktrees.findIndex((wt) => wt.path === inferredPath),
+              )
+            : 0;
+
+        const selected = await selectOption(
+          "Select worktree to remove:",
+          worktrees.map((wt) => ({
+            label: `${wt.branch || "detached"} — ${wt.path}`,
+            value: wt,
+          })),
+          initialIndex,
+        );
+
+        targetPath = selected.path;
+      } else if (branch) {
         // Remove by name: branch name or worktree name (e.g., "main" or "xling-main")
-        const foundPath = await findWorktree(branch, currentCwd);
+        const foundPath = findWorktree(branch, worktrees);
         if (!foundPath) {
           throw new Error(
             `Could not find worktree matching "${branch}". Use --list to see available worktrees.`,

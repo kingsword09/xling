@@ -32,6 +32,7 @@ export interface GitWorktreeRequest {
   branch?: string;
   force?: boolean;
   detach?: boolean;
+  interactive?: boolean;
 }
 
 /**
