@@ -86,6 +86,7 @@ export async function createDiscussServer(port: number = 3000): Promise<http.Ser
     engine.on("participant-dropped", (id) => broadcast(wrap("participant-dropped", { id })));
     engine.on("participants-updated", (participants) => broadcast(wrap("participants", { participants })));
     engine.on("mode-changed", (mode) => broadcast(wrap("mode", { mode })));
+    engine.on("history-cleared", () => broadcast(wrap("history-cleared", {})));
   };
 
   // Create a default session
@@ -170,16 +171,15 @@ export async function createDiscussServer(port: number = 3000): Promise<http.Ser
       const action = sessionMatch[2];
       const session = sessions.getSession(sessionId);
 
-      if (!session && req.method !== "DELETE") { // DELETE might be on the collection but let's handle it here
-         // Actually, if session not found, 404
-         if (req.method === "DELETE" && !action) {
-            // Delete session
-            sessions.deleteSession(sessionId);
-            res.writeHead(200, { "Content-Type": "application/json" });
-            res.end(JSON.stringify({ success: true }));
-            return;
-         }
-         
+      // Handle DELETE session
+      if (req.method === "DELETE" && !action) {
+        const deleted = sessions.deleteSession(sessionId);
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ success: true, deleted }));
+        return;
+      }
+
+      if (!session) {
          res.writeHead(404, { "Content-Type": "application/json" });
          res.end(JSON.stringify({ error: "Session not found" }));
          return;
@@ -242,6 +242,9 @@ export async function createDiscussServer(port: number = 3000): Promise<http.Ser
               break;
             case "interrupt":
               engine.interrupt();
+              break;
+            case "reset":
+              engine.reset();
               break;
             case "mode":
               engine.setMode(body.mode);

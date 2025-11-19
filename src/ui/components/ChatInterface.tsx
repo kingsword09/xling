@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Send, Pause, Play, SkipForward, Bot, User, AlertCircle, Users, Ban } from 'lucide-react';
+import { Send, Pause, Play, SkipForward, Bot, User, AlertCircle, Users, Ban, RotateCcw } from 'lucide-react';
 import { Button } from '@/ui/components/ui/button';
 import { Input } from '@/ui/components/ui/input';
 import { ScrollArea } from '@/ui/components/ui/scroll-area';
@@ -168,6 +168,9 @@ export function ChatInterface({ sessionId, sessionName }: ChatInterfaceProps) {
           case 'chunk':
             if (payload.chunk) handleChunk(payload.chunk);
             break;
+          case 'history-cleared':
+            setMessages([]);
+            break;
           case 'error':
             if (payload.error) {
               const participant = payload.error.participantId ? `${payload.error.participantId}: ` : '';
@@ -314,7 +317,8 @@ export function ChatInterface({ sessionId, sessionName }: ChatInterfaceProps) {
     [mentionActive, mentionHighlightIndex, mentionSuggestions, insertMention, resetMention],
   );
 
-  const handleInputKeyUp = useCallback(() => {
+  const handleInputKeyUp = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (['ArrowUp', 'ArrowDown', 'Enter', 'Escape'].includes(e.key)) return;
     evaluateMention(input);
   }, [evaluateMention, input]);
 
@@ -326,11 +330,16 @@ export function ChatInterface({ sessionId, sessionName }: ChatInterfaceProps) {
     e?.preventDefault();
     if (!input.trim() || !canSendMessage) return;
     
-    await fetch(`/api/sessions/${sessionId}/message`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ content: input })
-    });
+    if (status === 'idle') {
+      await handleControl('reset');
+      await handleControl('start', { topic: input });
+    } else {
+      await fetch(`/api/sessions/${sessionId}/message`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: input })
+      });
+    }
     setInput('');
     resetMention();
   };
@@ -346,9 +355,9 @@ export function ChatInterface({ sessionId, sessionName }: ChatInterfaceProps) {
     }
   }, [summarizableParticipants, selectedSummaryModel]);
 
-  const canSendMessage = status !== 'idle';
+  const canSendMessage = status !== 'idle' || (status === 'idle' && aiParticipants.length > 0);
   const manualTurnDisabled = mode !== 'manual' || status === 'idle' || aiParticipants.length === 0;
-  const summaryDisabled = status !== 'idle' || summarizableParticipants.length === 0;
+  const summaryDisabled = status !== 'idle' || summarizableParticipants.length === 0 || messages.length === 0;
 
   useEffect(() => {
     if (!mentionActive) return;
@@ -388,15 +397,16 @@ export function ChatInterface({ sessionId, sessionName }: ChatInterfaceProps) {
     await handleControl('pause');
   }, [handleControl, status]);
 
-  const handleStop = useCallback(async () => {
-    if (status === 'idle') return;
-    await handleControl('stop');
-  }, [handleControl, status]);
-
   const handleInterrupt = useCallback(async () => {
     if (status !== 'speaking') return;
     await handleControl('interrupt');
   }, [handleControl, status]);
+
+  const handleReset = useCallback(async () => {
+    if (confirm('Are you sure you want to reset? This will clear the current discussion.')) {
+      await handleControl('reset');
+    }
+  }, [handleControl]);
 
   const openSummaryDialog = useCallback(() => {
     if (summaryDisabled) return;
@@ -437,17 +447,17 @@ export function ChatInterface({ sessionId, sessionName }: ChatInterfaceProps) {
     <>
     <div className="flex flex-col h-full">
       {/* Header */}
-      <header className="flex items-center justify-between px-6 py-3 bg-background/80 backdrop-blur-md border-b z-10 sticky top-0">
+      <header className="flex items-center justify-between px-6 py-4 bg-white/30 dark:bg-black/30 backdrop-blur-md border-b border-white/10 z-10 sticky top-0">
         <div className="flex items-center gap-4">
           <div className="md:hidden w-8">
             {/* Spacer for mobile menu trigger */}
           </div>
           <div>
-            <h1 className="text-sm font-semibold text-foreground">{sessionName}</h1>
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <span className={cn("flex h-1.5 w-1.5 rounded-full", status === 'discussing' || status === 'speaking' ? "bg-green-500" : "bg-gray-300")} />
+            <h1 className="text-lg font-bold text-foreground tracking-tight">{sessionName}</h1>
+            <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground/80">
+              <span className={cn("flex h-2 w-2 rounded-full shadow-[0_0_8px_currentColor]", status === 'discussing' || status === 'speaking' ? "bg-emerald-500 text-emerald-500 animate-pulse" : "bg-amber-500 text-amber-500")} />
               <span className="capitalize">{status}</span>
-              <span>•</span>
+              <span className="opacity-30">|</span>
               <span>{participants.length} participants</span>
             </div>
           </div>
@@ -459,15 +469,31 @@ export function ChatInterface({ sessionId, sessionName }: ChatInterfaceProps) {
               size="sm"
               onClick={handleNextTurn}
               disabled={manualTurnDisabled}
-              className="text-primary hover:text-primary/80 hover:bg-primary/10"
+              className="text-primary hover:bg-primary/10 hover:text-primary rounded-full px-4"
             >
-              <SkipForward className="h-4 w-4 mr-1" />
+              <SkipForward className="h-4 w-4 mr-2" />
               Next
             </Button>
           )}
+          {status === 'speaking' && (
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={handleInterrupt}
+              className="rounded-full hover:bg-white/20 dark:hover:bg-white/10"
+            >
+              <Ban className="h-4 w-4 mr-2" />
+              Interrupt
+            </Button>
+          )}
+
           {status === 'paused' ? (
-            <Button size="sm" variant="ghost" onClick={handleResume} className="text-green-600 hover:text-green-700 hover:bg-green-50">
-              <Play className="h-4 w-4 mr-1 fill-current" />
+            <Button 
+              size="sm" 
+              onClick={handleResume} 
+              className="rounded-full bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 hover:text-emerald-700 border border-emerald-500/20 shadow-sm"
+            >
+              <Play className="h-3.5 w-3.5 mr-2 fill-current" />
               Resume
             </Button>
           ) : (
@@ -475,38 +501,31 @@ export function ChatInterface({ sessionId, sessionName }: ChatInterfaceProps) {
               size="sm"
               variant="ghost"
               onClick={handlePause}
-              className="text-foreground hover:bg-secondary"
+              className="rounded-full hover:bg-white/20 dark:hover:bg-white/10"
               disabled={status === 'idle'}
             >
-              <Pause className="h-4 w-4 mr-1" />
+              <Pause className="h-4 w-4 mr-2" />
               Pause
             </Button>
           )}
+
           <Button
             size="sm"
             variant="ghost"
-            onClick={handleInterrupt}
-            disabled={status !== 'speaking'}
-            className="text-foreground hover:bg-secondary"
+            onClick={handleReset}
+            disabled={aiParticipants.length === 0}
+            className="rounded-full hover:bg-white/20 dark:hover:bg-white/10"
+            title="Reset discussion"
           >
-            <Ban className="h-4 w-4 mr-1" />
-            Interrupt
-          </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={handleStop}
-            disabled={status === 'idle'}
-            className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-          >
-            Stop
+            <RotateCcw className="h-4 w-4 mr-2" />
+            Reset
           </Button>
           <Button
             size="sm"
             variant="ghost"
             disabled={summaryDisabled}
             onClick={openSummaryDialog}
-            className="text-primary hover:text-primary/80 hover:bg-primary/10"
+            className="rounded-full hover:bg-white/20 dark:hover:bg-white/10"
           >
             Summarize
           </Button>
@@ -514,18 +533,18 @@ export function ChatInterface({ sessionId, sessionName }: ChatInterfaceProps) {
             variant="ghost"
             size="icon"
             onClick={() => setShowParticipants(!showParticipants)}
-            className={cn("text-muted-foreground hover:text-foreground", showParticipants && "bg-secondary text-foreground")}
+            className={cn("rounded-full hover:bg-white/20 dark:hover:bg-white/10 transition-colors", showParticipants && "bg-white/20 dark:bg-white/10 text-foreground")}
           >
             <Users className="h-5 w-5" />
           </Button>
         </div>
       </header>
 
-      <div className="flex flex-1 min-h-0 overflow-hidden relative bg-background">
+      <div className="flex flex-1 min-h-0 overflow-hidden relative bg-transparent">
         <div className="flex flex-1 flex-col min-w-0">
             {error && (
                 <div className="px-6 py-2 z-20">
-                <div className="flex items-center gap-3 bg-destructive/10 p-3 rounded-lg text-sm text-destructive">
+                <div className="flex items-center gap-3 bg-destructive/10 border border-destructive/20 backdrop-blur-md p-3 rounded-xl text-sm text-destructive shadow-lg">
                     <AlertCircle className="h-4 w-4 shrink-0" />
                     <span className="flex-1 font-medium">{error}</span>
                     <Button variant="ghost" size="sm" onClick={() => setError(null)} className="h-auto p-1 hover:bg-destructive/10 rounded-full">
@@ -540,63 +559,86 @@ export function ChatInterface({ sessionId, sessionName }: ChatInterfaceProps) {
                 <ScrollArea
                 className="flex-1 h-full"
                 viewportRef={scrollViewportRef}
-                viewportClassName="p-4 md:px-6 md:py-6"
+                viewportClassName="p-4 md:px-8 md:py-8"
                 viewportProps={{ onScroll: handleScroll }}
                 >
-                <div className="space-y-6 max-w-4xl mx-auto pb-8">
+                <div className="space-y-8 max-w-4xl mx-auto pb-8">
                 {messages.map((msg) => {
                     const isUser = msg.role === 'user';
                     const isSystem = msg.role === 'system';
                     const sender = participants.find((participant) => participant.id === msg.senderId);
 
                     if (isSystem) {
-                    return (
-                        <div key={msg.id} className="flex justify-center my-6">
-                        <span className="text-muted-foreground text-[11px] font-medium uppercase tracking-wider px-2">
+                      // Parse Topic/Participants message
+                      if (msg.content.startsWith('Topic: ')) {
+                        const lines = msg.content.split('\n');
+                        const topicLine = lines.find(l => l.startsWith('Topic: '));
+                        const participantsLine = lines.find(l => l.startsWith('Participants: '));
+
+                        if (topicLine && participantsLine) {
+                          const topicText = topicLine.replace('Topic: ', '');
+                          const participantsText = participantsLine.replace('Participants: ', '');
+                          const participantList = participantsText.split(', ');
+
+                          return (
+                            <div key={msg.id} className="flex flex-col items-center justify-center py-10 animate-in fade-in zoom-in-95 duration-700">
+                              <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground/50 uppercase tracking-[0.2em] mb-4">
+                                <span className="w-8 h-[1px] bg-gradient-to-r from-transparent to-muted-foreground/50" />
+                                Topic
+                                <span className="w-8 h-[1px] bg-gradient-to-l from-transparent to-muted-foreground/50" />
+                              </div>
+                              <h2 className="text-2xl md:text-3xl font-semibold text-center text-foreground/90 max-w-3xl leading-relaxed tracking-tight px-4 drop-shadow-sm">
+                                {topicText}
+                              </h2>
+                            </div>
+                          );
+                        }
+                      }
+
+                      return (
+                        <div key={msg.id} className="flex justify-center my-4">
+                          <span className="bg-secondary/50 backdrop-blur-sm text-secondary-foreground/60 text-[11px] font-medium px-3 py-1 rounded-full border border-white/10 shadow-sm">
                             {msg.content}
-                        </span>
+                          </span>
                         </div>
-                    );
+                      );
                     }
 
                     return (
                     <div
                         key={msg.id}
                         className={cn(
-                        "flex gap-3 max-w-3xl transition-all duration-300",
+                        "flex gap-4 max-w-3xl transition-all duration-500 animate-in fade-in slide-in-from-bottom-4",
                         isUser ? "ml-auto flex-row-reverse" : "mr-auto flex-row"
                         )}
                     >
                         {!isUser && (
-                          <Avatar className="h-8 w-8 border-0 shrink-0 mt-1">
-                            <AvatarFallback className="text-xs font-medium bg-secondary text-secondary-foreground">
-                                {sender?.name?.substring(0, 2).toUpperCase() || <Bot className="h-4 w-4" />}
+                          <Avatar className="h-10 w-10 border border-white/10 shadow-md shrink-0 mt-1 ring-2 ring-background/50">
+                            <AvatarFallback className="text-xs font-bold bg-gradient-to-br from-gray-100 to-gray-300 dark:from-gray-800 dark:to-gray-900 text-foreground">
+                                {sender?.name?.substring(0, 2).toUpperCase() || <Bot className="h-5 w-5" />}
                             </AvatarFallback>
                           </Avatar>
                         )}
                         
-                        <div className={cn("flex flex-col gap-1 max-w-[85%]", isUser ? "items-end" : "items-start")}>
+                        <div className={cn("flex flex-col gap-1.5 max-w-[85%]", isUser ? "items-end" : "items-start")}>
                           {!isUser && (
-                            <span className="text-[11px] text-muted-foreground ml-1">
+                            <span className="text-[11px] font-semibold text-muted-foreground/80 ml-1 tracking-wide">
                               {sender?.name}
                             </span>
                           )}
                           
                           <div className={cn(
-                            "px-4 py-2.5 shadow-sm text-[15px] leading-relaxed",
+                            "px-6 py-4 shadow-sm text-[15px] leading-relaxed backdrop-blur-sm border",
                             isUser 
-                              ? "bg-primary text-primary-foreground rounded-[20px] rounded-tr-sm" 
-                              : "bg-secondary text-secondary-foreground rounded-[20px] rounded-tl-sm"
+                              ? "bg-primary text-primary-foreground rounded-[24px] rounded-tr-sm border-primary/20 shadow-primary/10" 
+                              : "bg-white/60 dark:bg-white/5 text-foreground rounded-[24px] rounded-tl-sm border-white/20 shadow-black/5"
                           )}>
                             <div className={cn("markdown-container min-h-[20px]", isUser ? "prose-invert" : "prose-neutral dark:prose-invert")}>
-                                <Streamdown>{msg.content}</Streamdown>
+                                <Streamdown>
+                                  {msg.content.replace(/@ ?([\w-\.]+)/g, '[@$1](#mention)')}
+                                </Streamdown>
                             </div>
                           </div>
-                          
-                          {/* Timestamp - visible on hover could be better, but for now keep it simple */}
-                          {/* <span className="text-[10px] text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity px-1">
-                            {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          </span> */}
                         </div>
                     </div>
                     );
@@ -608,7 +650,7 @@ export function ChatInterface({ sessionId, sessionName }: ChatInterfaceProps) {
                     <Button
                     size="sm"
                     variant="secondary"
-                    className="pointer-events-auto shadow-sm rounded-full bg-background/90 backdrop-blur border hover:bg-background text-xs"
+                    className="pointer-events-auto shadow-lg rounded-full bg-background/80 backdrop-blur-xl border border-white/20 hover:bg-background text-xs px-4 py-2 h-auto"
                     onClick={handleJumpToBottom}
                     >
                     New messages ↓
@@ -618,9 +660,9 @@ export function ChatInterface({ sessionId, sessionName }: ChatInterfaceProps) {
             </div>
 
             {/* Input Area */}
-            <div className="p-4 bg-background border-t relative z-20">
+            <div className="p-6 bg-transparent relative z-20">
                 <form onSubmit={handleSend} className="max-w-4xl mx-auto flex gap-3 relative items-end">
-                  <div className="relative flex-1 bg-secondary/50 rounded-[20px] border border-transparent focus-within:border-border focus-within:bg-background transition-all duration-200">
+                  <div className="relative flex-1 bg-white/40 dark:bg-black/40 backdrop-blur-xl rounded-[28px] border border-black/10 dark:border-white/10 shadow-lg shadow-black/5 focus-within:shadow-xl focus-within:border-primary/20 focus-within:bg-white/60 dark:focus-within:bg-black/60 transition-all duration-300">
                     <Input
                       ref={inputRef}
                       value={input}
@@ -629,12 +671,12 @@ export function ChatInterface({ sessionId, sessionName }: ChatInterfaceProps) {
                       onKeyUp={handleInputKeyUp}
                       onClick={handleInputClick}
                       onBlur={resetMention}
-                      placeholder={canSendMessage ? "iMessage" : "Discussion stopped"}
+                      placeholder={canSendMessage ? (status === 'idle' ? "Enter a topic to start discussion..." : "Type a message...") : "Discussion stopped"}
                       disabled={!canSendMessage}
-                      className="flex-1 bg-transparent border-0 focus-visible:ring-0 h-10 px-4 rounded-[20px] text-[15px] placeholder:text-muted-foreground"
+                      className="flex-1 bg-transparent border-0 focus-visible:ring-0 h-14 px-6 rounded-[28px] text-[16px] placeholder:text-muted-foreground/60"
                     />
                     {mentionActive && (
-                      <div className="absolute bottom-full left-0 mb-2 w-64 rounded-xl border bg-background/95 backdrop-blur-xl shadow-lg overflow-hidden">
+                      <div className="absolute bottom-full left-0 mb-3 w-64 rounded-2xl border border-white/10 bg-background/80 backdrop-blur-2xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-2">
                         {mentionSuggestions.length === 0 ? (
                           <div className="px-4 py-3 text-sm text-muted-foreground">No participants found</div>
                         ) : (
@@ -643,14 +685,17 @@ export function ChatInterface({ sessionId, sessionName }: ChatInterfaceProps) {
                               key={participant.id}
                               type="button"
                               className={cn(
-                                "flex w-full items-center gap-3 px-4 py-2 text-sm transition-colors",
-                                index === mentionHighlightIndex ? "bg-primary text-primary-foreground" : "hover:bg-secondary",
+                                "flex w-full items-center gap-3 px-4 py-3 text-sm transition-all",
+                                index === mentionHighlightIndex ? "bg-primary/10 text-primary" : "hover:bg-white/10",
                               )}
                               onMouseDown={(event) => {
                                 event.preventDefault();
                                 insertMention(participant);
                               }}
                             >
+                              <Avatar className="h-6 w-6 rounded-md">
+                                <AvatarFallback className="text-[10px] rounded-md">{participant.name.substring(0, 2)}</AvatarFallback>
+                              </Avatar>
                               <span className="font-medium">{participant.name}</span>
                             </button>
                           ))
@@ -663,13 +708,13 @@ export function ChatInterface({ sessionId, sessionName }: ChatInterfaceProps) {
                     size="icon" 
                     disabled={!input.trim() || !canSendMessage}
                     className={cn(
-                      "h-8 w-8 rounded-full transition-all duration-200 shrink-0 mb-1",
+                      "h-14 w-14 rounded-full transition-all duration-300 shrink-0 shadow-lg",
                       input.trim() && canSendMessage 
-                        ? "bg-primary text-primary-foreground hover:bg-primary/90" 
-                        : "bg-secondary text-muted-foreground"
+                        ? "bg-primary text-primary-foreground hover:scale-105 hover:shadow-primary/25" 
+                        : "bg-white/20 dark:bg-white/10 text-muted-foreground shadow-none"
                     )}
                   >
-                    <Send className="h-4 w-4 ml-0.5" />
+                    <Send className="h-5 w-5 ml-0.5" />
                   </Button>
                 </form>
             </div>

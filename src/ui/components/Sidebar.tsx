@@ -64,8 +64,10 @@ export function Sidebar({
                 variant="ghost"
                 size="icon"
                 className={cn(
-                  "h-6 w-6 opacity-0 group-hover:opacity-100 transition-all rounded-md",
-                  currentSessionId === session.id ? "hover:bg-primary-foreground/20 text-primary-foreground" : "hover:bg-destructive/10 hover:text-destructive"
+                  "h-6 w-6 transition-all rounded-md",
+                  currentSessionId === session.id 
+                    ? "text-primary-foreground/60 hover:text-primary-foreground hover:bg-primary-foreground/20" 
+                    : "text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10"
                 )}
                 onClick={(e) => {
                   e.stopPropagation();

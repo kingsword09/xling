@@ -203,6 +203,15 @@ export class DiscussionEngine extends EventEmitter {
     this.#abortCurrentTurn();
   }
 
+  reset(): void {
+    this.stop();
+    this.#history = [];
+    this.#currentMessage = null;
+    this.#lastSpeakerId = null;
+    this.emit("history-cleared");
+    this.emit("participants-updated", Array.from(this.#participants.values())); // Re-emit to ensure UI sync
+  }
+
   // --- Interaction ---
 
   async injectMessage(senderId: string, content: string): Promise<void> {
