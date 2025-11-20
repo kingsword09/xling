@@ -129,7 +129,7 @@ export function ParticipantsSidebar({
   };
 
   return (
-    <div className="flex h-full w-80 flex-col bg-neo-bg border-l-2 border-neo-black relative">
+    <div className="flex h-full w-80 shrink-0 flex-col bg-neo-bg border-l-2 border-neo-black relative z-10">
       <div className="flex items-center justify-between p-4 border-b-2 border-neo-black bg-neo-yellow text-black">
         <div className="space-y-1">
           <h2 className="text-lg font-bold tracking-tight uppercase">
@@ -161,9 +161,9 @@ export function ParticipantsSidebar({
           {participants.map((participant) => (
             <div
               key={participant.id}
-              className="flex items-center justify-between group neo-box-sm p-3 hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all"
+              className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 group neo-box-sm p-3 hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all min-w-0"
             >
-              <div className="flex items-center gap-3 overflow-hidden">
+              <div className="flex items-center gap-3 overflow-hidden min-w-0">
                 <Avatar className="h-10 w-10 border-2 border-neo-black rounded-none">
                   <AvatarFallback
                     className={cn(
@@ -180,7 +180,7 @@ export function ParticipantsSidebar({
                     )}
                   </AvatarFallback>
                 </Avatar>
-                <div className="flex flex-col truncate">
+                <div className="flex flex-col truncate min-w-0">
                   <span
                     className="text-sm font-bold truncate"
                     title={participant.name}

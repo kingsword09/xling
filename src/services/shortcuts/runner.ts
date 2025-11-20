@@ -3,7 +3,7 @@
  * Handles loading, listing, and executing command shortcuts
  */
 
-import { spawn } from "child_process";
+import { spawn } from "node:child_process";
 import type { Config } from "@oclif/core";
 import { XlingAdapter } from "@/services/settings/adapters/xling.ts";
 import type {

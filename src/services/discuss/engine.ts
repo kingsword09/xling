@@ -1,4 +1,4 @@
-import { EventEmitter } from "events";
+import { EventEmitter } from "node:events";
 import { ModelRouter } from "@/services/prompt/router.ts";
 import type { PromptRequest } from "@/services/prompt/types.ts";
 

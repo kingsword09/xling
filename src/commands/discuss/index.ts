@@ -3,7 +3,7 @@ import { createDiscussServer } from "@/services/discuss/server.ts";
 import { DiscussionEngine } from "@/services/discuss/engine.ts";
 import { createRouter } from "@/services/prompt/router.ts";
 import * as open from "open";
-import * as readline from "readline";
+import * as readline from "node:readline";
 
 export default class DiscussCommand extends Command {
   static description = "Start a discussion between multiple AI models";

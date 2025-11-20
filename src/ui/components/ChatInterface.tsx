@@ -715,7 +715,7 @@ export function ChatInterface({ sessionId, sessionName }: ChatInterfaceProps) {
           </div>
         </header>
 
-        <div className="flex flex-1 min-h-0 overflow-hidden relative bg-transparent">
+        <div className="flex flex-1 min-h-0 overflow-x-visible overflow-y-hidden relative bg-transparent">
           <div className="flex flex-1 flex-col min-w-0">
             {error && (
               <div className="px-6 py-2 z-20">
