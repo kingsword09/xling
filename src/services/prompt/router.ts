@@ -372,7 +372,11 @@ function formatRequest(request: PromptRequest): string {
   return [request.system, request.prompt].filter(Boolean).join("\n\n");
 }
 
-function runCli(tool: string, prompt: string, signal?: AbortSignal): Promise<string> {
+function runCli(
+  tool: string,
+  prompt: string,
+  signal?: AbortSignal,
+): Promise<string> {
   return new Promise((resolve, reject) => {
     let output = "";
     let errorOutput = "";
@@ -391,7 +395,9 @@ function runCli(tool: string, prompt: string, signal?: AbortSignal): Promise<str
       if (code === 0) {
         resolve(cleanCliOutput(output));
       } else {
-        reject(new Error(errorOutput || `cli:${tool} exited with code ${code}`));
+        reject(
+          new Error(errorOutput || `cli:${tool} exited with code ${code}`),
+        );
       }
     });
 
@@ -453,7 +459,9 @@ function cleanCliOutput(text: string): string {
     .split(/\r?\n/)
     .filter(
       (line) =>
-        line.trim().length > 0 && !line.startsWith("[backend:") && !line.startsWith("yolo on"),
+        line.trim().length > 0 &&
+        !line.startsWith("[backend:") &&
+        !line.startsWith("yolo on"),
     )
     .join("\n")
     .trim();
