@@ -6,7 +6,31 @@ import * as open from "open";
 import * as readline from "node:readline";
 
 export default class DiscussCommand extends Command {
+  static summary =
+    "Run a roundtable between multiple AI models via CLI or Web UI";
+
   static description = "Start a discussion between multiple AI models";
+
+  static examples: Command.Example[] = [
+    {
+      description: "CLI mode, pick topic/models interactively",
+      command: "<%= config.bin %> <%= command.id %>",
+    },
+    {
+      description: "Provide topic and models up front (comma-separated)",
+      command:
+        '<%= config.bin %> <%= command.id %> --topic "Rust vs Go" --models "gpt-4o,claude-3.5-sonnet"',
+    },
+    {
+      description: "Round-robin turns with shorter per-turn timeout",
+      command:
+        "<%= config.bin %> <%= command.id %> --strategy round-robin --timeout 10",
+    },
+    {
+      description: "Launch the web UI",
+      command: "<%= config.bin %> <%= command.id %> --ui",
+    },
+  ];
 
   static flags: Interfaces.FlagInput = {
     ui: Flags.boolean({

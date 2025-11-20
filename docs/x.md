@@ -1,8 +1,8 @@
 # `x` Command (Quick Launcher)
 
-Launch Claude Code or Codex with a single command. Yolo mode (skip approval and
-permissions prompts) is enabled by default. Additional arguments placed after
-`--` are forwarded directly to the underlying CLI.
+Launch Claude Code, Codex, or Gemini CLI with a single command. Yolo mode (skip
+approval/permission prompts) is enabled by default. Additional arguments placed
+after `--` are forwarded directly to the underlying CLI.
 
 ## Usage
 
@@ -14,8 +14,8 @@ xling x [FLAGS] [-- ...args forwarded to tool]
 
 | Flag | Description |
 | ---- | ----------- |
-| `-t, --tool <claude|codex>` | Target tool (defaults to `claude`). |
-| `--no-yolo` | Disable yolo mode. When omitted, the command passes Claude's `--dangerously-skip-permissions` or Codex's `--dangerously-bypass-approvals-and-sandbox`. |
+| `-t, --tool <claude|codex|gemini>` | Target tool (defaults to `claude`). |
+| `--no-yolo` | Disable yolo mode. When omitted, the command passes Claude's `--dangerously-skip-permissions`, Codex's `--dangerously-bypass-approvals-and-sandbox`, or Gemini's `-y`. |
 | `-c, --continue` | Resume the most recent session (`claude -c` / `codex resume --last`). Mutually exclusive with `--resume`. |
 | `-r, --resume` | Show the session picker (`claude -r` / `codex resume`). Mutually exclusive with `--continue`. |
 | `-C, --cwd <dir>` | Run the tool from a different working directory. |
@@ -24,15 +24,17 @@ xling x [FLAGS] [-- ...args forwarded to tool]
 ## Examples
 
 ```bash
-xling x                      # Launch Claude Code with yolo mode
-xling x --no-yolo            # Launch Claude without yolo mode
-xling x -t codex             # Launch Codex instead
-xling x -c                   # Continue the most recent Claude session
-xling x -t codex -r          # Pick a Codex session from the interactive list
-xling x -s hxi               # Launch Claude with hxi settings variant
-xling x -t codex -s "model=o3"  # Launch Codex with model config override
-xling x -- chat "Hello"      # Forward arguments to Claude
-xling x -t codex -C ~/repo   # Start Codex in a different directory
+xling x                           # Launch Claude Code with yolo mode
+xling x -c                        # Continue the most recent Claude session
+xling x --no-yolo                 # Launch Claude without yolo mode
+xling x -t codex                  # Launch Codex instead
+xling x -t codex -r               # Pick a Codex session from the interactive list
+xling x -t codex -C ~/repo        # Start Codex in a different directory
+xling x -t gemini                 # Launch Gemini CLI (auto-accept prompts)
+xling x -t gemini -c              # Resume the latest Gemini session
+xling x -s hxi                    # Launch Claude with hxi settings variant
+xling x -t codex -s "model=o3"    # Launch Codex with model config override
+xling x -- chat "Hello"           # Forward arguments to Claude
 ```
 
 ## Settings Configuration
@@ -88,6 +90,18 @@ xling x -t codex -s o3            # Equivalent to model=o3
 ```
 
 For profile switching (e.g., `oss`, `production`), use `xling settings:switch <profile> --tool codex` before launching.
+
+### Gemini CLI
+
+Use the `--settings` flag to pick the Gemini model (first non-empty token wins):
+
+```bash
+# Use Gemini Pro experimental
+xling x -t gemini -s gemini-2.0-pro-exp
+
+# Model string with extra tokens (only the first is used)
+xling x -t gemini -s "gemini-1.5-flash;temperature=0.3"
+```
 
 ## Tips
 

@@ -33,6 +33,11 @@ export default class Prv extends Command {
       description: "Open PR in Arc",
       command: "<%= config.bin %> <%= command.id %> 999 --browser arc",
     },
+    {
+      description: "Open a PR from another repo in Edge",
+      command:
+        "<%= config.bin %> <%= command.id %> octo/demo-repo#42 --browser edge",
+    },
   ];
 
   static args: Interfaces.ArgInput = {

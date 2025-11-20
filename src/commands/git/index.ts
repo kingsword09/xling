@@ -13,13 +13,32 @@ export default class Git extends Command {
     Supports PR checkout with gh/git fallback, browser PR viewing, and worktree operations.
   `;
 
-  static examples: string[] = [
-    "<%= config.bin %> <%= command.id %>:prc --web --browser safari",
-    "<%= config.bin %> <%= command.id %>:prr 123                     # checkout PR 123",
-    "<%= config.bin %> <%= command.id %>:prv 456 --browser arc       # open PR 456 in Arc",
-    "<%= config.bin %> <%= command.id %>:worktree --list",
-    "<%= config.bin %> <%= command.id %>:wta -b feature/foo --base main",
-    "cd $(<%= config.bin %> <%= command.id %>:wts -b feature/foo)    # switch worktree",
+  static examples: Command.Example[] = [
+    {
+      description: "Create a PR and preview in Safari",
+      command: "<%= config.bin %> <%= command.id %>:prc --web --browser safari",
+    },
+    {
+      description: "Checkout PR 123 with gh/git fallback",
+      command: "<%= config.bin %> <%= command.id %>:prr 123",
+    },
+    {
+      description: "Open PR 456 in Arc",
+      command: "<%= config.bin %> <%= command.id %>:prv 456 --browser arc",
+    },
+    {
+      description: "List existing worktrees",
+      command: "<%= config.bin %> <%= command.id %>:worktree --list",
+    },
+    {
+      description: "Add a worktree off main",
+      command:
+        "<%= config.bin %> <%= command.id %>:wta -b feature/foo --base main",
+    },
+    {
+      description: "Switch into a worktree",
+      command: "cd $(<%= config.bin %> <%= command.id %>:wts -b feature/foo)",
+    },
   ];
 
   async run(): Promise<void> {

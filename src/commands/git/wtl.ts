@@ -20,6 +20,14 @@ export default class Wtl extends Command {
       description: "List all worktrees",
       command: "<%= config.bin %> <%= command.id %>",
     },
+    {
+      description: "List worktrees and filter for feature branches",
+      command: "<%= config.bin %> <%= command.id %> | grep feature/",
+    },
+    {
+      description: "List worktrees from another repo directory",
+      command: "cd ~/projects/my-repo && <%= config.bin %> <%= command.id %>",
+    },
   ];
 
   async run(): Promise<void> {

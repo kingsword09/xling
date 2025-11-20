@@ -1,6 +1,6 @@
 # xling
 
-Unified CLI for managing AI tool settings across Claude Code, Codex, and Gemini CLI.
+Unified CLI for launching AI tooling, routing prompts, and managing settings across Claude Code, Codex, and Gemini CLI.
 
 ## What's in a Name? The Story of `xling`
 
@@ -24,12 +24,13 @@ Together, `xling` is more than just a tool; it's an intelligent partner that amp
 
 ## Features
 
-- **Unified Interface**: Manage settings for multiple AI CLI tools with a single command
+- **Unified Interface**: Launch AI CLIs, route prompts, and manage settings with one tool
+- **Prompt Router**: `xling p` fan-outs requests across providers with fallback and streaming support
+- **Multi-Model Roundtable**: `xling discuss` runs multi-agent debates via CLI or Web UI
 - **Quick Launcher**: Just type `xling x` to start Claude Code instantly with yolo mode
 - **Command Shortcuts**: Define custom aliases for frequently used commands with `sx`
 - **Multiple Scopes**: Support for user, project, local, and system-level configurations
-- **Profile Switching**: Switch between different configuration profiles (Codex)
-- **Dry Run Mode**: Preview changes before applying them
+- **Profile/Variant Switching**: Swap Codex profiles or Claude settings variants safely
 - **JSON Output**: Machine-readable output for scripting
 - **Type Safe**: Built with TypeScript for reliability
 
@@ -66,18 +67,26 @@ place.
 
 ### Command Overview
 
-- `x`: Launch Claude Code or Codex with resume flags, yolo toggle, and passthrough args.
+- `x`: Launch Claude Code, Codex, or Gemini CLI with resume flags, yolo toggle, and passthrough args.
+- `p`: Route prompts across configured providers or delegate to codex/claude/gemini CLIs with yolo defaults.
+- `discuss`: Run a multi-model roundtable via CLI or Web UI with topic, model, and strategy controls.
 - `sx`: Execute command shortcuts/aliases defined in xling config.
-- `settings:list|get|set|switch|inspect`: Inspect, edit, and switch Claude, Codex, or Gemini configs across scopes.
+- `settings:list|get|set|switch|inspect`: Inspect, edit, and switch Claude, Codex, Gemini, or xling configs across scopes.
 - `git:prc|prr|prv`: Create, checkout, and view GitHub pull requests with automatic gh/git fallbacks.
 - `git:wta|wtl|wtp|wtr|wts`: Manage git worktrees (add/list/prune/remove/switch) with guard rails and subshell support.
+- `version`: Print the installed xling version.
 
 ### Command Documentation (inline excerpt)
 
 #### Launching AI tools
 
-- [`x` – quick launcher](docs/x.md): fire up Claude Code or Codex with resume/yolo controls and passthrough args.
+- [`x` – quick launcher](docs/x.md): fire up Claude Code, Codex, or Gemini with resume/yolo controls and passthrough args.
 - [`sx` – shortcut execute](docs/sx.md): run predefined command shortcuts with optional passthrough args.
+
+#### Prompting & discussion
+
+- [`p` – prompt router](docs/p.md): send prompts through configured providers with streaming, stdin/file input, or direct CLI delegation.
+- [`discuss` – multi-model roundtable](docs/discuss.md): spin up a CLI or Web UI debate across multiple models with turn-taking strategies.
 
 #### Settings management
 
@@ -100,6 +109,10 @@ place.
 - [`git:prc` – create PR](docs/git-prc.md): wrap `gh pr create` with reviewers, labels, draft, and browser launch options.
 - [`git:prr` – checkout PR](docs/git-prr.md): fetch/checkout PRs with a smart `gh`/git fallback and custom branch names.
 - [`git:prv` – view PR](docs/git-prv.md): open a PR in your preferred browser directly from the terminal.
+
+#### Utilities
+
+- `version`: print the installed xling version (also available via `xling --version`).
 
 
 ## Supported Tools
@@ -126,3 +139,10 @@ place.
   - User: `~/.gemini/settings.json`
   - Project: `.gemini/settings.json`
   - System: Platform-dependent
+
+### Xling Prompt Router
+
+- **Scopes**: user
+- **Config Files**:
+  - User: `~/.claude/xling.json`
+- **Features**: Provider registry and defaults for `xling p` and `xling discuss`

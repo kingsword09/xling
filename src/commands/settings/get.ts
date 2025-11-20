@@ -21,8 +21,23 @@ export default class SettingsGet extends Command {
   `;
 
   static examples: Command.Example[] = [
-    "<%= config.bin %> <%= command.id %> --tool claude --scope user",
-    "<%= config.bin %> <%= command.id %> --tool codex --no-json",
+    {
+      description: "Print Claude user settings (raw file)",
+      command: "<%= config.bin %> <%= command.id %> --tool claude --scope user",
+    },
+    {
+      description: "Inspect a Claude variant by name",
+      command:
+        "<%= config.bin %> <%= command.id %> hxi --tool claude --scope user",
+    },
+    {
+      description: "Dump Codex config as JSON for scripting",
+      command: "<%= config.bin %> <%= command.id %> --tool codex --json",
+    },
+    {
+      description: "View xling prompt router config (if present)",
+      command: "<%= config.bin %> <%= command.id %> --tool xling --scope user",
+    },
   ];
 
   static args: Interfaces.ArgInput = {
