@@ -17,7 +17,7 @@ import { XlingAdapter } from "@/services/settings/adapters/xling.ts";
 import { spawnProcess, checkExecutable } from "@/utils/runner.ts";
 import type { LaunchCommandSpec } from "@/domain/types.ts";
 
-type PromptBackend = "xling" | "codex" | "claude";
+type PromptBackend = "xling" | "codex" | "claude" | "gemini";
 
 export default class PCommand extends Command {
   static description =
@@ -62,20 +62,25 @@ export default class PCommand extends Command {
       description: "Shorthand for Codex backend (matches x command flag)",
       command: '<%= config.bin %> <%= command.id %> -t codex "Hello"',
     },
+    {
+      description: "Use Gemini CLI headless prompt",
+      command:
+        '<%= config.bin %> <%= command.id %> -t gemini "Summarize this diff"',
+    },
   ];
 
   static flags: Interfaces.FlagInput = {
     tool: Flags.string({
       description:
-        "Choose backend: xling router (default) or call codex/claude CLI directly",
-      options: ["xling", "codex", "claude"],
+        "Choose backend: xling router (default) or call codex/claude/gemini CLI directly",
+      options: ["xling", "codex", "claude", "gemini"],
       required: false,
       default: "xling",
       char: "t",
     }),
     yolo: Flags.boolean({
       description:
-        "Use yolo flags when calling codex/claude directly (skip permission prompts)",
+        "Use yolo flags when calling codex/claude/gemini directly (skip permission prompts)",
       required: false,
       default: true,
       allowNo: true,
@@ -156,8 +161,8 @@ export default class PCommand extends Command {
       }
 
       if (backend !== "xling") {
-        this.#guardDirectMode(flags);
-        await this.#executeViaCli(backend, prompt, yolo);
+        this.#guardDirectMode(backend, flags);
+        await this.#executeViaCli(backend, prompt, yolo, flags);
         return;
       }
 
@@ -274,11 +279,12 @@ export default class PCommand extends Command {
   }
 
   #guardDirectMode(
+    backend: Exclude<PromptBackend, "xling">,
     flags: Interfaces.InferredFlags<typeof PCommand.flags>,
   ): void {
     if (flags.interactive) {
       this.error(
-        "Interactive mode is not supported when using --tool codex/claude. Remove --interactive or use the default xling router.",
+        "Interactive mode is not supported when using --tool codex/claude/gemini. Remove --interactive or use the default xling router.",
       );
     }
 
@@ -288,7 +294,7 @@ export default class PCommand extends Command {
       ignored.push("--json");
     }
 
-    if (flags.model) {
+    if (flags.model && backend !== "gemini") {
       ignored.push("--model");
     }
 
@@ -319,8 +325,14 @@ export default class PCommand extends Command {
     backend: Exclude<PromptBackend, "xling">,
     prompt: string,
     yolo: boolean,
+    flags: Interfaces.InferredFlags<typeof PCommand.flags>,
   ): Promise<void> {
-    const executable = backend === "codex" ? "codex" : "claude";
+    const executable =
+      backend === "codex"
+        ? "codex"
+        : backend === "gemini"
+          ? "gemini"
+          : "claude";
     const available = await checkExecutable(executable);
 
     if (!available) {
@@ -329,15 +341,28 @@ export default class PCommand extends Command {
       );
     }
 
+    const baseArgs: string[] =
+      backend === "codex" ? ["exec", prompt] : ["-p", prompt];
+
+    if (backend === "gemini" && flags.model) {
+      baseArgs.unshift("-m", flags.model);
+    }
+
     const spec: LaunchCommandSpec = {
       executable,
-      baseArgs: backend === "codex" ? ["exec", prompt] : ["-p", prompt],
+      baseArgs,
       yoloArgs:
-        yolo && backend === "codex"
-          ? ["--dangerously-bypass-approvals-and-sandbox"]
-          : yolo
-            ? ["--dangerously-skip-permissions"]
-            : undefined,
+        backend === "codex"
+          ? yolo
+            ? ["--dangerously-bypass-approvals-and-sandbox"]
+            : undefined
+          : backend === "gemini"
+            ? yolo
+              ? ["-y"]
+              : undefined
+            : yolo
+              ? ["--dangerously-skip-permissions"]
+              : undefined,
     };
 
     this.log(
