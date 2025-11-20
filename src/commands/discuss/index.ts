@@ -289,8 +289,8 @@ export default class DiscussCommand extends Command {
       return [];
     }
 
-    const stdin = process.stdin as readline.ReadStream;
-    const stdout = process.stdout;
+    const stdin = process.stdin as NodeJS.ReadStream;
+    const stdout = process.stdout as NodeJS.WriteStream;
 
     if (!stdin.isTTY || !stdout.isTTY) {
       throw new Error(
