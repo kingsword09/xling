@@ -27,7 +27,8 @@ export default class SettingsGet extends Command {
     },
     {
       description: "Inspect a Claude variant by name",
-      command: "<%= config.bin %> <%= command.id %> hxi --tool claude --scope user",
+      command:
+        "<%= config.bin %> <%= command.id %> hxi --tool claude --scope user",
     },
     {
       description: "Dump Codex config as JSON for scripting",

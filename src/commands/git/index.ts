@@ -37,8 +37,7 @@ export default class Git extends Command {
     },
     {
       description: "Switch into a worktree",
-      command:
-        "cd $(<%= config.bin %> <%= command.id %>:wts -b feature/foo)",
+      command: "cd $(<%= config.bin %> <%= command.id %>:wts -b feature/foo)",
     },
   ];
 

@@ -31,7 +31,8 @@ export default class SettingsInspect extends Command {
     },
     {
       description: "Check Gemini system-level config location",
-      command: "<%= config.bin %> <%= command.id %> -t gemini -s system --no-json",
+      command:
+        "<%= config.bin %> <%= command.id %> -t gemini -s system --no-json",
     },
     {
       description: "Confirm xling shortcut config exists",

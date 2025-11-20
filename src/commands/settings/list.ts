@@ -35,7 +35,8 @@ export default class SettingsList extends Command {
     },
     {
       description: "Inspect Gemini project settings as JSON",
-      command: "<%= config.bin %> <%= command.id %> -t gemini -s project --json",
+      command:
+        "<%= config.bin %> <%= command.id %> -t gemini -s project --json",
     },
     {
       description: "Check xling shortcut config location",
