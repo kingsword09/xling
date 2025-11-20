@@ -8,8 +8,7 @@ import { LaunchDispatcher } from "@/services/launch/dispatcher.ts";
 import type { ToolId } from "@/domain/types.ts";
 
 export default class X extends Command {
-  static summary =
-    "eXecute AI CLI tools (defaults to Claude Code with yolo)";
+  static summary = "eXecute AI CLI tools (defaults to Claude Code with yolo)";
 
   static description = `
     Quick launcher for Claude Code, Codex, or Gemini CLI with yolo mode enabled by default.
