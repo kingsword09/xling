@@ -2,7 +2,7 @@
 
 ## Overview
 
-The `settings` command provides a unified interface for managing configuration settings across multiple AI CLI tools: Claude Code, Codex, and Gemini CLI.
+The `settings` command provides a unified interface for managing configuration settings across multiple AI CLI tools: Claude Code, Codex, Gemini CLI, and the xling prompt router.
 
 ## Commands
 
@@ -16,21 +16,24 @@ xling settings:list [OPTIONS]
 ```
 
 **Options:**
-- `-t, --tool <tool>`: AI CLI tool to manage (claude|codex|gemini) [default: claude]
+- `-t, --tool <tool>`: AI CLI tool to manage (claude|codex|gemini|xling) [default: claude]
 - `-s, --scope <scope>`: Configuration scope (user|project|local|system) [default: user]
 - `--json`: Output structured JSON (disabled by default)
 - `--table`: Render a table instead of the summary view
 
 **Examples:**
 ```bash
-# List Claude Code user settings
+# List Claude Code user settings (summary)
 xling settings:list --tool claude --scope user
 
-# List Codex settings as table
+# List Codex settings as a table
 xling settings:list --tool codex --table
 
-# List Gemini project settings
-xling settings:list -t gemini -s project
+# Show Gemini project settings as JSON
+xling settings:list -t gemini -s project --json
+
+# Inspect xling prompt router config location
+xling settings:list --tool xling --scope user
 ```
 
 **Claude Variant Discovery:** When `--tool claude`, this command lists every
@@ -57,7 +60,7 @@ xling settings:get [OPTIONS]
 ```
 
 **Options:**
-- `-t, --tool <tool>`: AI CLI tool to manage (claude|codex|gemini) [default: claude]
+- `-t, --tool <tool>`: AI CLI tool to manage (claude|codex|gemini|xling) [default: claude]
 - `-s, --scope <scope>`: Configuration scope (user|project|local|system) [default: user]
 - `--json`: Output structured JSON instead of the raw file contents
 
@@ -69,8 +72,11 @@ xling settings:get --tool claude --scope user
 # Inspect a Claude variant (e.g., settings.hxi.json)
 xling settings:get hxi --tool claude --scope user
 
-# Plain text output for Codex
-xling settings:get --tool codex
+# Dump Codex config as JSON
+xling settings:get --tool codex --json
+
+# View xling prompt router config (or default template)
+xling settings:get --tool xling --scope user
 ```
 
 When a positional argument is provided, it only applies to `--tool claude`. The command looks for `settings.<name>.json` or `settings-<name>.json` and loads the matching variant.
@@ -87,7 +93,7 @@ xling settings:set [OPTIONS]
 ```
 
 **Options:**
-- `-t, --tool <tool>`: AI CLI tool to manage (claude|codex|gemini) [default: claude]
+- `-t, --tool <tool>`: AI CLI tool to manage (claude|codex|gemini|xling) [default: claude]
 - `-s, --scope <scope>`: Configuration scope (user|project|local|system) [default: user]
 - `--name <variant>`: Claude variant to edit (default: `default`, i.e., `settings.json`)
 - `--ide <cmd>`: Editor command/alias (default: `code` -> VS Code)
@@ -100,6 +106,12 @@ xling settings:set --tool claude --scope user --name hxi
 
 # Open default settings in Cursor
 xling settings:set --tool claude --scope project --name default --ide cursor --no-json
+
+# Edit Codex config
+xling settings:set --tool codex --scope user
+
+# Edit xling prompt router config
+xling settings:set --tool xling --scope user --ide cursor
 ```
 
 `settings:set` no longer writes individual keys. Open the full file, make changes directly in your editor, and save.
@@ -122,7 +134,7 @@ xling settings:switch <profile> [OPTIONS]
 - `profile`: Profile name to switch to
 
 **Options:**
-- `-t, --tool <tool>`: AI CLI tool to manage (claude|codex|gemini) [default: codex]
+- `-t, --tool <tool>`: AI CLI tool to manage (claude|codex|gemini|xling) [default: codex]
 - `-s, --scope <scope>`: Configuration scope (user|project|local|system) [default: user]
 - `--json/--no-json`: JSON output is default; use `--no-json` for plain text
 
@@ -134,8 +146,14 @@ xling settings:switch oss --tool codex
 # Activate settings.hxi.json (Claude user scope)
 xling settings:switch hxi --tool claude --scope user
 
-# Apply without prompt and keep a .bak backup
-xling settings:switch hxi --tool claude --scope user --force --backup
+# Swap Codex to the production profile
+xling settings:switch production --tool codex
+
+# Apply without prompts and emit JSON
+xling settings:switch hxi --tool claude --scope user --force --json
+
+# Keep a backup while switching Claude settings
+xling settings:switch stable --tool claude --scope user --backup
 ```
 
 **Notes:**
@@ -158,7 +176,7 @@ xling settings:inspect [OPTIONS]
 ```
 
 **Options:**
-- `-t, --tool <tool>`: AI CLI tool to manage (claude|codex|gemini) [default: claude]
+- `-t, --tool <tool>`: AI CLI tool to manage (claude|codex|gemini|xling) [default: claude]
 - `-s, --scope <scope>`: Configuration scope (user|project|local|system) [default: user]
 - `--json/--no-json`: JSON output is default; use `--no-json` for plain text
 
@@ -176,6 +194,12 @@ xling settings:inspect --tool claude --scope user
 
 # Inspect Codex config with human-readable output
 xling settings:inspect --tool codex --no-json
+
+# Check Gemini system config location
+xling settings:inspect --tool gemini --scope system --no-json
+
+# Confirm xling prompt router config exists
+xling settings:inspect --tool xling
 ```
 
 ---
@@ -201,18 +225,29 @@ xling settings:inspect --tool codex --no-json
   - Linux: `/etc/gemini/settings.json`
   - Windows: `C:\ProgramData\Gemini\settings.json`
 
+### Xling Prompt Router
+
+- **user**: `~/.claude/xling.json` - Provider, model, and retry policy configuration (user scope only)
+
 ---
 
 ## JSON Output
 
-Most commands (everything but `settings:list`) default to JSON output. `settings:list` defaults to the YAML-style summary above. Use `--no-json` for plain text, or `--table` on list for a detailed table.
+Output defaults vary by command:
+- `settings:list`: YAML-style summary by default (`--json` or `--table` for structure)
+- `settings:set` and `settings:inspect`: JSON by default (`--no-json` for human-readable)
+- `settings:get` and `settings:switch`: Human-readable by default (`--json` for scripts)
 
 ```bash
-# Default JSON output
+# Summary output (default)
 xling settings:list --tool claude
 
-# Disable JSON
-xling settings:get --tool claude --no-json
+# Emit JSON for scripting
+xling settings:get --tool codex --json
+xling settings:inspect --tool claude --scope user
+
+# Human-readable edit flow
+xling settings:set --tool claude --scope user --no-json
 
 # Table output for quick inspection
 xling settings:list --tool claude --scope user --table
@@ -238,7 +273,7 @@ Error: Invalid scope: system
 ```
 Error: Unsupported tool: unknown
 ```
-**Solution:** Use one of the supported tools: claude, codex, or gemini.
+**Solution:** Use one of the supported tools: claude, codex, gemini, or xling.
 
 ---
 
@@ -246,7 +281,7 @@ Error: Unsupported tool: unknown
 
 1. **Flag everything**: Pass `--tool`, `--scope`, and `--name` explicitly instead of relying on defaults.
 2. **Backup important configs**: Configuration files are automatically backed up with `.bak` extension
-3. **Use JSON output for scripting**: JSON is the default; switch to `--no-json` only when human-readable text is required.
+3. **Use JSON output for scripting**: Add `--json` when scripting and use `--no-json` on commands like `settings:set`/`settings:inspect` when you want human-readable output.
 4. **Scope appropriately**: Use `user` for personal/global settings and `project` for repository-scoped overrides.
 5. **Prefer IDE edits**: Use `settings:set --name ...` to open the target file and edit holistically instead of writing piecemeal changes.
 
@@ -283,6 +318,7 @@ xling settings:inspect --tool claude --scope user
 xling settings:get --tool claude --scope user
 xling settings:get --tool codex --scope user
 xling settings:get --tool gemini --scope user
+xling settings:get --tool xling --scope user
 
 # Edit Claude project overrides
 xling settings:set --tool claude --scope project --name default

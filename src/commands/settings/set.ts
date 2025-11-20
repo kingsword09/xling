@@ -18,9 +18,24 @@ export default class SettingsSet extends Command {
   `;
 
   static examples: Command.Example[] = [
-    "<%= config.bin %> <%= command.id %> --tool claude --scope user --name hxi",
-    "<%= config.bin %> <%= command.id %> --tool claude --scope project --name default --ide cursor",
-    "<%= config.bin %> <%= command.id %> --tool xling --scope user --ide cursor",
+    {
+      description: "Create or edit a Claude variant in VS Code",
+      command:
+        "<%= config.bin %> <%= command.id %> --tool claude --scope user --name hxi",
+    },
+    {
+      description: "Open Claude project settings in Cursor without JSON output",
+      command:
+        "<%= config.bin %> <%= command.id %> --tool claude --scope project --name default --ide cursor --no-json",
+    },
+    {
+      description: "Edit Codex user config",
+      command: "<%= config.bin %> <%= command.id %> --tool codex --scope user",
+    },
+    {
+      description: "Edit xling shortcut config in Cursor",
+      command: "<%= config.bin %> <%= command.id %> --tool xling --ide cursor",
+    },
   ];
 
   static args: Interfaces.ArgInput = {};

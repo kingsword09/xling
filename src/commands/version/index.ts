@@ -12,7 +12,16 @@ export default class VersionCommand extends Command {
 
   static description = "Displays the version from package.json.";
 
-  static examples: Command.Example[] = ["<%= config.bin %> <%= command.id %>"];
+  static examples: Command.Example[] = [
+    {
+      description: "Print the installed CLI version",
+      command: "<%= config.bin %> <%= command.id %>",
+    },
+    {
+      description: "Shortcut using the built-in flag",
+      command: "<%= config.bin %> --version",
+    },
+  ];
 
   async run(): Promise<void> {
     this.log(pkg.version ?? "unknown");

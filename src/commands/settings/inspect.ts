@@ -21,8 +21,22 @@ export default class SettingsInspect extends Command {
   `;
 
   static examples: Command.Example[] = [
-    "<%= config.bin %> <%= command.id %> --tool claude --scope user",
-    "<%= config.bin %> <%= command.id %> --tool codex --json",
+    {
+      description: "Inspect Claude user settings with JSON output",
+      command: "<%= config.bin %> <%= command.id %> --tool claude --scope user",
+    },
+    {
+      description: "Inspect Codex config with human-readable output",
+      command: "<%= config.bin %> <%= command.id %> --tool codex --no-json",
+    },
+    {
+      description: "Check Gemini system-level config location",
+      command: "<%= config.bin %> <%= command.id %> -t gemini -s system --no-json",
+    },
+    {
+      description: "Confirm xling shortcut config exists",
+      command: "<%= config.bin %> <%= command.id %> --tool xling",
+    },
   ];
 
   static flags: Interfaces.FlagInput = {

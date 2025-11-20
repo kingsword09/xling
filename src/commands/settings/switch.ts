@@ -22,9 +22,29 @@ export default class SettingsSwitch extends Command {
   `;
 
   static examples: Command.Example[] = [
-    "<%= config.bin %> <%= command.id %> oss --tool codex",
-    "<%= config.bin %> <%= command.id %> production --tool codex",
-    "<%= config.bin %> <%= command.id %> hxi --tool claude --scope user",
+    {
+      description: "Switch Codex to the oss profile",
+      command: "<%= config.bin %> <%= command.id %> oss --tool codex",
+    },
+    {
+      description: "Swap Codex to production profile",
+      command: "<%= config.bin %> <%= command.id %> production --tool codex",
+    },
+    {
+      description: "Activate a Claude variant (user scope)",
+      command:
+        "<%= config.bin %> <%= command.id %> hxi --tool claude --scope user",
+    },
+    {
+      description: "Force-apply Claude variant and emit JSON for scripts",
+      command:
+        "<%= config.bin %> <%= command.id %> hxi --tool claude --scope user --force --json",
+    },
+    {
+      description: "Keep a backup while switching Claude settings",
+      command:
+        "<%= config.bin %> <%= command.id %> stable --tool claude --backup",
+    },
   ];
 
   static args: Interfaces.ArgInput = {

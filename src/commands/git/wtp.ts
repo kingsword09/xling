@@ -20,6 +20,15 @@ export default class Wtp extends Command {
       description: "Prune stale worktrees",
       command: "<%= config.bin %> <%= command.id %>",
     },
+    {
+      description: "Clean up after manually deleting a worktree folder",
+      command: "cd ~/repo && <%= config.bin %> <%= command.id %>",
+    },
+    {
+      description: "Prune then list worktrees to verify",
+      command:
+        "<%= config.bin %> <%= command.id %> && <%= config.bin %> git:wtl",
+    },
   ];
 
   async run(): Promise<void> {

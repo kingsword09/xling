@@ -29,6 +29,11 @@ export default class Prr extends Command {
       command:
         "<%= config.bin %> <%= command.id %> 789 --no-gh --remote upstream",
     },
+    {
+      description: "Checkout a PR from another repo (owner:repo#id)",
+      command:
+        "<%= config.bin %> <%= command.id %> octo/demo-repo#321 --branch demo-pr",
+    },
   ];
 
   static args: Interfaces.ArgInput = {

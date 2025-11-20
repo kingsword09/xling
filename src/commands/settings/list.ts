@@ -24,9 +24,23 @@ export default class SettingsList extends Command {
   `;
 
   static examples: Command.Example[] = [
-    "<%= config.bin %> <%= command.id %> --tool claude --scope user",
-    "<%= config.bin %> <%= command.id %> --tool codex --scope user --table",
-    "<%= config.bin %> -t gemini -s project --no-json",
+    {
+      description: "List Claude user settings (YAML-style summary)",
+      command: "<%= config.bin %> <%= command.id %> --tool claude --scope user",
+    },
+    {
+      description: "Show Codex providers in a table",
+      command:
+        "<%= config.bin %> <%= command.id %> --tool codex --scope user --table",
+    },
+    {
+      description: "Inspect Gemini project settings as JSON",
+      command: "<%= config.bin %> <%= command.id %> -t gemini -s project --json",
+    },
+    {
+      description: "Check xling shortcut config location",
+      command: "<%= config.bin %> <%= command.id %> --tool xling --scope user",
+    },
   ];
 
   static flags: Interfaces.FlagInput = {

@@ -460,6 +460,7 @@ Add shortcuts to ~/.claude/xling.json:
 
 - [`x`](./x.md) - Quick launcher for AI CLI tools
 - [`p`](./p.md) - Prompt AI tools with input
+- [`discuss`](./discuss.md) - Multi-model roundtable using configured providers
 - [`settings:list`](./settings.md) - List configuration settings
 
 ## See Also
