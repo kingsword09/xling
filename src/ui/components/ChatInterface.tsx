@@ -556,50 +556,43 @@ export function ChatInterface({ sessionId, sessionName }: ChatInterfaceProps) {
     <>
       <div className="flex flex-col h-full relative">
         {/* Header */}
-        <header className="relative overflow-hidden border-b border-white/10 bg-white/30 dark:bg-black/30 backdrop-blur-xl shadow-[0_15px_60px_rgba(0,0,0,0.08)]">
-          <div className="absolute inset-0 opacity-80 bg-gradient-to-r from-primary/10 via-emerald-500/10 to-sky-300/10 dark:from-primary/20 dark:via-emerald-500/15 dark:to-sky-400/10 pointer-events-none" />
-          <div className="absolute -left-1/3 top-[-35%] h-[220px] w-[420px] rounded-full bg-[radial-gradient(circle_at_center,rgba(94,234,212,0.24),transparent_60%)] blur-3xl animate-aurora pointer-events-none" />
-          <div className="absolute right-[-25%] -top-1/2 h-[260px] w-[360px] rounded-full bg-[radial-gradient(circle_at_center,rgba(59,130,246,0.22),transparent_55%)] blur-3xl animate-aurora-slow pointer-events-none" />
+        <header className="relative border-b-2 border-neo-black bg-neo-purple shadow-neo z-10">
           <div className="relative px-6 py-5 flex flex-col gap-4">
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div className="flex items-start gap-3">
-                <div className="h-12 w-12 rounded-2xl border border-white/30 bg-white/70 dark:bg-white/10 shadow-inner flex items-center justify-center text-primary">
-                  <Bot className="h-5 w-5" />
+                <div className="h-12 w-12 border-2 border-neo-black bg-neo-white shadow-neo-sm flex items-center justify-center text-neo-black">
+                  <Bot className="h-6 w-6" />
                 </div>
-                <div className="space-y-2">
-                  <div className="text-[11px] uppercase tracking-[0.26em] text-muted-foreground/70 flex items-center gap-2">
+                <div className="space-y-1">
+                  <div className="text-[11px] uppercase tracking-[0.2em] font-bold text-black flex items-center gap-2">
                     <span
                       className={cn(
-                        "relative inline-flex h-2.5 w-2.5 rounded-full",
+                        "relative inline-flex h-3 w-3 border border-neo-black",
                         status === "discussing" || status === "speaking"
-                          ? "bg-emerald-400 shadow-[0_0_0_6px_rgba(16,185,129,0.2)] animate-pulse"
-                          : "bg-amber-400 shadow-[0_0_0_6px_rgba(251,191,36,0.18)]",
+                          ? "bg-neo-green animate-pulse"
+                          : "bg-neo-yellow",
                       )}
                     />
                     {t("multiModelDiscuss")}
                   </div>
                   <div className="flex items-center gap-2 flex-wrap">
-                    <h1 className="text-xl md:text-2xl font-semibold tracking-tight text-foreground">
+                    <h1 className="text-xl md:text-2xl font-bold tracking-tight text-black uppercase">
                       {topic || sessionName}
                     </h1>
-                    <span className="text-sm text-muted-foreground/80">
-                      {t("sessionLabel")}: {sessionName}
-                    </span>
                   </div>
-                  <div className="flex flex-wrap items-center gap-2 text-xs font-semibold">
+                  <div className="flex flex-wrap items-center gap-2 text-xs font-bold">
                     <span
                       className={cn(
-                        "inline-flex items-center gap-2 px-3 py-1.5 rounded-full border shadow-sm bg-gradient-to-r backdrop-blur",
+                        "inline-flex items-center gap-2 px-3 py-1 border-2 border-neo-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]",
                         status === "speaking"
-                          ? "from-indigo-300/50 to-fuchsia-300/30 text-indigo-900 dark:text-indigo-100 border-indigo-200/40"
+                          ? "bg-neo-blue text-black"
                           : status === "discussing"
-                            ? "from-emerald-300/50 to-teal-200/30 text-emerald-900 dark:text-emerald-100 border-emerald-200/40"
+                            ? "bg-neo-green text-black"
                             : status === "paused"
-                              ? "from-amber-200/70 to-orange-200/40 text-amber-900 dark:text-amber-100 border-amber-200/50"
-                              : "from-slate-200/80 to-slate-50/40 text-slate-900 dark:text-slate-100 border-white/40",
+                              ? "bg-neo-yellow text-black"
+                              : "bg-neo-white text-neo-black",
                       )}
                     >
-                      <span className="h-2 w-2 rounded-full bg-current shadow-[0_0_0_3px_rgba(0,0,0,0.04)]" />
                       {status === "speaking"
                         ? t("statusSpeaking")
                         : status === "discussing"
@@ -610,22 +603,21 @@ export function ChatInterface({ sessionId, sessionName }: ChatInterfaceProps) {
                     </span>
                     <span
                       className={cn(
-                        "inline-flex items-center gap-2 px-3 py-1.5 rounded-full border shadow-sm bg-gradient-to-r backdrop-blur",
+                        "inline-flex items-center gap-2 px-3 py-1 border-2 border-neo-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]",
                         mode === "auto"
-                          ? "from-sky-300/40 to-cyan-200/40 text-sky-900 dark:text-sky-100 border-sky-200/50"
-                          : "from-rose-200/60 to-orange-200/40 text-rose-900 dark:text-rose-100 border-rose-200/50",
+                          ? "bg-neo-blue text-black"
+                          : "bg-neo-red text-black",
                       )}
                     >
-                      <span className="h-2 w-2 rounded-full bg-current opacity-70" />
                       {t("modeLabel")}:{" "}
                       {mode === "auto" ? t("modeAuto") : t("modeManual")}
                     </span>
-                    <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/30 bg-white/60 dark:bg-white/10 shadow-sm backdrop-blur">
-                      <Users className="h-3.5 w-3.5 opacity-70" />
+                    <span className="inline-flex items-center gap-2 px-3 py-1 border-2 border-neo-black bg-neo-white text-neo-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                      <Users className="h-3.5 w-3.5" />
                       {t("participantsCount", { count: participants.length })}
                     </span>
-                    <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/20 bg-white/60 dark:bg-white/10 shadow-sm backdrop-blur">
-                      <Bot className="h-3.5 w-3.5 opacity-70" />
+                    <span className="inline-flex items-center gap-2 px-3 py-1 border-2 border-neo-black bg-neo-white text-neo-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                      <Bot className="h-3.5 w-3.5" />
                       {currentSpeaker
                         ? `${t("nowResponding")}: ${currentSpeaker.name}`
                         : t("awaitingSpeaker")}
@@ -640,10 +632,10 @@ export function ChatInterface({ sessionId, sessionName }: ChatInterfaceProps) {
                     size="icon"
                     onClick={handleNextTurn}
                     disabled={manualTurnDisabled}
-                    className="text-primary hover:bg-primary/10 hover:text-primary rounded-full shadow-sm hover:-translate-y-[1px] transition-transform"
+                    className="bg-neo-white text-neo-black border-2 border-neo-black hover:bg-neo-green hover:text-black hover:shadow-neo-sm rounded-none"
                     title={t("next")}
                   >
-                    <SkipForward className="h-4 w-4" />
+                    <SkipForward className="h-5 w-5" />
                     <span className="sr-only">{t("next")}</span>
                   </Button>
                 )}
@@ -652,10 +644,10 @@ export function ChatInterface({ sessionId, sessionName }: ChatInterfaceProps) {
                     size="icon"
                     variant="ghost"
                     onClick={handleInterrupt}
-                    className="rounded-full hover:bg-white/30 dark:hover:bg-white/10 shadow-sm hover:-translate-y-[1px] transition-transform"
+                    className="bg-neo-white text-neo-black border-2 border-neo-black hover:bg-neo-red hover:text-white hover:shadow-neo-sm rounded-none"
                     title={t("interrupt")}
                   >
-                    <Ban className="h-4 w-4" />
+                    <Ban className="h-5 w-5" />
                     <span className="sr-only">{t("interrupt")}</span>
                   </Button>
                 )}
@@ -664,10 +656,10 @@ export function ChatInterface({ sessionId, sessionName }: ChatInterfaceProps) {
                   <Button
                     size="icon"
                     onClick={handleResume}
-                    className="rounded-full bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 hover:text-emerald-700 border border-emerald-500/20 shadow-sm hover:-translate-y-[1px] transition-transform"
+                    className="bg-neo-green text-black border-2 border-neo-black hover:bg-neo-green/80 hover:shadow-neo-sm rounded-none"
                     title={t("resume")}
                   >
-                    <Play className="h-4 w-4 fill-current" />
+                    <Play className="h-5 w-5 fill-current" />
                     <span className="sr-only">{t("resume")}</span>
                   </Button>
                 ) : (
@@ -675,11 +667,11 @@ export function ChatInterface({ sessionId, sessionName }: ChatInterfaceProps) {
                     size="icon"
                     variant="ghost"
                     onClick={handlePause}
-                    className="rounded-full hover:bg-white/30 dark:hover:bg-white/10 shadow-sm hover:-translate-y-[1px] transition-transform"
+                    className="bg-neo-white text-neo-black border-2 border-neo-black hover:bg-neo-yellow hover:text-black hover:shadow-neo-sm rounded-none"
                     disabled={status === "idle"}
                     title={t("pause")}
                   >
-                    <Pause className="h-4 w-4" />
+                    <Pause className="h-5 w-5" />
                     <span className="sr-only">{t("pause")}</span>
                   </Button>
                 )}
@@ -689,10 +681,10 @@ export function ChatInterface({ sessionId, sessionName }: ChatInterfaceProps) {
                   variant="ghost"
                   onClick={handleReset}
                   disabled={aiParticipants.length === 0}
-                  className="rounded-full hover:bg-white/30 dark:hover:bg-white/10 shadow-sm hover:-translate-y-[1px] transition-transform"
+                  className="bg-neo-white text-neo-black border-2 border-neo-black hover:bg-neo-red hover:text-white hover:shadow-neo-sm rounded-none"
                   title={t("reset")}
                 >
-                  <RotateCcw className="h-4 w-4" />
+                  <RotateCcw className="h-5 w-5" />
                   <span className="sr-only">{t("reset")}</span>
                 </Button>
                 <Button
@@ -700,10 +692,10 @@ export function ChatInterface({ sessionId, sessionName }: ChatInterfaceProps) {
                   variant="ghost"
                   disabled={summaryDisabled}
                   onClick={openSummaryDialog}
-                  className="rounded-full hover:bg-white/30 dark:hover:bg-white/10 shadow-sm hover:-translate-y-[1px] transition-transform"
+                  className="bg-neo-white text-neo-black border-2 border-neo-black hover:bg-neo-purple hover:text-black hover:shadow-neo-sm rounded-none"
                   title={t("summarize")}
                 >
-                  <Sparkles className="h-4 w-4" />
+                  <Sparkles className="h-5 w-5" />
                   <span className="sr-only">{t("summarize")}</span>
                 </Button>
                 <Button
@@ -711,34 +703,14 @@ export function ChatInterface({ sessionId, sessionName }: ChatInterfaceProps) {
                   size="icon"
                   onClick={() => setShowParticipants(!showParticipants)}
                   className={cn(
-                    "rounded-full hover:bg-white/30 dark:hover:bg-white/10 transition-all shadow-sm hover:-translate-y-[1px]",
-                    showParticipants &&
-                      "bg-white/60 dark:bg-white/10 text-foreground",
+                    "bg-neo-white text-neo-black border-2 border-neo-black hover:bg-neo-blue hover:text-black hover:shadow-neo-sm rounded-none transition-all",
+                    showParticipants && "bg-neo-blue text-black shadow-neo-sm",
                   )}
                   title={t("toggleParticipants")}
                 >
                   <Users className="h-5 w-5" />
                 </Button>
               </div>
-            </div>
-            <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground/80">
-              <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/60 dark:bg-white/5 border border-white/30 backdrop-blur shadow-sm">
-                <span className="h-2 w-2 rounded-full bg-primary/70 animate-pulse" />
-                {t("topicPrefix")}: {topic || t("untitled")}
-              </span>
-              <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/60 dark:bg-white/5 border border-white/30 backdrop-blur shadow-sm">
-                <span className="h-2 w-2 rounded-full bg-emerald-500/70" />
-                {t("aiVoicesTotal", {
-                  ai: aiParticipants.length,
-                  total: participants.length,
-                })}
-              </span>
-              <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/60 dark:bg-white/5 border border-white/30 backdrop-blur shadow-sm">
-                <span className="h-2 w-2 rounded-full bg-sky-500/70" />
-                {currentSpeaker
-                  ? `${t("nowResponding")}: ${currentSpeaker.name}`
-                  : t("awaitingSpeaker")}
-              </span>
             </div>
           </div>
         </header>
@@ -747,14 +719,14 @@ export function ChatInterface({ sessionId, sessionName }: ChatInterfaceProps) {
           <div className="flex flex-1 flex-col min-w-0">
             {error && (
               <div className="px-6 py-2 z-20">
-                <div className="flex items-center gap-3 bg-destructive/10 border border-destructive/20 backdrop-blur-md p-3 rounded-xl text-sm text-destructive shadow-lg">
-                  <AlertCircle className="h-4 w-4 shrink-0" />
-                  <span className="flex-1 font-medium">{error}</span>
+                <div className="flex items-center gap-3 bg-neo-red border-2 border-neo-black p-3 shadow-neo text-sm text-white font-bold">
+                  <AlertCircle className="h-5 w-5 shrink-0 text-white" />
+                  <span className="flex-1">{error}</span>
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => setError(null)}
-                    className="h-auto p-1 hover:bg-destructive/10 rounded-full"
+                    className="h-auto p-1 hover:bg-black/20 rounded-none text-white"
                   >
                     {t("dismiss")}
                   </Button>
@@ -764,7 +736,7 @@ export function ChatInterface({ sessionId, sessionName }: ChatInterfaceProps) {
 
             {/* Messages */}
             <div className="relative flex flex-1 min-h-0">
-              <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-transparent dark:from-primary/10" />
+              {/* Removed gradient for brutalism */}
               <ScrollArea
                 className="flex-1 h-full"
                 viewportRef={scrollViewportRef}
@@ -901,7 +873,7 @@ export function ChatInterface({ sessionId, sessionName }: ChatInterfaceProps) {
                 onSubmit={handleSend}
                 className="max-w-4xl mx-auto flex gap-3 relative items-end"
               >
-                <div className="relative flex-1 bg-white/40 dark:bg-black/40 backdrop-blur-xl rounded-[28px] border border-black/10 dark:border-white/10 shadow-lg shadow-black/5 focus-within:shadow-xl focus-within:border-primary/20 focus-within:bg-white/60 dark:focus-within:bg-black/60 transition-all duration-300">
+                <div className="relative flex-1">
                   <Input
                     ref={inputRef}
                     value={input}
@@ -918,10 +890,10 @@ export function ChatInterface({ sessionId, sessionName }: ChatInterfaceProps) {
                         : t("discussionStopped")
                     }
                     disabled={!canSendMessage}
-                    className="flex-1 bg-transparent border-0 focus-visible:ring-0 h-14 px-6 rounded-[28px] text-[16px] placeholder:text-muted-foreground/60"
+                    className="flex-1 neo-input h-14 px-6 text-[16px] placeholder:text-muted-foreground/60"
                   />
                   {mentionActive && (
-                    <div className="absolute bottom-full left-0 mb-3 w-64 rounded-2xl border border-white/10 bg-background/80 backdrop-blur-2xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-2">
+                    <div className="absolute bottom-full left-0 mb-3 w-64 neo-box p-0 overflow-hidden animate-in fade-in slide-in-from-bottom-2">
                       {mentionSuggestions.length === 0 ? (
                         <div className="px-4 py-3 text-sm text-muted-foreground">
                           {t("noParticipantsFound")}
@@ -932,22 +904,29 @@ export function ChatInterface({ sessionId, sessionName }: ChatInterfaceProps) {
                             key={participant.id}
                             type="button"
                             className={cn(
-                              "flex w-full items-center gap-3 px-4 py-3 text-sm transition-all",
+                              "flex w-full items-center gap-3 px-4 py-3 text-sm transition-all border-b-2 border-neo-black last:border-0",
                               index === mentionHighlightIndex
-                                ? "bg-primary/10 text-primary"
-                                : "hover:bg-white/10",
+                                ? "bg-neo-yellow text-black"
+                                : "hover:bg-neo-yellow/20",
                             )}
                             onMouseDown={(event) => {
                               event.preventDefault();
                               insertMention(participant);
                             }}
                           >
-                            <Avatar className="h-6 w-6 rounded-md">
-                              <AvatarFallback className="text-[10px] rounded-md">
+                            <Avatar className="h-6 w-6 rounded-none border border-neo-black">
+                              <AvatarFallback
+                                className={cn(
+                                  "text-[10px] rounded-none font-bold",
+                                  participant.type === "ai"
+                                    ? "bg-neo-purple text-black"
+                                    : "bg-neo-green text-black",
+                                )}
+                              >
                                 {participant.name.substring(0, 2)}
                               </AvatarFallback>
                             </Avatar>
-                            <span className="font-medium">
+                            <span className="font-bold uppercase">
                               {participant.name}
                             </span>
                           </button>
@@ -961,13 +940,13 @@ export function ChatInterface({ sessionId, sessionName }: ChatInterfaceProps) {
                   size="icon"
                   disabled={!input.trim() || !canSendMessage}
                   className={cn(
-                    "h-14 w-14 rounded-full transition-all duration-300 shrink-0 shadow-lg",
+                    "h-14 w-14 neo-btn shrink-0",
                     input.trim() && canSendMessage
-                      ? "bg-primary text-primary-foreground hover:scale-105 hover:shadow-primary/25"
-                      : "bg-white/20 dark:bg-white/10 text-muted-foreground shadow-none",
+                      ? "bg-neo-blue text-black hover:bg-neo-blue/90"
+                      : "bg-gray-200 text-gray-400 border-gray-400 shadow-none",
                   )}
                 >
-                  <Send className="h-5 w-5 ml-0.5" />
+                  <Send className="h-6 w-6 ml-0.5" />
                 </Button>
               </form>
             </div>
@@ -994,25 +973,33 @@ export function ChatInterface({ sessionId, sessionName }: ChatInterfaceProps) {
           }
         }}
       >
-        <DialogContent className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border border-white/30 shadow-2xl">
-          <DialogHeader>
-            <DialogTitle>{t("generateSummary")}</DialogTitle>
-            <DialogDescription>{t("selectSummarizer")}</DialogDescription>
+        <DialogContent className="neo-box p-0 overflow-hidden sm:max-w-[425px]">
+          <DialogHeader className="bg-neo-yellow border-b-2 border-neo-black p-6">
+            <DialogTitle className="text-xl font-bold uppercase">
+              {t("generateSummary")}
+            </DialogTitle>
+            <DialogDescription className="text-black font-medium">
+              {t("selectSummarizer")}
+            </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-4 p-6">
             <div className="space-y-2">
-              <Label>{t("summarizer")}</Label>
+              <Label className="font-bold uppercase">{t("summarizer")}</Label>
               <Select
                 value={selectedSummaryModel}
                 onValueChange={setSelectedSummaryModel}
                 disabled={summarizableParticipants.length === 0}
               >
-                <SelectTrigger>
+                <SelectTrigger className="neo-input">
                   <SelectValue placeholder={t("selectParticipant")} />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="neo-box p-0">
                   {summarizableParticipants.map((participant) => (
-                    <SelectItem key={participant.id} value={participant.id}>
+                    <SelectItem
+                      key={participant.id}
+                      value={participant.id}
+                      className="font-bold hover:bg-neo-yellow focus:bg-neo-yellow cursor-pointer border-b-2 border-neo-black last:border-0 p-3"
+                    >
                       {participant.name}
                     </SelectItem>
                   ))}
@@ -1020,21 +1007,28 @@ export function ChatInterface({ sessionId, sessionName }: ChatInterfaceProps) {
               </Select>
             </div>
             {summaryErrorMessage && (
-              <p className="text-sm text-destructive">{summaryErrorMessage}</p>
+              <div className="bg-neo-red text-white p-3 border-2 border-neo-black font-bold text-sm shadow-neo-sm">
+                {summaryErrorMessage}
+              </div>
             )}
             {summaryResult && (
-              <div className="rounded-lg border bg-muted/40 p-3 text-sm whitespace-pre-wrap break-words max-h-64 overflow-y-auto">
+              <div className="neo-box-sm p-3 text-sm whitespace-pre-wrap break-words max-h-64 overflow-y-auto bg-neo-bg">
                 {summaryResult}
               </div>
             )}
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={closeSummaryDialog}>
+          <DialogFooter className="p-6 pt-0 gap-2">
+            <Button
+              variant="ghost"
+              onClick={closeSummaryDialog}
+              className="neo-btn bg-neo-white text-neo-black hover:bg-gray-100"
+            >
               {t("close")}
             </Button>
             <Button
               onClick={handleRunSummary}
               disabled={!selectedSummaryModel || isSummarizing}
+              className="neo-btn bg-neo-purple text-black hover:bg-neo-purple/90"
             >
               {isSummarizing ? t("summarizing") : t("generate")}
             </Button>

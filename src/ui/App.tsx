@@ -89,7 +89,7 @@ function AppContent() {
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_60%_70%,rgba(236,72,153,0.12),transparent_50%)] opacity-60 blur-3xl" />
       {/* Desktop Sidebar */}
       <div className="hidden md:block w-[280px] h-full shrink-0">
-        <div className="h-full rounded-2xl border border-white/30 bg-white/60 dark:bg-black/50 backdrop-blur-2xl shadow-lg overflow-hidden">
+        <div className="h-full rounded-2xl border-2 border-[color:var(--neo-border)] neo-surface-strong shadow-neo-lg overflow-hidden">
           <Sidebar
             sessions={sessions}
             currentSessionId={currentSessionId}
@@ -106,7 +106,7 @@ function AppContent() {
           side="left"
           className="p-0 w-[280px] border-r-0 bg-transparent shadow-none"
         >
-          <div className="h-full rounded-r-2xl border-r border-y border-l-0 bg-white/80 dark:bg-background/80 backdrop-blur-2xl overflow-hidden shadow-xl">
+          <div className="h-full rounded-r-2xl border-2 border-l-0 border-[color:var(--neo-border)] neo-surface shadow-neo">
             <Sidebar
               sessions={sessions}
               currentSessionId={currentSessionId}
@@ -131,7 +131,7 @@ function AppContent() {
             <Button
               size="icon"
               variant="ghost"
-              className="rounded-full border border-white/40 bg-white/90 dark:bg-white/10 shadow-sm"
+              className="rounded-full border-2 border-[color:var(--neo-border)] bg-[color:var(--neo-surface)] text-foreground shadow-neo-sm hover:bg-[color:var(--neo-surface-strong)]"
               title={t("language")}
               onClick={toggleLocale}
             >
@@ -142,7 +142,7 @@ function AppContent() {
               size="icon"
               variant="ghost"
               onClick={toggleTheme}
-              className="rounded-full border border-white/40 bg-white/90 dark:bg-white/10 shadow-sm"
+              className="rounded-full border-2 border-[color:var(--neo-border)] bg-[color:var(--neo-surface)] text-foreground shadow-neo-sm hover:bg-[color:var(--neo-surface-strong)]"
               title={t("theme")}
             >
               {theme === "light" ? (
@@ -156,7 +156,7 @@ function AppContent() {
           <Button
             size="icon"
             variant="ghost"
-            className="rounded-full border border-white/40 bg-white/90 dark:bg-white/10 shadow-sm"
+            className="rounded-full border-2 border-[color:var(--neo-border)] bg-[color:var(--neo-surface)] text-foreground shadow-neo-sm hover:bg-[color:var(--neo-surface-strong)]"
             title="Quick settings"
           >
             <Sparkles className="h-4 w-4" />
@@ -170,14 +170,14 @@ function AppContent() {
             variant="ghost"
             size="icon"
             onClick={() => setIsMobileMenuOpen(true)}
-            className="hover:bg-secondary/50 bg-white/70 dark:bg-white/10 backdrop-blur-xl border border-white/40 shadow-sm"
+            className="hover:bg-secondary/50 bg-[color:var(--neo-surface)] backdrop-blur-xl border-2 border-[color:var(--neo-border)] shadow-neo-sm text-foreground"
           >
             <Menu className="h-5 w-5" />
           </Button>
         </div>
 
-        <div className="flex-1 h-full rounded-2xl border border-white/30 bg-white/60 dark:bg-black/50 backdrop-blur-2xl shadow-xl overflow-hidden flex flex-col relative">
-          <div className="absolute inset-0 bg-gradient-to-br from-white/40 via-white/30 to-white/10 dark:from-white/10 dark:via-white/5 dark:to-white/0 pointer-events-none" />
+        <div className="flex-1 h-full rounded-2xl border-2 border-[color:var(--neo-border)] neo-surface-strong shadow-neo-lg overflow-hidden flex flex-col relative">
+          <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_35%_20%,var(--neo-overlay),transparent_55%)]" />
           {currentSessionId && currentSession ? (
             <ChatInterface
               key={currentSessionId} // Force remount on session change

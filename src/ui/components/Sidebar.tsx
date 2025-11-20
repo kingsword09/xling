@@ -32,27 +32,26 @@ export function Sidebar({
   return (
     <div
       className={cn(
-        "relative flex h-full flex-col overflow-hidden bg-gradient-to-b from-white/80 via-white/60 to-white/30 dark:from-white/5 dark:via-white/5 dark:to-white/5 backdrop-blur-2xl",
-        "before:absolute before:inset-x-3 before:top-2 before:h-28 before:rounded-full before:bg-[radial-gradient(circle_at_center,rgba(59,130,246,0.24),transparent_55%)] before:blur-3xl before:opacity-80 before:pointer-events-none before:-z-10",
-        "after:absolute after:-left-10 after:bottom-10 after:h-28 after:w-28 after:rounded-full after:bg-[radial-gradient(circle_at_center,rgba(16,185,129,0.18),transparent_55%)] after:blur-3xl after:opacity-80 after:pointer-events-none after:-z-10",
+        "relative flex h-full flex-col overflow-hidden bg-neo-bg border-r-2 border-neo-black",
         className,
       )}
     >
       <div className="p-3 pb-2">
         <Button
           onClick={onCreateSession}
-          className="w-full justify-start gap-2 rounded-xl border border-white/40 bg-white/80 dark:bg-white/10 shadow-lg shadow-primary/10 hover:bg-primary/10 hover:text-primary transition-all hover:-translate-y-[1px]"
-          variant="ghost"
+          className="w-full justify-start gap-2 neo-btn bg-neo-yellow text-black hover:bg-neo-yellow/90"
         >
           <MessageSquarePlus className="h-5 w-5" />
-          <span className="text-base font-semibold">{t("newDiscussion")}</span>
+          <span className="text-base font-bold uppercase">
+            {t("newDiscussion")}
+          </span>
         </Button>
       </div>
 
       <ScrollArea className="flex-1 px-3 pb-3">
         <div className="space-y-2 pb-6">
           {sessions.length === 0 && (
-            <div className="text-center text-sm text-muted-foreground/80 py-8 rounded-xl border border-dashed border-white/40 bg-white/70 dark:bg-white/5 backdrop-blur">
+            <div className="text-center text-sm text-neo-black font-bold py-8 neo-box-sm border-dashed">
               {t("noConversations")}
             </div>
           )}
@@ -60,20 +59,22 @@ export function Sidebar({
             <div
               key={session.id}
               className={cn(
-                "group relative flex items-center justify-between rounded-xl px-3 py-2.5 text-[13px] cursor-pointer transition-all border border-transparent",
-                "bg-white/70 dark:bg-white/5 backdrop-blur hover:-translate-y-[1px] shadow-sm hover:shadow-md hover:border-white/50",
-                currentSessionId === session.id &&
-                  "bg-gradient-to-r from-primary/90 via-primary/80 to-primary/70 text-primary-foreground shadow-lg border-primary/40",
+                "group relative flex items-center justify-between px-3 py-2.5 text-[13px] cursor-pointer transition-all border-2 border-neo-black mb-2 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none",
+                currentSessionId === session.id
+                  ? "bg-neo-purple text-black"
+                  : "bg-neo-white text-neo-black hover:bg-neo-purple/20",
               )}
               onClick={() => onSelectSession(session.id)}
             >
               <div className="flex flex-col overflow-hidden gap-0.5">
-                <span className="truncate font-semibold">{session.name}</span>
+                <span className="truncate font-bold uppercase">
+                  {session.name}
+                </span>
                 <span
                   className={cn(
-                    "text-[11px] truncate",
+                    "text-[11px] truncate font-medium",
                     currentSessionId === session.id
-                      ? "text-primary-foreground/80"
+                      ? "text-neo-black/80"
                       : "text-muted-foreground",
                   )}
                 >
@@ -84,10 +85,10 @@ export function Sidebar({
                 variant="ghost"
                 size="icon"
                 className={cn(
-                  "h-7 w-7 transition-all rounded-lg hover:-translate-y-[1px]",
+                  "h-7 w-7 transition-all rounded-none border-2 border-transparent hover:border-neo-black",
                   currentSessionId === session.id
-                    ? "text-primary-foreground/70 hover:text-primary-foreground hover:bg-primary-foreground/20"
-                    : "text-muted-foreground/60 hover:text-destructive hover:bg-destructive/10",
+                    ? "text-neo-black hover:bg-neo-white/20"
+                    : "text-muted-foreground hover:text-neo-red hover:bg-neo-red/10",
                 )}
                 onClick={(e) => {
                   e.stopPropagation();

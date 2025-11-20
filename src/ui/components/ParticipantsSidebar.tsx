@@ -21,6 +21,7 @@ import {
 import { Input } from "@/ui/components/ui/input";
 import { Label } from "@/ui/components/ui/label";
 import { useI18n } from "@/ui/i18n";
+import { cn } from "@/ui/lib/utils";
 
 interface Participant {
   id: string;
@@ -128,22 +129,19 @@ export function ParticipantsSidebar({
   };
 
   return (
-    <div className="flex h-full w-80 flex-col bg-gradient-to-b from-white/85 via-white/60 to-white/40 dark:from-white/10 dark:via-white/5 dark:to-white/5 backdrop-blur-2xl relative overflow-hidden border-l border-white/10">
-      <div className="pointer-events-none absolute inset-x-4 top-2 h-24 bg-[radial-gradient(circle_at_20%_20%,rgba(59,130,246,0.24),transparent_55%)] blur-3xl opacity-70" />
-      <div className="pointer-events-none absolute inset-x-4 top-12 h-28 bg-[radial-gradient(circle_at_80%_10%,rgba(16,185,129,0.24),transparent_55%)] blur-3xl opacity-60" />
-      <div className="absolute inset-y-0 left-0 w-[1px] bg-gradient-to-b from-transparent via-white/40 to-transparent pointer-events-none" />
-      <div className="flex items-center justify-between p-4 border-b border-white/20 relative">
+    <div className="flex h-full w-80 flex-col bg-neo-bg border-l-2 border-neo-black relative">
+      <div className="flex items-center justify-between p-4 border-b-2 border-neo-black bg-neo-yellow text-black">
         <div className="space-y-1">
-          <h2 className="text-lg font-semibold tracking-tight">
+          <h2 className="text-lg font-bold tracking-tight uppercase">
             {t("participants")}
           </h2>
-          <div className="flex items-center gap-2 text-[11px] font-semibold text-muted-foreground/80">
-            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-white/70 dark:bg-white/10 border border-white/40">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+          <div className="flex items-center gap-2 text-[11px] font-bold text-black">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 border-2 border-neo-black bg-neo-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-neo-black">
+              <span className="h-1.5 w-1.5 bg-neo-green border border-neo-black" />
               {t("participantsCount", { count: participants.length })}
             </span>
-            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-white/70 dark:bg-white/10 border border-white/40">
-              <span className="h-1.5 w-1.5 rounded-full bg-sky-500" />
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 border-2 border-neo-black bg-neo-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-neo-black">
+              <span className="h-1.5 w-1.5 bg-neo-blue border border-neo-black" />
               {mode === "auto" ? t("modeAuto") : t("modeManual")}
             </span>
           </div>
@@ -152,46 +150,46 @@ export function ParticipantsSidebar({
           variant="ghost"
           size="icon"
           onClick={onClose}
-          className="md:hidden hover:bg-white/30 dark:hover:bg-white/10 rounded-full"
+          className="md:hidden hover:bg-black/10 rounded-none"
         >
           <X className="h-4 w-4" />
         </Button>
       </div>
 
-      <ScrollArea className="flex-1 p-4 relative">
-        <div className="space-y-3">
+      <ScrollArea className="flex-1 p-4 relative bg-neo-bg">
+        <div className="space-y-4">
           {participants.map((participant) => (
             <div
               key={participant.id}
-              className="flex items-center justify-between group rounded-xl border border-white/30 bg-white/75 dark:bg-white/5 p-3 hover:-translate-y-[1px] hover:shadow-md hover:border-white/50 transition-all backdrop-blur relative overflow-hidden"
+              className="flex items-center justify-between group neo-box-sm p-3 hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none transition-all"
             >
-              <div className="pointer-events-none absolute right-0 top-0 h-full w-16 bg-gradient-to-l from-primary/10 via-transparent to-transparent opacity-60" />
               <div className="flex items-center gap-3 overflow-hidden">
-                <Avatar className="h-9 w-9 border border-white/50 shadow-inner">
+                <Avatar className="h-10 w-10 border-2 border-neo-black rounded-none">
                   <AvatarFallback
-                    className={
+                    className={cn(
+                      "rounded-none font-bold border-neo-black",
                       participant.type === "ai"
-                        ? "bg-primary/10 text-primary"
-                        : "bg-secondary text-secondary-foreground"
-                    }
+                        ? "bg-neo-purple text-black"
+                        : "bg-neo-green text-black",
+                    )}
                   >
                     {participant.type === "ai" ? (
-                      <Bot className="h-4 w-4" />
+                      <Bot className="h-5 w-5" />
                     ) : (
-                      <User className="h-4 w-4" />
+                      <User className="h-5 w-5" />
                     )}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex flex-col truncate">
                   <span
-                    className="text-sm font-semibold truncate"
+                    className="text-sm font-bold truncate"
                     title={participant.name}
                   >
                     {participant.name}
                   </span>
                   {participant.model && (
                     <span
-                      className="text-xs text-muted-foreground truncate"
+                      className="text-xs text-muted-foreground truncate font-medium"
                       title={participant.model}
                     >
                       {participant.model}
@@ -200,12 +198,12 @@ export function ParticipantsSidebar({
                 </div>
               </div>
 
-              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-2 shrink-0">
+              <div className="flex items-center gap-1 ml-2 shrink-0">
                 {participant.type === "ai" && (
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-100/60 dark:hover:bg-green-500/15 flex-shrink-0 rounded-full"
+                    className="h-8 w-8 hover:bg-neo-green hover:text-black border-2 border-transparent hover:border-neo-black hover:shadow-neo-sm rounded-none"
                     onClick={() => handleTriggerTurn(participant.id)}
                     title={mode === "manual" ? t("next") : t("next")}
                   >
@@ -216,7 +214,7 @@ export function ParticipantsSidebar({
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10 flex-shrink-0 rounded-full"
+                    className="h-8 w-8 hover:bg-neo-red hover:text-black border-2 border-transparent hover:border-neo-black hover:shadow-neo-sm rounded-none"
                     onClick={() => handleRemoveParticipant(participant.id)}
                     title={t("remove")}
                   >
@@ -229,28 +227,34 @@ export function ParticipantsSidebar({
         </div>
       </ScrollArea>
 
-      <div className="p-4 border-t border-white/20 bg-white/60 dark:bg-white/5 backdrop-blur relative">
+      <div className="p-4 border-t-2 border-neo-black bg-neo-white">
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogTrigger asChild>
-            <Button className="w-full gap-2 rounded-xl shadow-md shadow-primary/10">
+            <Button className="w-full gap-2 neo-btn bg-neo-black text-neo-yellow dark:bg-neo-yellow dark:text-black hover:bg-neo-black/90 dark:hover:bg-neo-yellow/90">
               <Plus className="h-4 w-4" />
               {t("addParticipant")}
             </Button>
           </DialogTrigger>
-          <DialogContent className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border border-white/30 shadow-2xl">
-            <DialogHeader>
-              <DialogTitle>{t("addParticipant")}</DialogTitle>
+          <DialogContent className="neo-box p-0 overflow-hidden sm:max-w-[425px]">
+            <DialogHeader className="p-6 bg-neo-yellow border-b-2 border-neo-black text-black">
+              <DialogTitle className="text-xl font-bold uppercase">
+                {t("addParticipant")}
+              </DialogTitle>
             </DialogHeader>
-            <div className="grid gap-4 py-4">
+            <div className="grid gap-6 p-6">
               <div className="grid gap-2">
-                <Label>{t("model")}</Label>
+                <Label className="font-bold">{t("model")}</Label>
                 <Select value={selectedModel} onValueChange={setSelectedModel}>
-                  <SelectTrigger className="rounded-xl border-white/40 bg-white/70 dark:bg-white/10">
+                  <SelectTrigger className="neo-input w-full">
                     <SelectValue placeholder={t("model")} />
                   </SelectTrigger>
-                  <SelectContent className="rounded-xl border-white/40 bg-white/90 dark:bg-slate-900/90">
+                  <SelectContent className="neo-box border-2 border-neo-black">
                     {availableModels.map((model) => (
-                      <SelectItem key={model} value={model}>
+                      <SelectItem
+                        key={model}
+                        value={model}
+                        className="focus:bg-neo-purple focus:text-black cursor-pointer font-medium"
+                      >
                         {model}
                       </SelectItem>
                     ))}
@@ -258,36 +262,36 @@ export function ParticipantsSidebar({
                 </Select>
               </div>
               <div className="grid gap-2">
-                <Label>{t("displayNameOptional")}</Label>
+                <Label className="font-bold">{t("displayNameOptional")}</Label>
                 <Input
                   value={customName}
                   onChange={(e) => setCustomName(e.target.value)}
                   placeholder={selectedModel || "e.g. Helpful Assistant"}
-                  className="rounded-xl border-white/40 bg-white/70 dark:bg-white/10"
+                  className="neo-input"
                 />
               </div>
-              <label className="flex items-center gap-2 text-sm">
+              <label className="flex items-center gap-2 text-sm font-bold cursor-pointer">
                 <input
                   type="checkbox"
-                  className="rounded border border-white/40"
+                  className="h-5 w-5 border-2 border-neo-black rounded-none checked:bg-neo-black checked:text-white focus:ring-0 focus:ring-offset-0"
                   checked={speakNext}
                   onChange={(e) => setSpeakNext(e.target.checked)}
                 />
                 {t("speakNext")}
               </label>
             </div>
-            <DialogFooter>
+            <DialogFooter className="p-6 bg-neo-white border-t-2 border-neo-black flex gap-2">
               <Button
                 variant="outline"
                 onClick={() => setIsAddDialogOpen(false)}
-                className="rounded-xl"
+                className="neo-btn bg-neo-white hover:bg-[color:var(--neo-surface)]"
               >
                 {t("close")}
               </Button>
               <Button
                 onClick={handleAddParticipant}
                 disabled={!selectedModel}
-                className="rounded-xl"
+                className="neo-btn bg-neo-green text-black hover:bg-neo-green/90"
               >
                 {t("addParticipant")}
               </Button>

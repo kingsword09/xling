@@ -49,43 +49,47 @@ export function NewSessionDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[480px] bg-white/90 dark:bg-slate-900/90 backdrop-blur-2xl border border-white/30 shadow-2xl rounded-2xl">
-        <DialogHeader>
-          <DialogTitle className="text-xl font-semibold">
+      <DialogContent className="sm:max-w-[480px] neo-box p-0 overflow-hidden">
+        <DialogHeader className="bg-neo-yellow border-b-2 border-neo-black p-6">
+          <DialogTitle className="text-xl font-bold uppercase">
             {t("newDiscussion")}
           </DialogTitle>
         </DialogHeader>
-        <div className="grid gap-4 py-4">
+        <div className="grid gap-4 p-6">
           <div className="space-y-2">
-            <label className="text-sm font-semibold">{t("sessionName")}</label>
+            <label className="text-sm font-bold uppercase">
+              {t("sessionName")}
+            </label>
             <Input
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. AI Ethics"
-              className="rounded-xl border-white/40 bg-white/80 dark:bg-white/10"
+              className="neo-input"
             />
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-semibold">{t("topic")}</label>
+            <label className="text-sm font-bold uppercase">{t("topic")}</label>
             <Input
               value={topic}
               onChange={(e) => setTopic(e.target.value)}
               placeholder="What to discuss?"
-              className="rounded-xl border-white/40 bg-white/80 dark:bg-white/10"
+              className="neo-input"
             />
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-semibold">{t("selectModels")}</label>
-            <ScrollArea className="h-[220px] border border-white/30 rounded-xl p-2 bg-white/70 dark:bg-white/5 backdrop-blur">
+            <label className="text-sm font-bold uppercase">
+              {t("selectModels")}
+            </label>
+            <ScrollArea className="h-[220px] neo-box-sm p-2 bg-neo-white">
               <div className="space-y-2">
                 {availableModels.map((model) => (
                   <label
                     key={model}
-                    className="flex items-center space-x-2 cursor-pointer hover:bg-primary/5 p-2 rounded-lg transition-colors"
+                    className="flex items-center space-x-2 cursor-pointer hover:bg-neo-yellow/20 p-2 border-2 border-transparent hover:border-neo-black transition-all"
                   >
                     <input
                       type="checkbox"
-                      className="rounded border-white/50"
+                      className="h-4 w-4 rounded-none border-2 border-neo-black text-neo-black focus:ring-0"
                       checked={selectedModels.includes(model)}
                       onChange={(e) => {
                         if (e.target.checked)
@@ -96,18 +100,18 @@ export function NewSessionDialog({
                           );
                       }}
                     />
-                    <span className="text-sm font-medium">{model}</span>
+                    <span className="text-sm font-bold">{model}</span>
                   </label>
                 ))}
               </div>
             </ScrollArea>
           </div>
         </div>
-        <DialogFooter>
+        <DialogFooter className="p-6 pt-0">
           <Button
             onClick={handleSubmit}
             disabled={!name || !topic || selectedModels.length < 2}
-            className="rounded-xl shadow-lg shadow-primary/20"
+            className="neo-btn bg-neo-green text-black hover:bg-neo-green/90 w-full"
           >
             {t("createSession")}
           </Button>
