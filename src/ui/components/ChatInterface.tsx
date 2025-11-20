@@ -834,18 +834,33 @@ export function ChatInterface({ sessionId, sessionName }: ChatInterfaceProps) {
                                 : "bg-white/60 dark:bg-white/5 text-foreground rounded-[24px] rounded-tl-sm border-white/20 shadow-black/5",
                             )}
                           >
-                            <div
-                              className={cn(
-                                "markdown-container min-h-[20px]",
-                                isUser
-                                  ? "prose-invert"
-                                  : "prose-neutral dark:prose-invert",
-                              )}
-                            >
-                              <Streamdown>
-                                {formatMentions(msg.content)}
-                              </Streamdown>
-                            </div>
+                            {(!msg.content ||
+                              msg.content.trim().length === 0) &&
+                            !isUser ? (
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <div className="flex gap-1">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/70 animate-bounce [animation-delay:-0.2s]" />
+                                  <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/70 animate-bounce [animation-delay:-0.1s]" />
+                                  <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/70 animate-bounce" />
+                                </div>
+                                <span className="uppercase tracking-[0.2em] text-[11px] font-semibold">
+                                  Thinking…
+                                </span>
+                              </div>
+                            ) : (
+                              <div
+                                className={cn(
+                                  "markdown-container min-h-[20px]",
+                                  isUser
+                                    ? "prose-invert"
+                                    : "prose-neutral dark:prose-invert",
+                                )}
+                              >
+                                <Streamdown>
+                                  {formatMentions(msg.content)}
+                                </Streamdown>
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>
