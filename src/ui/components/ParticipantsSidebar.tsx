@@ -20,6 +20,7 @@ import {
 } from "@/ui/components/ui/select";
 import { Input } from "@/ui/components/ui/input";
 import { Label } from "@/ui/components/ui/label";
+import { useI18n } from "@/ui/i18n";
 
 interface Participant {
   id: string;
@@ -41,6 +42,7 @@ export function ParticipantsSidebar({
   mode,
   onClose,
 }: ParticipantsSidebarProps) {
+  const { t } = useI18n();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [availableModels, setAvailableModels] = useState<string[]>([]);
   const [selectedModel, setSelectedModel] = useState("");
@@ -126,28 +128,32 @@ export function ParticipantsSidebar({
   };
 
   return (
-    <div className="flex h-full flex-col border-l bg-background w-80">
-      <div className="flex items-center justify-between p-4 border-b">
-        <h2 className="text-lg font-semibold">Participants</h2>
+    <div className="flex h-full w-80 flex-col border-l border-white/10 bg-gradient-to-b from-white/70 via-white/50 to-white/30 dark:from-white/5 dark:via-white/5 dark:to-white/5 backdrop-blur-2xl relative overflow-hidden">
+      <div className="absolute inset-x-0 top-0 h-28 bg-[radial-gradient(circle_at_20%_20%,rgba(59,130,246,0.25),transparent_55%)] blur-3xl opacity-70" />
+      <div className="absolute inset-x-0 top-10 h-28 bg-[radial-gradient(circle_at_80%_10%,rgba(16,185,129,0.24),transparent_55%)] blur-3xl opacity-60" />
+      <div className="flex items-center justify-between p-4 border-b border-white/20 relative">
+        <h2 className="text-lg font-semibold tracking-tight">
+          {t("participants")}
+        </h2>
         <Button
           variant="ghost"
           size="icon"
           onClick={onClose}
-          className="md:hidden"
+          className="md:hidden hover:bg-white/30 dark:hover:bg-white/10 rounded-full"
         >
           <X className="h-4 w-4" />
         </Button>
       </div>
 
-      <ScrollArea className="flex-1 p-4">
-        <div className="space-y-4">
+      <ScrollArea className="flex-1 p-4 relative">
+        <div className="space-y-3">
           {participants.map((participant) => (
             <div
               key={participant.id}
-              className="flex items-center justify-between group rounded-lg border p-3 hover:bg-muted/50 transition-colors"
+              className="flex items-center justify-between group rounded-xl border border-white/30 bg-white/70 dark:bg-white/5 p-3 hover:-translate-y-[1px] hover:shadow-md hover:border-white/50 transition-all backdrop-blur"
             >
               <div className="flex items-center gap-3 overflow-hidden">
-                <Avatar className="h-8 w-8 border">
+                <Avatar className="h-9 w-9 border border-white/50 shadow-inner">
                   <AvatarFallback
                     className={
                       participant.type === "ai"
@@ -164,7 +170,7 @@ export function ParticipantsSidebar({
                 </Avatar>
                 <div className="flex flex-col truncate">
                   <span
-                    className="text-sm font-medium truncate"
+                    className="text-sm font-semibold truncate"
                     title={participant.name}
                   >
                     {participant.name}
@@ -185,9 +191,9 @@ export function ParticipantsSidebar({
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-100 flex-shrink-0"
+                    className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-100/60 dark:hover:bg-green-500/15 flex-shrink-0 rounded-full"
                     onClick={() => handleTriggerTurn(participant.id)}
-                    title={mode === "manual" ? "Speak Now" : "Force turn"}
+            title={mode === "manual" ? t("next") : t("next")}
                   >
                     <Play className="h-4 w-4" />
                   </Button>
@@ -196,9 +202,9 @@ export function ParticipantsSidebar({
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10 flex-shrink-0"
+                    className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10 flex-shrink-0 rounded-full"
                     onClick={() => handleRemoveParticipant(participant.id)}
-                    title="Remove"
+                    title={t("remove")}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -209,26 +215,26 @@ export function ParticipantsSidebar({
         </div>
       </ScrollArea>
 
-      <div className="p-4 border-t">
+      <div className="p-4 border-t border-white/20 bg-white/60 dark:bg-white/5 backdrop-blur relative">
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogTrigger asChild>
-            <Button className="w-full gap-2">
+            <Button className="w-full gap-2 rounded-xl shadow-md shadow-primary/10">
               <Plus className="h-4 w-4" />
-              Add Participant
+              {t("addParticipant")}
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border border-white/30 shadow-2xl">
             <DialogHeader>
-              <DialogTitle>Add AI Participant</DialogTitle>
+              <DialogTitle>{t("addParticipant")}</DialogTitle>
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
-                <Label>Model</Label>
+                <Label>{t("model")}</Label>
                 <Select value={selectedModel} onValueChange={setSelectedModel}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a model" />
+                  <SelectTrigger className="rounded-xl border-white/40 bg-white/70 dark:bg-white/10">
+                    <SelectValue placeholder={t("model")} />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="rounded-xl border-white/40 bg-white/90 dark:bg-slate-900/90">
                     {availableModels.map((model) => (
                       <SelectItem key={model} value={model}>
                         {model}
@@ -238,32 +244,38 @@ export function ParticipantsSidebar({
                 </Select>
               </div>
               <div className="grid gap-2">
-                <Label>Display Name (Optional)</Label>
+                <Label>{t("displayNameOptional")}</Label>
                 <Input
                   value={customName}
                   onChange={(e) => setCustomName(e.target.value)}
                   placeholder={selectedModel || "e.g. Helpful Assistant"}
+                  className="rounded-xl border-white/40 bg-white/70 dark:bg-white/10"
                 />
               </div>
               <label className="flex items-center gap-2 text-sm">
                 <input
                   type="checkbox"
-                  className="rounded border"
+                  className="rounded border border-white/40"
                   checked={speakNext}
                   onChange={(e) => setSpeakNext(e.target.checked)}
                 />
-                Let this participant speak next
+                {t("speakNext")}
               </label>
             </div>
             <DialogFooter>
               <Button
                 variant="outline"
                 onClick={() => setIsAddDialogOpen(false)}
+                className="rounded-xl"
               >
-                Cancel
+                {t("close")}
               </Button>
-              <Button onClick={handleAddParticipant} disabled={!selectedModel}>
-                Add
+              <Button
+                onClick={handleAddParticipant}
+                disabled={!selectedModel}
+                className="rounded-xl"
+              >
+                {t("addParticipant")}
               </Button>
             </DialogFooter>
           </DialogContent>

@@ -40,6 +40,7 @@ import {
 import { cn } from "@/ui/lib/utils";
 import { Streamdown } from "streamdown";
 import { ParticipantsSidebar } from "./ParticipantsSidebar";
+import { useI18n } from "@/ui/i18n";
 
 interface ChatInterfaceProps {
   sessionId: string;
@@ -66,10 +67,13 @@ const formatMentions = (content: string) =>
   content.replace(/@ ?([\w.-]+)/g, "[@$1](#mention)");
 
 export function ChatInterface({ sessionId, sessionName }: ChatInterfaceProps) {
+  const { t } = useI18n();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [status, setStatus] = useState("idle");
   const [mode, setMode] = useState("auto");
+  const [topic, setTopic] = useState("");
   const [participants, setParticipants] = useState<Participant[]>([]);
+  const [currentSpeakerId, setCurrentSpeakerId] = useState<string | null>(null);
   const [input, setInput] = useState("");
   const [error, setError] = useState<string | null>(null);
 
@@ -115,6 +119,19 @@ export function ChatInterface({ sessionId, sessionName }: ChatInterfaceProps) {
       participant.name.toLowerCase().includes(query),
     );
   }, [mentionActive, mentionQuery, mentionableParticipants]);
+  const currentSpeaker = useMemo(
+    () =>
+      currentSpeakerId
+        ? participants.find((participant) => participant.id === currentSpeakerId)
+        : null,
+    [currentSpeakerId, participants],
+  );
+
+  useEffect(() => {
+    if (currentSpeakerId && !currentSpeaker) {
+      setCurrentSpeakerId(null);
+    }
+  }, [currentSpeaker, currentSpeakerId]);
 
   // Fetch initial state
   useEffect(() => {
@@ -130,6 +147,7 @@ export function ChatInterface({ sessionId, sessionName }: ChatInterfaceProps) {
         setStatus(data.status || "idle");
         setMode(data.mode || "auto");
         setParticipants(data.participants || []);
+        setTopic(data.topic || "");
         setError(null);
       } catch {
         setError("Failed to load session state");
@@ -186,7 +204,12 @@ export function ChatInterface({ sessionId, sessionName }: ChatInterfaceProps) {
 
         switch (payload.type) {
           case "status":
-            if (payload.status) setStatus(payload.status);
+            if (payload.status) {
+              setStatus(payload.status);
+              if (payload.status !== "speaking") {
+                setCurrentSpeakerId(null);
+              }
+            }
             break;
           case "mode":
             if (payload.mode) setMode(payload.mode);
@@ -194,14 +217,33 @@ export function ChatInterface({ sessionId, sessionName }: ChatInterfaceProps) {
           case "participants":
             if (payload.participants) setParticipants(payload.participants);
             break;
+          case "turn-start":
+            if (payload.participantId) {
+              setCurrentSpeakerId(payload.participantId);
+            }
+            break;
           case "message":
-            if (payload.message) upsertMessage(payload.message);
+            if (payload.message) {
+              if (
+                payload.message.role === "system" &&
+                typeof payload.message.content === "string" &&
+                payload.message.content.startsWith("Topic:")
+              ) {
+                const nextTopic = payload.message.content
+                  .split("\n")[0]
+                  .replace("Topic: ", "")
+                  .trim();
+                setTopic(nextTopic);
+              }
+              upsertMessage(payload.message);
+            }
             break;
           case "chunk":
             if (payload.chunk) handleChunk(payload.chunk);
             break;
           case "history-cleared":
             setMessages([]);
+            setCurrentSpeakerId(null);
             break;
           case "error":
             if (payload.error) {
@@ -509,111 +551,185 @@ export function ChatInterface({ sessionId, sessionName }: ChatInterfaceProps) {
 
   return (
     <>
-      <div className="flex flex-col h-full">
+      <div className="flex flex-col h-full relative">
         {/* Header */}
-        <header className="flex items-center justify-between px-6 py-4 bg-white/30 dark:bg-black/30 backdrop-blur-md border-b border-white/10 z-10 sticky top-0">
-          <div className="flex items-center gap-4">
-            <div className="md:hidden w-8">
-              {/* Spacer for mobile menu trigger */}
-            </div>
-            <div>
-              <h1 className="text-lg font-bold text-foreground tracking-tight">
-                {sessionName}
-              </h1>
-              <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground/80">
-                <span
+        <header className="relative overflow-hidden border-b border-white/10 bg-white/30 dark:bg-black/30 backdrop-blur-xl shadow-[0_15px_60px_rgba(0,0,0,0.08)]">
+          <div className="absolute inset-0 opacity-80 bg-gradient-to-r from-primary/10 via-emerald-500/10 to-sky-300/10 dark:from-primary/20 dark:via-emerald-500/15 dark:to-sky-400/10 pointer-events-none" />
+          <div className="absolute -left-1/3 top-[-35%] h-[220px] w-[420px] rounded-full bg-[radial-gradient(circle_at_center,rgba(94,234,212,0.24),transparent_60%)] blur-3xl animate-aurora pointer-events-none" />
+          <div className="absolute right-[-25%] -top-1/2 h-[260px] w-[360px] rounded-full bg-[radial-gradient(circle_at_center,rgba(59,130,246,0.22),transparent_55%)] blur-3xl animate-aurora-slow pointer-events-none" />
+          <div className="relative px-6 py-5 flex flex-col gap-4">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              <div className="flex items-start gap-3">
+                <div className="h-12 w-12 rounded-2xl border border-white/30 bg-white/70 dark:bg-white/10 shadow-inner flex items-center justify-center text-primary">
+                  <Bot className="h-5 w-5" />
+                </div>
+                <div className="space-y-2">
+                  <div className="text-[11px] uppercase tracking-[0.26em] text-muted-foreground/70 flex items-center gap-2">
+                    <span
+                      className={cn(
+                        "relative inline-flex h-2.5 w-2.5 rounded-full",
+                        status === "discussing" || status === "speaking"
+                          ? "bg-emerald-400 shadow-[0_0_0_6px_rgba(16,185,129,0.2)] animate-pulse"
+                          : "bg-amber-400 shadow-[0_0_0_6px_rgba(251,191,36,0.18)]",
+                      )}
+                    />
+                    {t("multiModelDiscuss")}
+                  </div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h1 className="text-xl md:text-2xl font-semibold tracking-tight text-foreground">
+                      {topic || sessionName}
+                    </h1>
+                    <span className="text-sm text-muted-foreground/80">
+                      {t("sessionLabel")}: {sessionName}
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2 text-xs font-semibold">
+                    <span
+                      className={cn(
+                        "inline-flex items-center gap-2 px-3 py-1.5 rounded-full border shadow-sm bg-gradient-to-r backdrop-blur",
+                        status === "speaking"
+                          ? "from-indigo-300/50 to-fuchsia-300/30 text-indigo-900 dark:text-indigo-100 border-indigo-200/40"
+                          : status === "discussing"
+                            ? "from-emerald-300/50 to-teal-200/30 text-emerald-900 dark:text-emerald-100 border-emerald-200/40"
+                            : status === "paused"
+                              ? "from-amber-200/70 to-orange-200/40 text-amber-900 dark:text-amber-100 border-amber-200/50"
+                              : "from-slate-200/80 to-slate-50/40 text-slate-900 dark:text-slate-100 border-white/40",
+                      )}
+                    >
+                      <span className="h-2 w-2 rounded-full bg-current shadow-[0_0_0_3px_rgba(0,0,0,0.04)]" />
+                      {status === "speaking"
+                        ? t("statusSpeaking")
+                        : status === "discussing"
+                          ? t("statusLive")
+                          : status === "paused"
+                            ? t("statusPaused")
+                            : t("statusIdle")}
+                    </span>
+                    <span
+                      className={cn(
+                        "inline-flex items-center gap-2 px-3 py-1.5 rounded-full border shadow-sm bg-gradient-to-r backdrop-blur",
+                        mode === "auto"
+                          ? "from-sky-300/40 to-cyan-200/40 text-sky-900 dark:text-sky-100 border-sky-200/50"
+                          : "from-rose-200/60 to-orange-200/40 text-rose-900 dark:text-rose-100 border-rose-200/50",
+                      )}
+                    >
+                      <span className="h-2 w-2 rounded-full bg-current opacity-70" />
+                      {t("modeLabel")}: {mode === "auto" ? t("modeAuto") : t("modeManual")}
+                    </span>
+                    <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/30 bg-white/60 dark:bg-white/10 shadow-sm backdrop-blur">
+                      <Users className="h-3.5 w-3.5 opacity-70" />
+                      {t("participantsCount", { count: participants.length })}
+                    </span>
+                    <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/20 bg-white/60 dark:bg-white/10 shadow-sm backdrop-blur">
+                      <Bot className="h-3.5 w-3.5 opacity-70" />
+                      {currentSpeaker
+                        ? `${t("nowResponding")}: ${currentSpeaker.name}`
+                        : t("awaitingSpeaker")}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div className="flex flex-wrap items-center gap-2 justify-end">
+                {mode === "manual" && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleNextTurn}
+                    disabled={manualTurnDisabled}
+                    className="text-primary hover:bg-primary/10 hover:text-primary rounded-full px-4 shadow-sm hover:-translate-y-[1px] transition-transform"
+                  >
+                    <SkipForward className="h-4 w-4 mr-2" />
+                    {t("next")}
+                  </Button>
+                )}
+                {status === "speaking" && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={handleInterrupt}
+                    className="rounded-full hover:bg-white/30 dark:hover:bg-white/10 shadow-sm hover:-translate-y-[1px] transition-transform"
+                  >
+                    <Ban className="h-4 w-4 mr-2" />
+                    {t("interrupt")}
+                  </Button>
+                )}
+
+                {status === "paused" ? (
+                  <Button
+                    size="sm"
+                    onClick={handleResume}
+                    className="rounded-full bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 hover:text-emerald-700 border border-emerald-500/20 shadow-sm hover:-translate-y-[1px] transition-transform"
+                  >
+                    <Play className="h-3.5 w-3.5 mr-2 fill-current" />
+                    {t("resume")}
+                  </Button>
+                ) : (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={handlePause}
+                    className="rounded-full hover:bg-white/30 dark:hover:bg-white/10 shadow-sm hover:-translate-y-[1px] transition-transform"
+                    disabled={status === "idle"}
+                  >
+                    <Pause className="h-4 w-4 mr-2" />
+                    {t("pause")}
+                  </Button>
+                )}
+
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={handleReset}
+                  disabled={aiParticipants.length === 0}
+                  className="rounded-full hover:bg-white/30 dark:hover:bg-white/10 shadow-sm hover:-translate-y-[1px] transition-transform"
+                  title={t("reset")}
+                >
+                  <RotateCcw className="h-4 w-4 mr-2" />
+                  {t("reset")}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  disabled={summaryDisabled}
+                  onClick={openSummaryDialog}
+                  className="rounded-full hover:bg-white/30 dark:hover:bg-white/10 shadow-sm hover:-translate-y-[1px] transition-transform"
+                >
+                  {t("summarize")}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setShowParticipants(!showParticipants)}
                   className={cn(
-                    "flex h-2 w-2 rounded-full shadow-[0_0_8px_currentColor]",
-                    status === "discussing" || status === "speaking"
-                      ? "bg-emerald-500 text-emerald-500 animate-pulse"
-                      : "bg-amber-500 text-amber-500",
+                    "rounded-full hover:bg-white/30 dark:hover:bg-white/10 transition-all shadow-sm hover:-translate-y-[1px]",
+                    showParticipants &&
+                      "bg-white/60 dark:bg-white/10 text-foreground",
                   )}
-                />
-                <span className="capitalize">{status}</span>
-                <span className="opacity-30">|</span>
-                <span>{participants.length} participants</span>
+                  title={t("toggleParticipants")}
+                >
+                  <Users className="h-5 w-5" />
+                </Button>
               </div>
             </div>
-          </div>
-          <div className="flex items-center gap-2">
-            {mode === "manual" && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleNextTurn}
-                disabled={manualTurnDisabled}
-                className="text-primary hover:bg-primary/10 hover:text-primary rounded-full px-4"
-              >
-                <SkipForward className="h-4 w-4 mr-2" />
-                Next
-              </Button>
-            )}
-            {status === "speaking" && (
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={handleInterrupt}
-                className="rounded-full hover:bg-white/20 dark:hover:bg-white/10"
-              >
-                <Ban className="h-4 w-4 mr-2" />
-                Interrupt
-              </Button>
-            )}
-
-            {status === "paused" ? (
-              <Button
-                size="sm"
-                onClick={handleResume}
-                className="rounded-full bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 hover:text-emerald-700 border border-emerald-500/20 shadow-sm"
-              >
-                <Play className="h-3.5 w-3.5 mr-2 fill-current" />
-                Resume
-              </Button>
-            ) : (
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={handlePause}
-                className="rounded-full hover:bg-white/20 dark:hover:bg-white/10"
-                disabled={status === "idle"}
-              >
-                <Pause className="h-4 w-4 mr-2" />
-                Pause
-              </Button>
-            )}
-
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={handleReset}
-              disabled={aiParticipants.length === 0}
-              className="rounded-full hover:bg-white/20 dark:hover:bg-white/10"
-              title="Reset discussion"
-            >
-              <RotateCcw className="h-4 w-4 mr-2" />
-              Reset
-            </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              disabled={summaryDisabled}
-              onClick={openSummaryDialog}
-              className="rounded-full hover:bg-white/20 dark:hover:bg-white/10"
-            >
-              Summarize
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setShowParticipants(!showParticipants)}
-              className={cn(
-                "rounded-full hover:bg-white/20 dark:hover:bg-white/10 transition-colors",
-                showParticipants &&
-                  "bg-white/20 dark:bg-white/10 text-foreground",
-              )}
-            >
-              <Users className="h-5 w-5" />
-            </Button>
+            <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground/80">
+              <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/60 dark:bg-white/5 border border-white/30 backdrop-blur shadow-sm">
+                <span className="h-2 w-2 rounded-full bg-primary/70 animate-pulse" />
+                {t("topicPrefix")}: {topic || t("untitled")}
+              </span>
+              <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/60 dark:bg-white/5 border border-white/30 backdrop-blur shadow-sm">
+                <span className="h-2 w-2 rounded-full bg-emerald-500/70" />
+                {t("aiVoicesTotal", {
+                  ai: aiParticipants.length,
+                  total: participants.length,
+                })}
+              </span>
+              <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/60 dark:bg-white/5 border border-white/30 backdrop-blur shadow-sm">
+                <span className="h-2 w-2 rounded-full bg-sky-500/70" />
+                {currentSpeaker
+                  ? `${t("nowResponding")}: ${currentSpeaker.name}`
+                  : t("awaitingSpeaker")}
+              </span>
+            </div>
           </div>
         </header>
 
@@ -630,7 +746,7 @@ export function ChatInterface({ sessionId, sessionName }: ChatInterfaceProps) {
                     onClick={() => setError(null)}
                     className="h-auto p-1 hover:bg-destructive/10 rounded-full"
                   >
-                    Dismiss
+                    {t("dismiss")}
                   </Button>
                 </div>
               </div>
@@ -638,6 +754,7 @@ export function ChatInterface({ sessionId, sessionName }: ChatInterfaceProps) {
 
             {/* Messages */}
             <div className="relative flex flex-1 min-h-0">
+              <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-transparent dark:from-primary/10" />
               <ScrollArea
                 className="flex-1 h-full"
                 viewportRef={scrollViewportRef}
@@ -673,7 +790,7 @@ export function ChatInterface({ sessionId, sessionName }: ChatInterfaceProps) {
                             >
                               <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground/50 uppercase tracking-[0.2em] mb-4">
                                 <span className="w-8 h-[1px] bg-gradient-to-r from-transparent to-muted-foreground/50" />
-                                Topic
+                                {t("topicPrefix")}
                                 <span className="w-8 h-[1px] bg-gradient-to-l from-transparent to-muted-foreground/50" />
                               </div>
                               <div className="markdown-container text-2xl md:text-3xl font-semibold text-center text-foreground/90 max-w-3xl leading-relaxed tracking-tight px-4 drop-shadow-sm prose-headings:m-0 prose-p:m-0">
@@ -758,12 +875,12 @@ export function ChatInterface({ sessionId, sessionName }: ChatInterfaceProps) {
                 <div className="pointer-events-none absolute bottom-6 left-0 right-0 flex justify-center z-20">
                   <Button
                     size="sm"
-                    variant="secondary"
-                    className="pointer-events-auto shadow-lg rounded-full bg-background/80 backdrop-blur-xl border border-white/20 hover:bg-background text-xs px-4 py-2 h-auto"
-                    onClick={handleJumpToBottom}
-                  >
-                    New messages ↓
-                  </Button>
+                  variant="secondary"
+                  className="pointer-events-auto shadow-lg rounded-full bg-background/80 backdrop-blur-xl border border-white/20 hover:bg-background text-xs px-4 py-2 h-auto"
+                  onClick={handleJumpToBottom}
+                >
+                  {t("newMessages")}
+                </Button>
                 </div>
               )}
             </div>
@@ -786,9 +903,9 @@ export function ChatInterface({ sessionId, sessionName }: ChatInterfaceProps) {
                     placeholder={
                       canSendMessage
                         ? status === "idle"
-                          ? "Enter a topic to start discussion..."
-                          : "Type a message..."
-                        : "Discussion stopped"
+                          ? t("placeholderTopic")
+                          : t("placeholderMessage")
+                        : t("discussionStopped")
                     }
                     disabled={!canSendMessage}
                     className="flex-1 bg-transparent border-0 focus-visible:ring-0 h-14 px-6 rounded-[28px] text-[16px] placeholder:text-muted-foreground/60"
@@ -797,7 +914,7 @@ export function ChatInterface({ sessionId, sessionName }: ChatInterfaceProps) {
                     <div className="absolute bottom-full left-0 mb-3 w-64 rounded-2xl border border-white/10 bg-background/80 backdrop-blur-2xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-2">
                       {mentionSuggestions.length === 0 ? (
                         <div className="px-4 py-3 text-sm text-muted-foreground">
-                          No participants found
+                          {t("noParticipantsFound")}
                         </div>
                       ) : (
                         mentionSuggestions.map((participant, index) => (
@@ -867,23 +984,23 @@ export function ChatInterface({ sessionId, sessionName }: ChatInterfaceProps) {
           }
         }}
       >
-        <DialogContent>
+        <DialogContent className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border border-white/30 shadow-2xl">
           <DialogHeader>
-            <DialogTitle>Generate Summary</DialogTitle>
+            <DialogTitle>{t("generateSummary")}</DialogTitle>
             <DialogDescription>
-              Select an AI participant to summarize the conversation.
+              {t("selectSummarizer")}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label>Summarizer</Label>
+              <Label>{t("summarizer")}</Label>
               <Select
                 value={selectedSummaryModel}
                 onValueChange={setSelectedSummaryModel}
                 disabled={summarizableParticipants.length === 0}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select a participant" />
+                  <SelectValue placeholder={t("selectParticipant")} />
                 </SelectTrigger>
                 <SelectContent>
                   {summarizableParticipants.map((participant) => (
@@ -905,13 +1022,13 @@ export function ChatInterface({ sessionId, sessionName }: ChatInterfaceProps) {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={closeSummaryDialog}>
-              Close
+              {t("close")}
             </Button>
             <Button
               onClick={handleRunSummary}
               disabled={!selectedSummaryModel || isSummarizing}
             >
-              {isSummarizing ? "Summarizing..." : "Generate"}
+              {isSummarizing ? t("summarizing") : t("generate")}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -1,4 +1,5 @@
 import React from "react";
+import { useI18n } from "@/ui/i18n";
 
 interface ModelSelectorProps {
   availableModels: string[];
@@ -13,6 +14,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
   onChange,
   disabled,
 }) => {
+  const { t } = useI18n();
   const toggleModel = (model: string) => {
     if (selectedModels.includes(model)) {
       onChange(selectedModels.filter((m) => m !== model));
@@ -23,25 +25,27 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
 
   return (
     <div className="space-y-2">
-      <label className="block text-sm font-medium text-gray-700">
-        Participants ({selectedModels.length})
+      <label className="block text-sm font-semibold text-foreground">
+        {t("participants")} ({selectedModels.length})
       </label>
-      <div className="max-h-48 overflow-y-auto border border-gray-200 rounded-lg p-2 bg-gray-50">
+      <div className="max-h-48 overflow-y-auto border border-white/40 rounded-xl p-2 bg-white/70 dark:bg-white/10 backdrop-blur">
         {availableModels.map((model) => (
           <label
             key={model}
-            className={`flex items-center p-2 rounded cursor-pointer hover:bg-gray-100 transition-colors ${
+            className={`flex items-center p-2 rounded-lg cursor-pointer hover:bg-primary/5 transition-colors ${
               disabled ? "opacity-50 cursor-not-allowed" : ""
             }`}
           >
             <input
               type="checkbox"
-              className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+              className="w-4 h-4 text-primary rounded border-white/50 focus:ring-primary"
               checked={selectedModels.includes(model)}
               onChange={() => !disabled && toggleModel(model)}
               disabled={disabled}
             />
-            <span className="ml-2 text-sm text-gray-700">{model}</span>
+            <span className="ml-2 text-sm font-medium text-foreground">
+              {model}
+            </span>
           </label>
         ))}
       </div>
