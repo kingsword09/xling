@@ -102,7 +102,7 @@ export class PromptClient {
             system: request.system,
           };
 
-    return await streamText(params);
+    return streamText(params);
   }
 
   getProviderName(): string {

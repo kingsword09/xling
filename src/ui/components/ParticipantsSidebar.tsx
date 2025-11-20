@@ -204,7 +204,7 @@ export function ParticipantsSidebar({
                     variant="ghost"
                     size="icon"
                     className="h-8 w-8 hover:bg-neo-green hover:text-black border-2 border-transparent hover:border-neo-black hover:shadow-neo-sm rounded-none"
-                    onClick={() => handleTriggerTurn(participant.id)}
+                    onClick={() => void handleTriggerTurn(participant.id)}
                     title={mode === "manual" ? t("next") : t("next")}
                   >
                     <Play className="h-4 w-4" />
@@ -215,7 +215,7 @@ export function ParticipantsSidebar({
                     variant="ghost"
                     size="icon"
                     className="h-8 w-8 hover:bg-neo-red hover:text-black border-2 border-transparent hover:border-neo-black hover:shadow-neo-sm rounded-none"
-                    onClick={() => handleRemoveParticipant(participant.id)}
+                    onClick={() => void handleRemoveParticipant(participant.id)}
                     title={t("remove")}
                   >
                     <Trash2 className="h-4 w-4" />
@@ -289,7 +289,7 @@ export function ParticipantsSidebar({
                 {t("close")}
               </Button>
               <Button
-                onClick={handleAddParticipant}
+                onClick={() => void handleAddParticipant()}
                 disabled={!selectedModel}
                 className="neo-btn bg-neo-green text-black hover:bg-neo-green/90"
               >

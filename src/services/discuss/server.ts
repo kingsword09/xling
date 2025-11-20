@@ -3,6 +3,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { DiscussionEngine, DiscussionConfig } from "./engine.ts";
 import { createRouter } from "@/services/prompt/router.ts";
+import type { ModelRouter } from "@/services/prompt/router.ts";
 
 interface Session {
   id: string;
@@ -13,15 +14,15 @@ interface Session {
 
 class SessionManager {
   #sessions: Map<string, Session> = new Map();
-  #router: any;
+  private readonly router: ModelRouter;
 
-  constructor(router: any) {
-    this.#router = router;
+  constructor(router: ModelRouter) {
+    this.router = router;
   }
 
   createSession(name: string, config: Partial<DiscussionConfig>): Session {
     const id = crypto.randomUUID();
-    const engine = new DiscussionEngine(this.#router, {
+    const engine = new DiscussionEngine(this.router, {
       topic: name, // Default topic to session name initially
       ...config,
     });
@@ -113,7 +114,10 @@ export async function createDiscussServer(
   });
   attachEngineListeners(defaultSession);
 
-  const server = http.createServer(async (req, res) => {
+  const handleRequest = async (
+    req: http.IncomingMessage,
+    res: http.ServerResponse,
+  ): Promise<void> => {
     const url = new URL(req.url || "/", `http://${req.headers.host}`);
 
     // CORS headers
@@ -214,140 +218,138 @@ export async function createDiscussServer(
         return;
       }
 
-      if (session) {
-        if (!action) {
-          // GET session details
-          if (req.method === "GET") {
-            res.writeHead(200, { "Content-Type": "application/json" });
-            res.end(
-              JSON.stringify({
-                id: session.id,
-                name: session.name,
-                topic: session.engine.topic,
-                status: session.engine.status,
-                mode: session.engine.mode,
-                participants: session.engine.participants,
-                history: session.engine.history,
-                currentMessage: session.engine.currentMessage,
-              }),
-            );
-            return;
-          }
-        } else if (req.method === "POST") {
-          const engine = session.engine;
-          const body = await readBody(req);
-
-          let responsePayload: Record<string, unknown> = { success: true };
-
-          switch (action) {
-            case "start":
-              // Update config if provided
-              if (body.topic) engine.updateConfig({ topic: body.topic });
-              if (body.models) {
-                // Reset participants
-                engine.participants.forEach((p) =>
-                  engine.removeParticipant(p.id),
-                );
-                body.models.forEach((model: string, i: number) => {
-                  engine.addParticipant({
-                    id: `model-${i}`,
-                    name: model,
-                    model: model,
-                    type: "ai",
-                  });
-                });
-                engine.addParticipant({
-                  id: "user",
-                  name: "User",
-                  type: "human",
-                });
-              }
-              engine.start();
-              break;
-            case "stop":
-              engine.stop();
-              break;
-            case "pause":
-              engine.pause();
-              break;
-            case "resume":
-              engine.resume();
-              break;
-            case "interrupt":
-              engine.interrupt();
-              break;
-            case "reset":
-              engine.reset();
-              break;
-            case "mode":
-              engine.setMode(body.mode);
-              break;
-            case "next":
-              if (body.participantId) {
-                engine.setNextSpeaker(body.participantId);
-              } else {
-                const ais = engine.participants.filter((p) => p.type === "ai");
-                const random = ais[Math.floor(Math.random() * ais.length)];
-                if (random) engine.setNextSpeaker(random.id);
-              }
-              break;
-            case "message":
-              await engine.injectMessage("user", body.content);
-              break;
-            case "summary":
-              try {
-                const summary = await engine.generateSummary(body.modelId);
-                res.writeHead(200, { "Content-Type": "application/json" });
-                res.end(JSON.stringify({ summary, success: true }));
-                return;
-              } catch (e) {
-                res.writeHead(500, { "Content-Type": "application/json" });
-                res.end(JSON.stringify({ error: (e as Error).message }));
-                return;
-              }
-            case "add-participant":
-              try {
-                const newParticipant = {
-                  id: body.id || `model-${Date.now()}`,
-                  name: body.name || body.model,
-                  model: body.model,
-                  type: body.type || "ai",
-                };
-                engine.addParticipant(newParticipant);
-
-                const explicitStart = body.start === true;
-                const defaultStart =
-                  body.start === undefined && engine.mode === "auto";
-                const shouldStart = explicitStart || defaultStart;
-                const canStart =
-                  engine.status !== "idle" &&
-                  (!engine.currentSpeakerId || engine.status === "paused");
-
-                if (shouldStart && canStart) {
-                  engine.setNextSpeaker(newParticipant.id);
-                }
-
-                responsePayload.participant = newParticipant;
-              } catch (error) {
-                res.writeHead(400, { "Content-Type": "application/json" });
-                res.end(JSON.stringify({ error: (error as Error).message }));
-                return;
-              }
-              break;
-            case "remove-participant":
-              engine.removeParticipant(body.participantId);
-              responsePayload.removed = true;
-              break;
-            default:
-              res.writeHead(404);
-              res.end("Action not found");
-              return;
-          }
-
+      if (!action) {
+        // GET session details
+        if (req.method === "GET") {
           res.writeHead(200, { "Content-Type": "application/json" });
-          res.end(JSON.stringify(responsePayload));
+          res.end(
+            JSON.stringify({
+              id: session.id,
+              name: session.name,
+              topic: session.engine.topic,
+              status: session.engine.status,
+              mode: session.engine.mode,
+              participants: session.engine.participants,
+              history: session.engine.history,
+              currentMessage: session.engine.currentMessage,
+            }),
+          );
           return;
         }
+      } else if (req.method === "POST") {
+        const engine = session.engine;
+        const body = await readBody(req);
+
+        let responsePayload: Record<string, unknown> = { success: true };
+
+        switch (action) {
+          case "start":
+            // Update config if provided
+            if (body.topic) engine.updateConfig({ topic: body.topic });
+            if (body.models) {
+              // Reset participants
+              engine.participants.forEach((p) =>
+                engine.removeParticipant(p.id),
+              );
+              body.models.forEach((model: string, i: number) => {
+                engine.addParticipant({
+                  id: `model-${i}`,
+                  name: model,
+                  model: model,
+                  type: "ai",
+                });
+              });
+              engine.addParticipant({
+                id: "user",
+                name: "User",
+                type: "human",
+              });
+            }
+            engine.start();
+            break;
+          case "stop":
+            engine.stop();
+            break;
+          case "pause":
+            engine.pause();
+            break;
+          case "resume":
+            engine.resume();
+            break;
+          case "interrupt":
+            engine.interrupt();
+            break;
+          case "reset":
+            engine.reset();
+            break;
+          case "mode":
+            engine.setMode(body.mode);
+            break;
+          case "next":
+            if (body.participantId) {
+              engine.setNextSpeaker(body.participantId);
+            } else {
+              const ais = engine.participants.filter((p) => p.type === "ai");
+              const random = ais[Math.floor(Math.random() * ais.length)];
+              if (random) engine.setNextSpeaker(random.id);
+            }
+            break;
+          case "message":
+            await engine.injectMessage("user", body.content);
+            break;
+          case "summary":
+            try {
+              const summary = await engine.generateSummary(body.modelId);
+              res.writeHead(200, { "Content-Type": "application/json" });
+              res.end(JSON.stringify({ summary, success: true }));
+              return;
+            } catch (e) {
+              res.writeHead(500, { "Content-Type": "application/json" });
+              res.end(JSON.stringify({ error: (e as Error).message }));
+              return;
+            }
+          case "add-participant":
+            try {
+              const newParticipant = {
+                id: body.id || `model-${Date.now()}`,
+                name: body.name || body.model,
+                model: body.model,
+                type: body.type || "ai",
+              };
+              engine.addParticipant(newParticipant);
+
+              const explicitStart = body.start === true;
+              const defaultStart =
+                body.start === undefined && engine.mode === "auto";
+              const shouldStart = explicitStart || defaultStart;
+              const canStart =
+                engine.status !== "idle" &&
+                (!engine.currentSpeakerId || engine.status === "paused");
+
+              if (shouldStart && canStart) {
+                engine.setNextSpeaker(newParticipant.id);
+              }
+
+              responsePayload.participant = newParticipant;
+            } catch (error) {
+              res.writeHead(400, { "Content-Type": "application/json" });
+              res.end(JSON.stringify({ error: (error as Error).message }));
+              return;
+            }
+            break;
+          case "remove-participant":
+            engine.removeParticipant(body.participantId);
+            responsePayload.removed = true;
+            break;
+          default:
+            res.writeHead(404);
+            res.end("Action not found");
+            return;
+        }
+
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify(responsePayload));
+        return;
       }
     }
 
@@ -414,6 +416,18 @@ export async function createDiscussServer(
 
     res.writeHead(404);
     res.end("Not Found");
+  };
+
+  const server = http.createServer((req, res) => {
+    void handleRequest(req, res).catch((error) => {
+      console.error("Discuss server error:", error);
+      if (!res.headersSent) {
+        res.writeHead(500, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Internal server error" }));
+      } else {
+        res.end();
+      }
+    });
   });
 
   server.listen(port);

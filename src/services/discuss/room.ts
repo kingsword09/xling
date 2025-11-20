@@ -38,7 +38,7 @@ export class ChatRoom {
     this.#addMessage(systemMsg);
 
     // Trigger first turn
-    this.nextTurn();
+    void this.nextTurn();
   }
 
   stop(): void {

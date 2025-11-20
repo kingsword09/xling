@@ -33,7 +33,7 @@ function AppContent() {
   };
 
   useEffect(() => {
-    fetchSessions();
+    void fetchSessions();
 
     // Poll for session list updates? Or use stream?
     // For simplicity, just fetch on mount.
@@ -95,7 +95,9 @@ function AppContent() {
             currentSessionId={currentSessionId}
             onSelectSession={setCurrentSessionId}
             onCreateSession={() => setIsNewSessionOpen(true)}
-            onDeleteSession={handleDeleteSession}
+            onDeleteSession={(id) => {
+              void handleDeleteSession(id);
+            }}
           />
         </div>
       </div>
@@ -118,7 +120,9 @@ function AppContent() {
                 setIsNewSessionOpen(true);
                 setIsMobileMenuOpen(false);
               }}
-              onDeleteSession={handleDeleteSession}
+              onDeleteSession={(id) => {
+                void handleDeleteSession(id);
+              }}
             />
           </div>
         </SheetContent>
@@ -212,7 +216,9 @@ function AppContent() {
       <NewSessionDialog
         open={isNewSessionOpen}
         onOpenChange={setIsNewSessionOpen}
-        onCreate={handleCreateSession}
+        onCreate={(data) => {
+          void handleCreateSession(data);
+        }}
       />
     </div>
   );

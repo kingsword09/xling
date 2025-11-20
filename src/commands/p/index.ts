@@ -558,50 +558,52 @@ export default class PCommand extends Command {
 
       rl.prompt();
 
-      rl.on("line", async (input: string) => {
-        const trimmed = input.trim();
+      rl.on("line", (input: string) => {
+        void (async () => {
+          const trimmed = input.trim();
 
-        // Check for exit commands
-        if (["exit", "quit", "q"].includes(trimmed.toLowerCase())) {
-          rl.close();
-          return;
-        }
+          // Check for exit commands
+          if (["exit", "quit", "q"].includes(trimmed.toLowerCase())) {
+            rl.close();
+            return;
+          }
 
-        // Ignore empty input
-        if (!trimmed) {
-          rl.prompt();
-          return;
-        }
+          // Ignore empty input
+          if (!trimmed) {
+            rl.prompt();
+            return;
+          }
 
-        // Add user message
-        messages.push({ role: "user", content: trimmed });
+          // Add user message
+          messages.push({ role: "user", content: trimmed });
 
-        try {
-          // Execute and stream response
-          const request: PromptRequest = {
-            messages,
-            model: flags.model,
-            temperature: flags.temperature
-              ? parseFloat(flags.temperature)
-              : undefined,
-            maxTokens: flags["max-tokens"],
-            stream: true,
-          };
+          try {
+            // Execute and stream response
+            const request: PromptRequest = {
+              messages,
+              model: flags.model,
+              temperature: flags.temperature
+                ? parseFloat(flags.temperature)
+                : undefined,
+              maxTokens: flags["max-tokens"],
+              stream: true,
+            };
 
-          const streamResult = await router.executeStream(request);
-          const responseText = await this.#displayStream(
-            streamResult,
-            outputStream,
-          );
+            const streamResult = await router.executeStream(request);
+            const responseText = await this.#displayStream(
+              streamResult,
+              outputStream,
+            );
 
-          // Add assistant response to history
-          messages.push({ role: "assistant", content: responseText });
+            // Add assistant response to history
+            messages.push({ role: "assistant", content: responseText });
 
-          rl.prompt();
-        } catch (error) {
-          outputStream.write(`\n[Error] ${(error as Error).message}\n\n`);
-          rl.prompt();
-        }
+            rl.prompt();
+          } catch (error) {
+            outputStream.write(`\n[Error] ${(error as Error).message}\n\n`);
+            rl.prompt();
+          }
+        })();
       });
 
       rl.on("close", () => {

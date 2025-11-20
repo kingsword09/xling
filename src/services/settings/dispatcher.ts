@@ -84,7 +84,7 @@ export class SettingsDispatcher {
         };
 
       default:
-        throw new Error(`Unsupported action: ${payload.action}`);
+        throw new Error("Unsupported action");
     }
   }
 

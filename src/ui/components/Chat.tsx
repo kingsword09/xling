@@ -28,9 +28,10 @@ export function Chat() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    fetch("/api/models")
+    void fetch("/api/models")
       .then((res) => res.json())
-      .then((data) => setAvailableModels(data.models));
+      .then((data) => setAvailableModels(data.models))
+      .catch(() => setAvailableModels([]));
 
     const evtSource = new EventSource("/api/chat/stream");
 
@@ -168,7 +169,7 @@ export function Chat() {
         </div>
 
         <button
-          onClick={startChat}
+          onClick={() => void startChat()}
           disabled={!topic || selectedModels.length < 2}
           className="w-full py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50"
         >
@@ -196,19 +197,19 @@ export function Chat() {
 
         <div className="flex items-center space-x-2">
           <button
-            onClick={togglePause}
+            onClick={() => void togglePause()}
             className="px-3 py-1 border rounded hover:bg-gray-50"
           >
             {status === "paused" ? "Resume" : "Pause"}
           </button>
           <button
-            onClick={toggleMode}
+            onClick={() => void toggleMode()}
             className="px-3 py-1 border rounded hover:bg-gray-50"
           >
             Switch to {mode === "auto" ? "Manual" : "Auto"}
           </button>
           <button
-            onClick={stopChat}
+            onClick={() => void stopChat()}
             className="px-3 py-1 border rounded text-red-600 hover:bg-red-50"
           >
             Stop
@@ -262,14 +263,14 @@ export function Chat() {
               .map((p) => (
                 <button
                   key={p.id}
-                  onClick={() => nextTurn(p.id)}
+                  onClick={() => void nextTurn(p.id)}
                   className="px-3 py-1 bg-gray-100 rounded hover:bg-gray-200 text-sm whitespace-nowrap"
                 >
                   Next: {p.name}
                 </button>
               ))}
             <button
-              onClick={() => nextTurn()}
+              onClick={() => void nextTurn()}
               className="px-3 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 text-sm whitespace-nowrap"
             >
               Next: Random
@@ -277,7 +278,12 @@ export function Chat() {
           </div>
         )}
 
-        <form onSubmit={sendMessage} className="flex space-x-2">
+        <form
+          onSubmit={(e) => {
+            void sendMessage(e);
+          }}
+          className="flex space-x-2"
+        >
           <input
             className="flex-1 p-2 border rounded"
             value={input}
@@ -296,7 +302,9 @@ export function Chat() {
           <select
             className="text-sm border rounded p-1"
             onChange={(e) => {
-              if (e.target.value) generateSummary(e.target.value);
+              if (e.target.value) {
+                void generateSummary(e.target.value);
+              }
               e.target.value = "";
             }}
           >

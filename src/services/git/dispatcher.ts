@@ -43,6 +43,8 @@ export class GitDispatcher {
     }
 
     const _exhaustive: never = payload;
-    throw new Error(`Unknown git command: ${_exhaustive}`);
+    throw new Error(
+      `Unknown git command: ${(payload as GitCommandPayload).command}`,
+    );
   }
 }
