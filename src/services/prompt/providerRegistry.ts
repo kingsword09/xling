@@ -7,6 +7,25 @@ import type { XlingConfig, ProviderConfig } from "@/domain/xling/config.ts";
 import { XlingAdapter } from "@/services/settings/adapters/xling.ts";
 import { getNormalizedPriority } from "@/domain/xling/config.ts";
 
+const BUILTIN_TOOL_PROVIDERS: ProviderConfig[] = [
+  {
+    name: "tool-claude-code",
+    baseUrl: "cli:claude",
+    apiKey: "",
+    models: ["claude-code"],
+    priority: 999,
+    timeout: 60000,
+  },
+  {
+    name: "tool-codex",
+    baseUrl: "cli:codex",
+    apiKey: "",
+    models: ["codex"],
+    priority: 999,
+    timeout: 60000,
+  },
+];
+
 /**
  * Registry for managing AI providers and model routing
  *
@@ -22,7 +41,9 @@ export class ProviderRegistry {
   #defaultModel?: string;
 
   constructor(config: XlingConfig) {
-    this.#providers = this.#sortByPriority(config.prompt.providers);
+    this.#providers = this.#sortByPriority(
+      mergeWithBuiltinProviders(config.prompt.providers),
+    );
     this.#defaultModel = config.prompt.defaultModel;
     this.#modelIndex = this.#buildModelIndex();
   }
@@ -123,7 +144,9 @@ export class ProviderRegistry {
     const adapter = new XlingAdapter();
     const config = adapter.readConfig(adapter.resolvePath("user"));
 
-    this.#providers = this.#sortByPriority(config.prompt.providers);
+    this.#providers = this.#sortByPriority(
+      mergeWithBuiltinProviders(config.prompt.providers),
+    );
     this.#defaultModel = config.prompt.defaultModel;
     this.#modelIndex = this.#buildModelIndex();
   }
@@ -186,4 +209,12 @@ export async function getRegistry(): Promise<ProviderRegistry> {
  */
 export function resetRegistry(): void {
   registryInstance = null;
+}
+
+function mergeWithBuiltinProviders(
+  providers: ProviderConfig[],
+): ProviderConfig[] {
+  const names = new Set(providers.map((p) => p.name));
+  const extras = BUILTIN_TOOL_PROVIDERS.filter((p) => !names.has(p.name));
+  return [...providers, ...extras];
 }

@@ -4,9 +4,9 @@
  */
 
 import { Command, Flags, Args, Interfaces } from "@oclif/core";
-import * as fs from "fs";
-import * as readline from "readline";
-import * as tty from "tty";
+import * as fs from "node:fs";
+import * as readline from "node:readline";
+import * as tty from "node:tty";
 import { createRouter } from "@/services/prompt/router.ts";
 import type { PromptRequest, ChatMessage } from "@/services/prompt/types.ts";
 import {
