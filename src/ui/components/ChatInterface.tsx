@@ -39,7 +39,7 @@ import {
 } from "@/ui/components/ui/select";
 
 import { cn } from "@/ui/lib/utils";
-import { Streamdown } from "streamdown";
+import { StreamdownRenderer } from "@/ui/components/StreamdownRenderer";
 import { ParticipantsSidebar } from "./ParticipantsSidebar";
 import { useI18n } from "@/ui/i18n";
 
@@ -775,11 +775,10 @@ export function ChatInterface({ sessionId, sessionName }: ChatInterfaceProps) {
                                 {t("topicPrefix")}
                                 <span className="w-8 h-[1px] bg-gradient-to-l from-transparent to-muted-foreground/50" />
                               </div>
-                              <div className="markdown-container text-2xl md:text-3xl font-semibold text-center text-foreground/90 max-w-3xl leading-relaxed tracking-tight px-4 drop-shadow-sm prose-headings:m-0 prose-p:m-0">
-                                <Streamdown>
-                                  {formatMentions(topicText)}
-                                </Streamdown>
-                              </div>
+                              <StreamdownRenderer
+                                className="text-2xl md:text-3xl font-semibold text-center text-foreground/90 max-w-3xl leading-relaxed tracking-tight px-4 drop-shadow-sm prose-headings:m-0 prose-p:m-0"
+                                content={formatMentions(topicText)}
+                              />
                             </div>
                           );
                         }
@@ -848,18 +847,13 @@ export function ChatInterface({ sessionId, sessionName }: ChatInterfaceProps) {
                                 </span>
                               </div>
                             ) : (
-                              <div
+                              <StreamdownRenderer
                                 className={cn(
-                                  "markdown-container min-h-[20px]",
-                                  isUser
-                                    ? "prose-invert"
-                                    : "prose-neutral dark:prose-invert",
+                                  "min-h-[20px]",
+                                  isUser && "prose-invert",
                                 )}
-                              >
-                                <Streamdown>
-                                  {formatMentions(msg.content)}
-                                </Streamdown>
-                              </div>
+                                content={formatMentions(msg.content)}
+                              />
                             )}
                           </div>
                         </div>
