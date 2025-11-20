@@ -30,9 +30,11 @@ export interface GitWorktreeRequest {
   action: GitWorktreeAction;
   path?: string;
   branch?: string;
+  base?: string; // starting point when creating a new branch (defaults to main)
   force?: boolean;
   detach?: boolean;
   interactive?: boolean;
+  create?: boolean; // create branch if missing (uses -b)
 }
 
 /**
