@@ -24,6 +24,14 @@ const BUILTIN_TOOL_PROVIDERS: ProviderConfig[] = [
     priority: 999,
     timeout: 60000,
   },
+  {
+    name: "tool-gemini-cli",
+    baseUrl: "cli:gemini",
+    apiKey: "",
+    models: ["gemini-cli"],
+    priority: 999,
+    timeout: 60000,
+  },
 ];
 
 /**
