@@ -834,7 +834,9 @@ export function ChatInterface({ sessionId, sessionName }: ChatInterfaceProps) {
                                 : "bg-white/60 dark:bg-white/5 text-foreground rounded-[24px] rounded-tl-sm border-white/20 shadow-black/5",
                             )}
                           >
-                            {(!msg.content || msg.content.trim().length === 0) && !isUser ? (
+                            {(!msg.content ||
+                              msg.content.trim().length === 0) &&
+                            !isUser ? (
                               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                                 <div className="flex gap-1">
                                   <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/70 animate-bounce [animation-delay:-0.2s]" />
