@@ -12,6 +12,8 @@ import { PromptClient } from "./client.ts";
 import type { PromptRequest, PromptResponse } from "./types.ts";
 import type { StreamTextResult } from "ai";
 import { ModelNotSupportedError, AllProvidersFailedError } from "./types.ts";
+import { spawn } from "node:child_process";
+import * as path from "node:path";
 
 /**
  * Logger interface for structured logging
@@ -45,7 +47,7 @@ const defaultLogger: Logger = {
  */
 export class ModelRouter {
   #registry: ProviderRegistry;
-  #clients: Map<string, PromptClient>;
+  #clients: Map<string, PromptClient | CliPromptClient>;
   #retryPolicy: RetryPolicy;
   #logger: Logger;
 
@@ -62,9 +64,14 @@ export class ModelRouter {
   /**
    * Get or create a client for a provider
    */
-  #getOrCreateClient(provider: ProviderConfig): PromptClient {
+  #getOrCreateClient(provider: ProviderConfig): PromptClient | CliPromptClient {
     if (!this.#clients.has(provider.name)) {
-      this.#clients.set(provider.name, new PromptClient(provider));
+      if (provider.baseUrl.startsWith("cli:")) {
+        const tool = provider.baseUrl.replace("cli:", "");
+        this.#clients.set(provider.name, new CliPromptClient(tool));
+      } else {
+        this.#clients.set(provider.name, new PromptClient(provider));
+      }
     }
     return this.#clients.get(provider.name)!;
   }
@@ -306,6 +313,14 @@ export class ModelRouter {
   clearClients(): void {
     this.#clients.clear();
   }
+
+  /**
+   * Reload provider registry from disk and reset clients
+   */
+  async reloadConfig(): Promise<void> {
+    await this.#registry.reload();
+    this.clearClients();
+  }
 }
 
 /**
@@ -317,4 +332,129 @@ export async function createRouter(logger?: Logger): Promise<ModelRouter> {
   const adapter = new XlingAdapter();
   const config = adapter.readConfig(adapter.resolvePath("user"));
   return new ModelRouter(config, logger);
+}
+
+class CliPromptClient {
+  #tool: string;
+
+  constructor(tool: string) {
+    this.#tool = tool;
+  }
+
+  async generate(request: PromptRequest): Promise<PromptResponse> {
+    const prompt = formatRequest(request);
+    const output = await runCli(this.#tool, prompt, request.abortSignal);
+    return {
+      content: output,
+      model: request.model || this.#tool,
+      provider: `cli:${this.#tool}`,
+    } as PromptResponse;
+  }
+
+  async stream(
+    request: PromptRequest,
+  ): Promise<StreamTextResult<Record<string, never>, never>> {
+    const prompt = formatRequest(request);
+    const textStream = runCliStream(this.#tool, prompt, request.abortSignal);
+
+    return {
+      textStream,
+    } as unknown as StreamTextResult<Record<string, never>, never>;
+  }
+}
+
+function formatRequest(request: PromptRequest): string {
+  if (request.messages && request.messages.length > 0) {
+    return request.messages
+      .map((m) => `${m.role.toUpperCase()}: ${m.content}`)
+      .join("\n\n");
+  }
+  return [request.system, request.prompt].filter(Boolean).join("\n\n");
+}
+
+function runCli(tool: string, prompt: string, signal?: AbortSignal): Promise<string> {
+  return new Promise((resolve, reject) => {
+    let output = "";
+    let errorOutput = "";
+    const child = spawnCli(tool, signal);
+
+    child.stdout.on("data", (data) => {
+      output += data.toString();
+    });
+
+    child.stderr.on("data", (data) => {
+      errorOutput += data.toString();
+    });
+
+    child.on("error", (err) => reject(err));
+    child.on("close", (code) => {
+      if (code === 0) {
+        resolve(cleanCliOutput(output));
+      } else {
+        reject(new Error(errorOutput || `cli:${tool} exited with code ${code}`));
+      }
+    });
+
+    child.stdin.write(prompt);
+    child.stdin.end();
+  });
+}
+
+async function* runCliStream(
+  tool: string,
+  prompt: string,
+  signal?: AbortSignal,
+): AsyncGenerator<string> {
+  const child = spawnCli(tool, signal);
+  let buffer = "";
+
+  child.stdout.on("data", (chunk) => {
+    buffer += chunk.toString();
+  });
+
+  const done = new Promise<void>((resolve, reject) => {
+    child.on("error", reject);
+    child.on("close", () => resolve());
+  });
+
+  child.stdin.write(prompt);
+  child.stdin.end();
+
+  await done;
+
+  const cleaned = cleanCliOutput(buffer);
+  if (cleaned.length > 0) {
+    yield cleaned;
+  }
+}
+
+function spawnCli(tool: string, signal?: AbortSignal) {
+  const cliPath = path.resolve(process.cwd(), "dist/run.js");
+  const child = spawn(cliPath, ["p", "--tool", tool], {
+    stdio: ["pipe", "pipe", "pipe"],
+    env: process.env,
+  });
+
+  if (signal) {
+    if (signal.aborted) {
+      child.kill();
+    } else {
+      signal.addEventListener("abort", () => child.kill("SIGTERM"), {
+        once: true,
+      });
+    }
+  }
+
+  return child;
+}
+
+function cleanCliOutput(text: string): string {
+  return text
+    .split(/\r?\n/)
+    .filter(
+      (line) =>
+        line.trim().length > 0 && !line.startsWith("[backend:") && !line.startsWith("yolo on"),
+    )
+    .join("\n")
+    .trim();
 }

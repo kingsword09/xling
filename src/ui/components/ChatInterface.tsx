@@ -457,9 +457,9 @@ export function ChatInterface({ sessionId, sessionName }: ChatInterfaceProps) {
   const manualTurnDisabled =
     mode !== "manual" || status === "idle" || aiParticipants.length === 0;
   const summaryDisabled =
-    status !== "idle" ||
     summarizableParticipants.length === 0 ||
-    messages.length === 0;
+    messages.length === 0 ||
+    status === "speaking";
 
   useEffect(() => {
     if (!mentionActive) return;

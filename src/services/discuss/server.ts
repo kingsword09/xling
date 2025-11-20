@@ -131,6 +131,9 @@ export async function createDiscussServer(
 
     // Models
     if (url.pathname === "/api/models") {
+      if (typeof router.reloadConfig === "function") {
+        await router.reloadConfig();
+      }
       const models = router.getRegistry().getAllModels();
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ models }));
