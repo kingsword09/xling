@@ -24,6 +24,10 @@ export default class Wts extends Command {
       command: "cd $(<%= config.bin %> <%= command.id %>)",
     },
     {
+      description: "Switch to main worktree without subshell (path only)",
+      command: "<%= config.bin %> <%= command.id %> --path-only",
+    },
+    {
       description: "Switch to specific worktree by branch name",
       command: "cd $(<%= config.bin %> <%= command.id %> -b feature/login)",
     },

@@ -130,6 +130,18 @@ async function getLocalBranches(cwd: string): Promise<string[]> {
 }
 
 /**
+ * Check if a branch exists locally
+ */
+async function branchExists(cwd: string, branch: string): Promise<boolean> {
+  const result = await runCommand(
+    "git",
+    ["rev-parse", "--verify", "--quiet", branch],
+    { cwd, throwOnError: false, silent: true },
+  );
+  return result.success;
+}
+
+/**
  * Reusable interactive selector
  */
 type SelectionOption<T> = { label: string; value: T };
@@ -275,9 +287,11 @@ export async function manageWorktree(
     action,
     path: userPath,
     branch,
+    base,
     force,
     detach,
     interactive,
+    create,
   } = request;
 
   switch (action) {
@@ -357,7 +371,11 @@ export async function manageWorktree(
     case "add": {
       // Use main branch if not specified
       let targetBranch = branch || "main";
+      const baseRef = base || "main";
+      const createBranch = create !== false;
       const worktrees = await getWorktrees(currentCwd);
+      const targetExists = await branchExists(currentCwd, targetBranch);
+      const baseExists = await branchExists(currentCwd, baseRef);
 
       if (interactive) {
         const branches = await getLocalBranches(currentCwd);
@@ -393,10 +411,10 @@ export async function manageWorktree(
         (wt) => wt.branch === targetBranch,
       );
 
-      if (existingWorktree) {
+      if (existingWorktree && !detach && targetExists) {
         throw new Error(
           `Branch "${targetBranch}" is already used by worktree at "${existingWorktree.path}".\n` +
-            `Choose a different branch name, or switch that worktree to another branch first.`,
+            `Try --detach to create a detached worktree, or use -b <new-branch> (with --base main) to create a new branch.`,
         );
       }
 
@@ -414,7 +432,19 @@ export async function manageWorktree(
       const args = ["worktree", "add"];
       if (force) args.push("--force");
       if (detach) args.push("--detach");
-      args.push(worktreePath, targetBranch);
+      if (!targetExists && createBranch) {
+        args.push("-b", targetBranch);
+      }
+      args.push(worktreePath);
+
+      // Start point: only when creating a new branch or detached checkout of existing branch
+      if (!targetExists && createBranch) {
+        args.push(baseExists ? baseRef : "HEAD");
+      } else if (detach) {
+        args.push(targetBranch);
+      } else {
+        args.push(targetBranch);
+      }
 
       const result = await runCommand("git", args, {
         cwd: currentCwd,
