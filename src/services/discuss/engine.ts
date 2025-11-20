@@ -282,7 +282,7 @@ export class DiscussionEngine extends EventEmitter {
       this.emit("status-changed", this.#status);
     }
 
-    this.#executeTurn(participantId);
+    void this.#executeTurn(participantId);
   }
 
   async generateSummary(modelId: string): Promise<string> {
@@ -316,7 +316,7 @@ Provide a concise summary of the key points and conclusions.`;
       () => {
         const nextId = this.#selectNextSpeaker();
         if (nextId) {
-          this.#executeTurn(nextId);
+          void this.#executeTurn(nextId);
         }
       },
       this.#config.thinkingTimeMs,

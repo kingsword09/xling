@@ -156,7 +156,7 @@ export function ChatInterface({ sessionId, sessionName }: ChatInterfaceProps) {
         setError("Failed to load session state");
       }
     };
-    fetchState();
+    void fetchState();
   }, [sessionId]);
 
   useEffect(() => {
@@ -478,40 +478,43 @@ export function ChatInterface({ sessionId, sessionName }: ChatInterfaceProps) {
     }
   }, [canSendMessage, resetMention]);
 
-  const handleControl = async (action: string, body: any = {}) => {
-    await fetch(`/api/sessions/${sessionId}/${action}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-  };
+  const handleControl = useCallback(
+    async (action: string, body: any = {}) => {
+      await fetch(`/api/sessions/${sessionId}/${action}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+    },
+    [sessionId],
+  );
 
-  const handleNextTurn = useCallback(async () => {
+  const handleNextTurn = useCallback(() => {
     if (manualTurnDisabled) return;
-    await handleControl("next");
+    void handleControl("next");
   }, [handleControl, manualTurnDisabled]);
 
-  const handleResume = useCallback(async () => {
-    await handleControl("resume");
+  const handleResume = useCallback(() => {
+    void handleControl("resume");
   }, [handleControl]);
 
-  const handlePause = useCallback(async () => {
+  const handlePause = useCallback(() => {
     if (status === "idle") return;
-    await handleControl("pause");
+    void handleControl("pause");
   }, [handleControl, status]);
 
-  const handleInterrupt = useCallback(async () => {
+  const handleInterrupt = useCallback(() => {
     if (status !== "speaking") return;
-    await handleControl("interrupt");
+    void handleControl("interrupt");
   }, [handleControl, status]);
 
-  const handleReset = useCallback(async () => {
+  const handleReset = useCallback(() => {
     if (
       confirm(
         "Are you sure you want to reset? This will clear the current discussion.",
       )
     ) {
-      await handleControl("reset");
+      void handleControl("reset");
     }
   }, [handleControl]);
 
@@ -879,7 +882,9 @@ export function ChatInterface({ sessionId, sessionName }: ChatInterfaceProps) {
             {/* Input Area */}
             <div className="p-6 bg-transparent relative z-20">
               <form
-                onSubmit={handleSend}
+                onSubmit={(event) => {
+                  void handleSend(event);
+                }}
                 className="max-w-4xl mx-auto flex gap-3 relative items-end"
               >
                 <div className="relative flex-1">
@@ -1035,7 +1040,7 @@ export function ChatInterface({ sessionId, sessionName }: ChatInterfaceProps) {
               {t("close")}
             </Button>
             <Button
-              onClick={handleRunSummary}
+              onClick={() => void handleRunSummary()}
               disabled={!selectedSummaryModel || isSummarizing}
               className="neo-btn bg-neo-purple text-black hover:bg-neo-purple/90"
             >

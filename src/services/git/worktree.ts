@@ -558,7 +558,9 @@ export async function manageWorktree(
       };
     }
 
-    default:
-      throw new Error(`Unknown worktree action: ${action}`);
+    default: {
+      const _exhaustive: never = action;
+      throw new Error("Unknown worktree action");
+    }
   }
 }

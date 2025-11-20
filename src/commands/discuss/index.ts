@@ -183,111 +183,117 @@ export default class DiscussCommand extends Command {
     };
     process.on("SIGINT", handleSigint);
 
-    process.stdin.on("keypress", async (str, key) => {
-      if (key.ctrl && key.name === "c") {
-        process.exit();
-      }
-
-      if (key.name === "q") {
-        engine.stop();
-        process.exit();
-      }
-
-      // Ignore keys if we are in input mode (handled by prompt)
-      // But since we are in raw mode, we need to handle input manually if we want a prompt
-      // This is tricky with raw mode + readline.
-      // Strategy: Pause raw mode, use readline, then resume raw mode.
-
-      if (key.name === "space") {
-        if (engine.status === "paused") engine.resume();
-        else engine.pause();
-        this.log(`\n[System] Discussion ${engine.status}`);
-      }
-
-      if (key.name === "m") {
-        const newMode = engine.mode === "auto" ? "manual" : "auto";
-        engine.setMode(newMode);
-        this.log(`\n[System] Mode switched to ${newMode.toUpperCase()}`);
-      }
-
-      if (key.name === "n") {
-        if (engine.mode === "manual") {
-          // Pick next speaker
-          // For simplicity in CLI, just pick random or round robin next
-          // Ideally we'd show a menu, but let's just trigger next
-          // We can expose a method to just "trigger next" in engine or use setNextSpeaker with logic here
-          // Let's just force a turn if idle
-          if (engine.status === "discussing" || engine.status === "paused") {
-            // We need to know who is next.
-            // Let's add a helper in engine or just pick one here.
-            const aiParticipants = engine.participants.filter(
-              (p) => p.type === "ai",
-            );
-            const random =
-              aiParticipants[Math.floor(Math.random() * aiParticipants.length)];
-            engine.setNextSpeaker(random.id);
-          }
-        } else {
-          this.log("\n[System] Switch to Manual mode [m] to use Next [n]");
-        }
-      }
-
-      if (key.name === "i") {
-        // Interrupt
-        engine.pause();
-        process.stdin.setRawMode(false);
-        process.stdout.write("\n[User]: ");
-
-        const rl = readline.createInterface({
-          input: process.stdin,
-          output: process.stdout,
-        });
-
-        rl.question("", (answer) => {
-          rl.close();
-          if (answer.trim()) {
-            engine.injectMessage("user", answer);
-          }
-          process.stdin.setRawMode(true);
-          engine.resume();
-        });
-      }
-
-      if (key.name === "s") {
-        engine.pause();
-        process.stdin.setRawMode(false);
-
-        const aiParticipants = engine.participants.filter(
-          (p) => p.type === "ai",
-        );
-        this.log("\nSelect summarizer:");
-        aiParticipants.forEach((p, i) => this.log(`${i + 1}. ${p.name}`));
-
-        const rl = readline.createInterface({
-          input: process.stdin,
-          output: process.stdout,
-        });
-
-        rl.question("Choice: ", async (answer) => {
-          rl.close();
-          const idx = parseInt(answer) - 1;
-          const summarizer = aiParticipants[idx];
-
-          if (summarizer) {
-            this.log(`\nGenerating summary with ${summarizer.name}...\n`);
-            try {
-              const summary = await engine.generateSummary(summarizer.id);
-              this.log("\n=== SUMMARY ===\n");
-              this.log(summary);
-              this.log("\n===============\n");
-            } catch (e) {
-              this.log(`Error: ${(e as Error).message}`);
-            }
-          }
-
+    process.stdin.on("keypress", (str, key) => {
+      void (async () => {
+        if (key.ctrl && key.name === "c") {
           process.exit();
-        });
-      }
+        }
+
+        if (key.name === "q") {
+          engine.stop();
+          process.exit();
+        }
+
+        // Ignore keys if we are in input mode (handled by prompt)
+        // But since we are in raw mode, we need to handle input manually if we want a prompt
+        // This is tricky with raw mode + readline.
+        // Strategy: Pause raw mode, use readline, then resume raw mode.
+
+        if (key.name === "space") {
+          if (engine.status === "paused") engine.resume();
+          else engine.pause();
+          this.log(`\n[System] Discussion ${engine.status}`);
+        }
+
+        if (key.name === "m") {
+          const newMode = engine.mode === "auto" ? "manual" : "auto";
+          engine.setMode(newMode);
+          this.log(`\n[System] Mode switched to ${newMode.toUpperCase()}`);
+        }
+
+        if (key.name === "n") {
+          if (engine.mode === "manual") {
+            // Pick next speaker
+            // For simplicity in CLI, just pick random or round robin next
+            // Ideally we'd show a menu, but let's just trigger next
+            // We can expose a method to just "trigger next" in engine or use setNextSpeaker with logic here
+            // Let's just force a turn if idle
+            if (engine.status === "discussing" || engine.status === "paused") {
+              // We need to know who is next.
+              // Let's add a helper in engine or just pick one here.
+              const aiParticipants = engine.participants.filter(
+                (p) => p.type === "ai",
+              );
+              const random =
+                aiParticipants[
+                  Math.floor(Math.random() * aiParticipants.length)
+                ];
+              engine.setNextSpeaker(random.id);
+            }
+          } else {
+            this.log("\n[System] Switch to Manual mode [m] to use Next [n]");
+          }
+        }
+
+        if (key.name === "i") {
+          // Interrupt
+          engine.pause();
+          process.stdin.setRawMode(false);
+          process.stdout.write("\n[User]: ");
+
+          const rl = readline.createInterface({
+            input: process.stdin,
+            output: process.stdout,
+          });
+
+          rl.question("", (answer) => {
+            rl.close();
+            if (answer.trim()) {
+              void engine.injectMessage("user", answer);
+            }
+            process.stdin.setRawMode(true);
+            engine.resume();
+          });
+        }
+
+        if (key.name === "s") {
+          engine.pause();
+          process.stdin.setRawMode(false);
+
+          const aiParticipants = engine.participants.filter(
+            (p) => p.type === "ai",
+          );
+          this.log("\nSelect summarizer:");
+          aiParticipants.forEach((p, i) => this.log(`${i + 1}. ${p.name}`));
+
+          const rl = readline.createInterface({
+            input: process.stdin,
+            output: process.stdout,
+          });
+
+          rl.question("Choice: ", (answer) => {
+            void (async () => {
+              rl.close();
+              const idx = parseInt(answer) - 1;
+              const summarizer = aiParticipants[idx];
+
+              if (summarizer) {
+                this.log(`\nGenerating summary with ${summarizer.name}...\n`);
+                try {
+                  const summary = await engine.generateSummary(summarizer.id);
+                  this.log("\n=== SUMMARY ===\n");
+                  this.log(summary);
+                  this.log("\n===============\n");
+                } catch (e) {
+                  this.log(`Error: ${(e as Error).message}`);
+                }
+              }
+
+              process.exit();
+            })();
+          });
+        }
+      })();
     });
 
     // Keep process alive
