@@ -14,10 +14,12 @@ export default class Git extends Command {
   `;
 
   static examples: string[] = [
-    "<%= config.bin %> <%= command.id %>:prc --web",
-    "<%= config.bin %> <%= command.id %>:prr 123",
+    "<%= config.bin %> <%= command.id %>:prc --web --browser safari",
+    "<%= config.bin %> <%= command.id %>:prr 123                     # checkout PR 123",
+    "<%= config.bin %> <%= command.id %>:prv 456 --browser arc       # open PR 456 in Arc",
     "<%= config.bin %> <%= command.id %>:worktree --list",
-    "<%= config.bin %> <%= command.id %>:prv 456 --browser safari",
+    "<%= config.bin %> <%= command.id %>:wta -b feature/foo --base main",
+    "cd $(<%= config.bin %> <%= command.id %>:wts -b feature/foo)    # switch worktree",
   ];
 
   async run(): Promise<void> {
@@ -26,7 +28,9 @@ export default class Git extends Command {
     this.log("  prc      - Create PR with optional browser preview");
     this.log("  prr      - Checkout PR branch (PR Read/Retrieve)");
     this.log("  prv      - Open PR in web browser (PR View)");
-    this.log("  worktree - Manage git worktrees (list, add, remove, prune)\n");
+    this.log(
+      "  wta/wts/wtl/wtr/wtp - Worktree helpers (add/switch/list/remove/prune)\n",
+    );
     this.log("Use --help with any subcommand for details");
     this.log("\nExamples:");
     this.log("  xling git:prc --web --browser chrome");

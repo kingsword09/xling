@@ -22,6 +22,14 @@ export default class Wta extends Command {
       command: "<%= config.bin %> <%= command.id %>",
     },
     {
+      description: "Create a new feature branch from main in a new worktree",
+      command: "<%= config.bin %> <%= command.id %> -b feature/foo --base main",
+    },
+    {
+      description: "Create a detached worktree on main even if main is in use",
+      command: "<%= config.bin %> <%= command.id %> --detach --base main",
+    },
+    {
       description: "Add worktree for specific branch",
       command: "<%= config.bin %> <%= command.id %> -b feature/login",
     },
@@ -50,6 +58,16 @@ export default class Wta extends Command {
       description: "Force operation",
       default: false,
     }),
+    base: Flags.string({
+      description:
+        "Start point when creating a new branch (defaults to main or current HEAD)",
+    }),
+    create: Flags.boolean({
+      description:
+        "Create the branch if it does not exist (uses -b). Use --no-create to require existing branch.",
+      default: true,
+      allowNo: true,
+    }),
     detach: Flags.boolean({
       description: "Detach HEAD in new worktree",
       default: false,
@@ -68,6 +86,8 @@ export default class Wta extends Command {
       action: "add",
       branch: flags.branch,
       path: flags.path,
+      base: flags.base,
+      create: flags.create,
       force: flags.force,
       detach: flags.detach,
       interactive: flags.select,
