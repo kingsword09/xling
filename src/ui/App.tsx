@@ -4,7 +4,7 @@ import { ChatInterface } from "@/ui/components/ChatInterface";
 import { NewSessionDialog } from "@/ui/components/NewSessionDialog";
 import { Sheet, SheetContent } from "@/ui/components/ui/sheet";
 import { Button } from "@/ui/components/ui/button";
-import { Menu } from "lucide-react";
+import { Menu, Sun, Moon, Languages, Sparkles } from "lucide-react";
 import { I18nProvider, useI18n, Locale } from "@/ui/i18n";
 
 interface Session {
@@ -126,22 +126,41 @@ function AppContent() {
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col h-full relative min-w-0">
-        <div className="absolute right-4 top-3 z-30 flex items-center gap-2">
+        <div className="fixed left-6 bottom-6 z-30 group flex flex-col items-start gap-2">
+          <div className="flex flex-col items-start gap-2 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto translate-y-2 group-hover:translate-y-0 transition-all duration-200">
+            <Button
+              size="icon"
+              variant="ghost"
+              className="rounded-full border border-white/40 bg-white/90 dark:bg-white/10 shadow-sm"
+              title={t("language")}
+              onClick={toggleLocale}
+            >
+              <Languages className="h-4 w-4" />
+              <span className="sr-only">{t("language")}</span>
+            </Button>
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={toggleTheme}
+              className="rounded-full border border-white/40 bg-white/90 dark:bg-white/10 shadow-sm"
+              title={t("theme")}
+            >
+              {theme === "light" ? (
+                <Sun className="h-4 w-4" />
+              ) : (
+                <Moon className="h-4 w-4" />
+              )}
+              <span className="sr-only">{t("theme")}</span>
+            </Button>
+          </div>
           <Button
-            size="sm"
+            size="icon"
             variant="ghost"
-            onClick={toggleTheme}
-            className="rounded-full border border-white/40 bg-white/70 dark:bg-white/10 backdrop-blur shadow-sm hover:-translate-y-[1px] transition-all"
+            className="rounded-full border border-white/40 bg-white/90 dark:bg-white/10 shadow-sm"
+            title="Quick settings"
           >
-            {t("theme")}: {theme === "light" ? t("light") : t("dark")}
-          </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={toggleLocale}
-            className="rounded-full border border-white/40 bg-white/70 dark:bg-white/10 backdrop-blur shadow-sm hover:-translate-y-[1px] transition-all"
-          >
-            {t("language")}: {locale === "en" ? "EN" : "中文"}
+            <Sparkles className="h-4 w-4" />
+            <span className="sr-only">Quick settings</span>
           </Button>
         </div>
 

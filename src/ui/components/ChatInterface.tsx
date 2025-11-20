@@ -15,6 +15,7 @@ import {
   Users,
   Ban,
   RotateCcw,
+  Sparkles,
 } from "lucide-react";
 import { Button } from "@/ui/components/ui/button";
 import { Input } from "@/ui/components/ui/input";
@@ -636,68 +637,74 @@ export function ChatInterface({ sessionId, sessionName }: ChatInterfaceProps) {
                 {mode === "manual" && (
                   <Button
                     variant="ghost"
-                    size="sm"
+                    size="icon"
                     onClick={handleNextTurn}
                     disabled={manualTurnDisabled}
-                    className="text-primary hover:bg-primary/10 hover:text-primary rounded-full px-4 shadow-sm hover:-translate-y-[1px] transition-transform"
+                    className="text-primary hover:bg-primary/10 hover:text-primary rounded-full shadow-sm hover:-translate-y-[1px] transition-transform"
+                    title={t("next")}
                   >
-                    <SkipForward className="h-4 w-4 mr-2" />
-                    {t("next")}
+                    <SkipForward className="h-4 w-4" />
+                    <span className="sr-only">{t("next")}</span>
                   </Button>
                 )}
                 {status === "speaking" && (
                   <Button
-                    size="sm"
+                    size="icon"
                     variant="ghost"
                     onClick={handleInterrupt}
                     className="rounded-full hover:bg-white/30 dark:hover:bg-white/10 shadow-sm hover:-translate-y-[1px] transition-transform"
+                    title={t("interrupt")}
                   >
-                    <Ban className="h-4 w-4 mr-2" />
-                    {t("interrupt")}
+                    <Ban className="h-4 w-4" />
+                    <span className="sr-only">{t("interrupt")}</span>
                   </Button>
                 )}
 
                 {status === "paused" ? (
                   <Button
-                    size="sm"
+                    size="icon"
                     onClick={handleResume}
                     className="rounded-full bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 hover:text-emerald-700 border border-emerald-500/20 shadow-sm hover:-translate-y-[1px] transition-transform"
+                    title={t("resume")}
                   >
-                    <Play className="h-3.5 w-3.5 mr-2 fill-current" />
-                    {t("resume")}
+                    <Play className="h-4 w-4 fill-current" />
+                    <span className="sr-only">{t("resume")}</span>
                   </Button>
                 ) : (
                   <Button
-                    size="sm"
+                    size="icon"
                     variant="ghost"
                     onClick={handlePause}
                     className="rounded-full hover:bg-white/30 dark:hover:bg-white/10 shadow-sm hover:-translate-y-[1px] transition-transform"
                     disabled={status === "idle"}
+                    title={t("pause")}
                   >
-                    <Pause className="h-4 w-4 mr-2" />
-                    {t("pause")}
+                    <Pause className="h-4 w-4" />
+                    <span className="sr-only">{t("pause")}</span>
                   </Button>
                 )}
 
                 <Button
-                  size="sm"
+                  size="icon"
                   variant="ghost"
                   onClick={handleReset}
                   disabled={aiParticipants.length === 0}
                   className="rounded-full hover:bg-white/30 dark:hover:bg-white/10 shadow-sm hover:-translate-y-[1px] transition-transform"
                   title={t("reset")}
                 >
-                  <RotateCcw className="h-4 w-4 mr-2" />
-                  {t("reset")}
+                  <RotateCcw className="h-4 w-4" />
+                  <span className="sr-only">{t("reset")}</span>
                 </Button>
                 <Button
-                  size="sm"
+                  size="icon"
                   variant="ghost"
                   disabled={summaryDisabled}
                   onClick={openSummaryDialog}
                   className="rounded-full hover:bg-white/30 dark:hover:bg-white/10 shadow-sm hover:-translate-y-[1px] transition-transform"
+                  title={t("summarize")}
                 >
-                  {t("summarize")}
+                  <Sparkles className="h-4 w-4" />
+                  <span className="sr-only">{t("summarize")}</span>
                 </Button>
                 <Button
                   variant="ghost"
