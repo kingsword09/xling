@@ -12,6 +12,7 @@ import type {
 } from "@/domain/types.ts";
 import { ClaudeLaunchAdapter } from "./adapters/claude.ts";
 import { CodexLaunchAdapter } from "./adapters/codex.ts";
+import { GeminiLaunchAdapter } from "./adapters/gemini.ts";
 import { spawnProcess } from "@/utils/runner.ts";
 import { UnsupportedToolError } from "@/utils/errors.ts";
 
@@ -31,7 +32,7 @@ export class LaunchDispatcher {
     // Register built-in adapters
     this.#adapters.set("claude", new ClaudeLaunchAdapter());
     this.#adapters.set("codex", new CodexLaunchAdapter());
-    // Gemini adapter will be added later
+    this.#adapters.set("gemini", new GeminiLaunchAdapter());
   }
 
   /**
