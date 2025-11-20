@@ -1,6 +1,6 @@
 /**
  * x command
- * Quick launcher for Claude Code or Codex
+ * Quick launcher for Claude Code, Codex, or Gemini CLI
  */
 
 import { Command, Flags, Interfaces } from "@oclif/core";
@@ -8,10 +8,11 @@ import { LaunchDispatcher } from "@/services/launch/dispatcher.ts";
 import type { ToolId } from "@/domain/types.ts";
 
 export default class X extends Command {
-  static summary = "eXecute AI CLI tools (defaults to Claude Code with yolo)";
+  static summary =
+    "eXecute AI CLI tools (defaults to Claude Code with yolo)";
 
   static description = `
-    Quick launcher for Claude Code or Codex CLI with yolo mode enabled by default.
+    Quick launcher for Claude Code, Codex, or Gemini CLI with yolo mode enabled by default.
 
     Just run "xling x" to start Claude Code instantly!
 
@@ -20,6 +21,7 @@ export default class X extends Command {
     Yolo mode is ENABLED by default, which skips permission prompts:
     - Claude Code: --dangerously-skip-permissions
     - Codex: --dangerously-bypass-approvals-and-sandbox
+    - Gemini CLI: -y
 
     Resume options:
     - Use -c/--continue to continue the last conversation/session
@@ -35,6 +37,8 @@ export default class X extends Command {
       $ xling x -t codex -c              # Continue last Codex session
       $ xling x -t codex -s oss          # Start Codex with oss profile
       $ xling x --tool codex             # Start Codex
+      $ xling x -t gemini                # Start Gemini CLI
+      $ xling x -t gemini -c             # Resume latest Gemini session
       $ xling x --no-yolo                # Start Claude without yolo
       $ xling x -- chat "Hello"          # Start Claude with arguments
       $ xling x -t codex -C /path        # Start Codex in specific directory
@@ -66,6 +70,14 @@ export default class X extends Command {
       command: "<%= config.bin %> <%= command.id %> -t codex -s oss",
     },
     {
+      description: "Start Gemini CLI (auto-accept actions)",
+      command: "<%= config.bin %> <%= command.id %> -t gemini",
+    },
+    {
+      description: "Resume latest Gemini session",
+      command: "<%= config.bin %> <%= command.id %> -t gemini -c",
+    },
+    {
       description: "Start Claude without yolo mode",
       command: "<%= config.bin %> <%= command.id %> --no-yolo",
     },
@@ -85,7 +97,7 @@ export default class X extends Command {
     tool: Flags.string({
       description: "AI CLI tool to launch",
       char: "t",
-      options: ["claude", "codex"],
+      options: ["claude", "codex", "gemini"],
       default: "claude",
     }),
     yolo: Flags.boolean({
@@ -109,7 +121,7 @@ export default class X extends Command {
     }),
     settings: Flags.string({
       description:
-        "Settings configuration (Claude: variant name or file path; Codex: profile name)",
+        "Settings configuration (Claude: variant name or file path; Codex: profile name; Gemini: model name)",
       char: "s",
     }),
   };
