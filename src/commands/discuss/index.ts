@@ -336,7 +336,11 @@ export default class DiscussCommand extends Command {
             return isCurrent ? `\x1B[36m${line}\x1B[0m` : line;
           }),
           "",
-          `Selected: ${Array.from(selected).map((i) => models[i]).join(", ") || "none"}`,
+          `Selected: ${
+            Array.from(selected)
+              .map((i) => models[i])
+              .join(", ") || "none"
+          }`,
         ];
 
         if (warning) {
@@ -384,7 +388,10 @@ export default class DiscussCommand extends Command {
             render();
             return;
           }
-          cleanup(undefined, Array.from(selected).map((i) => models[i]));
+          cleanup(
+            undefined,
+            Array.from(selected).map((i) => models[i]),
+          );
         }
       };
 
