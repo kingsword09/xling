@@ -122,7 +122,9 @@ export function ChatInterface({ sessionId, sessionName }: ChatInterfaceProps) {
   const currentSpeaker = useMemo(
     () =>
       currentSpeakerId
-        ? participants.find((participant) => participant.id === currentSpeakerId)
+        ? participants.find(
+            (participant) => participant.id === currentSpeakerId,
+          )
         : null,
     [currentSpeakerId, participants],
   );
@@ -614,7 +616,8 @@ export function ChatInterface({ sessionId, sessionName }: ChatInterfaceProps) {
                       )}
                     >
                       <span className="h-2 w-2 rounded-full bg-current opacity-70" />
-                      {t("modeLabel")}: {mode === "auto" ? t("modeAuto") : t("modeManual")}
+                      {t("modeLabel")}:{" "}
+                      {mode === "auto" ? t("modeAuto") : t("modeManual")}
                     </span>
                     <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/30 bg-white/60 dark:bg-white/10 shadow-sm backdrop-blur">
                       <Users className="h-3.5 w-3.5 opacity-70" />
@@ -875,12 +878,12 @@ export function ChatInterface({ sessionId, sessionName }: ChatInterfaceProps) {
                 <div className="pointer-events-none absolute bottom-6 left-0 right-0 flex justify-center z-20">
                   <Button
                     size="sm"
-                  variant="secondary"
-                  className="pointer-events-auto shadow-lg rounded-full bg-background/80 backdrop-blur-xl border border-white/20 hover:bg-background text-xs px-4 py-2 h-auto"
-                  onClick={handleJumpToBottom}
-                >
-                  {t("newMessages")}
-                </Button>
+                    variant="secondary"
+                    className="pointer-events-auto shadow-lg rounded-full bg-background/80 backdrop-blur-xl border border-white/20 hover:bg-background text-xs px-4 py-2 h-auto"
+                    onClick={handleJumpToBottom}
+                  >
+                    {t("newMessages")}
+                  </Button>
                 </div>
               )}
             </div>
@@ -987,9 +990,7 @@ export function ChatInterface({ sessionId, sessionName }: ChatInterfaceProps) {
         <DialogContent className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border border-white/30 shadow-2xl">
           <DialogHeader>
             <DialogTitle>{t("generateSummary")}</DialogTitle>
-            <DialogDescription>
-              {t("selectSummarizer")}
-            </DialogDescription>
+            <DialogDescription>{t("selectSummarizer")}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">

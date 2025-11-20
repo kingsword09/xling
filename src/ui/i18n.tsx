@@ -119,7 +119,10 @@ const messages: Messages = {
   },
 };
 
-type TranslateFn = (key: keyof typeof messages["en"], vars?: Record<string, string | number>) => string;
+type TranslateFn = (
+  key: keyof (typeof messages)["en"],
+  vars?: Record<string, string | number>,
+) => string;
 
 export const I18nContext = createContext<{
   locale: Locale;

@@ -128,13 +128,26 @@ export function ParticipantsSidebar({
   };
 
   return (
-    <div className="flex h-full w-80 flex-col border-l border-white/10 bg-gradient-to-b from-white/70 via-white/50 to-white/30 dark:from-white/5 dark:via-white/5 dark:to-white/5 backdrop-blur-2xl relative overflow-hidden">
-      <div className="absolute inset-x-0 top-0 h-28 bg-[radial-gradient(circle_at_20%_20%,rgba(59,130,246,0.25),transparent_55%)] blur-3xl opacity-70" />
-      <div className="absolute inset-x-0 top-10 h-28 bg-[radial-gradient(circle_at_80%_10%,rgba(16,185,129,0.24),transparent_55%)] blur-3xl opacity-60" />
+    <div className="flex h-full w-80 flex-col bg-gradient-to-b from-white/85 via-white/60 to-white/40 dark:from-white/10 dark:via-white/5 dark:to-white/5 backdrop-blur-2xl relative overflow-hidden border-l border-white/10">
+      <div className="pointer-events-none absolute inset-x-4 top-2 h-24 bg-[radial-gradient(circle_at_20%_20%,rgba(59,130,246,0.24),transparent_55%)] blur-3xl opacity-70" />
+      <div className="pointer-events-none absolute inset-x-4 top-12 h-28 bg-[radial-gradient(circle_at_80%_10%,rgba(16,185,129,0.24),transparent_55%)] blur-3xl opacity-60" />
+      <div className="absolute inset-y-0 left-0 w-[1px] bg-gradient-to-b from-transparent via-white/40 to-transparent pointer-events-none" />
       <div className="flex items-center justify-between p-4 border-b border-white/20 relative">
-        <h2 className="text-lg font-semibold tracking-tight">
-          {t("participants")}
-        </h2>
+        <div className="space-y-1">
+          <h2 className="text-lg font-semibold tracking-tight">
+            {t("participants")}
+          </h2>
+          <div className="flex items-center gap-2 text-[11px] font-semibold text-muted-foreground/80">
+            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-white/70 dark:bg-white/10 border border-white/40">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+              {t("participantsCount", { count: participants.length })}
+            </span>
+            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-white/70 dark:bg-white/10 border border-white/40">
+              <span className="h-1.5 w-1.5 rounded-full bg-sky-500" />
+              {mode === "auto" ? t("modeAuto") : t("modeManual")}
+            </span>
+          </div>
+        </div>
         <Button
           variant="ghost"
           size="icon"
@@ -150,8 +163,9 @@ export function ParticipantsSidebar({
           {participants.map((participant) => (
             <div
               key={participant.id}
-              className="flex items-center justify-between group rounded-xl border border-white/30 bg-white/70 dark:bg-white/5 p-3 hover:-translate-y-[1px] hover:shadow-md hover:border-white/50 transition-all backdrop-blur"
+              className="flex items-center justify-between group rounded-xl border border-white/30 bg-white/75 dark:bg-white/5 p-3 hover:-translate-y-[1px] hover:shadow-md hover:border-white/50 transition-all backdrop-blur relative overflow-hidden"
             >
+              <div className="pointer-events-none absolute right-0 top-0 h-full w-16 bg-gradient-to-l from-primary/10 via-transparent to-transparent opacity-60" />
               <div className="flex items-center gap-3 overflow-hidden">
                 <Avatar className="h-9 w-9 border border-white/50 shadow-inner">
                   <AvatarFallback
@@ -193,7 +207,7 @@ export function ParticipantsSidebar({
                     size="icon"
                     className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-100/60 dark:hover:bg-green-500/15 flex-shrink-0 rounded-full"
                     onClick={() => handleTriggerTurn(participant.id)}
-            title={mode === "manual" ? t("next") : t("next")}
+                    title={mode === "manual" ? t("next") : t("next")}
                   >
                     <Play className="h-4 w-4" />
                   </Button>

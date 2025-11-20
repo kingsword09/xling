@@ -75,9 +75,7 @@ export function NewSessionDialog({
             />
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-semibold">
-              {t("selectModels")}
-            </label>
+            <label className="text-sm font-semibold">{t("selectModels")}</label>
             <ScrollArea className="h-[220px] border border-white/30 rounded-xl p-2 bg-white/70 dark:bg-white/5 backdrop-blur">
               <div className="space-y-2">
                 {availableModels.map((model) => (
