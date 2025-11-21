@@ -16,11 +16,13 @@ import {
   Ban,
   RotateCcw,
   Sparkles,
+  Download,
 } from "lucide-react";
 import { Button } from "@/ui/components/ui/button";
 import { Input } from "@/ui/components/ui/input";
 import { ScrollArea } from "@/ui/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/ui/components/ui/avatar";
+import { exportSession } from "@/ui/lib/export";
 import {
   Dialog,
   DialogContent,
@@ -596,6 +598,8 @@ export function ChatInterface({ sessionId, sessionName }: ChatInterfaceProps) {
     summarizableParticipants.length === 0 ||
     messages.length === 0 ||
     status === "speaking";
+  const canPause = status !== "idle" && status !== "paused";
+  const canInterrupt = status === "speaking" || status === "thinking";
 
   useEffect(() => {
     if (!mentionActive) return;
@@ -615,11 +619,27 @@ export function ChatInterface({ sessionId, sessionName }: ChatInterfaceProps) {
 
   const handleControl = useCallback(
     async (action: string, body: any = {}) => {
-      await fetch(`/api/sessions/${sessionId}/${action}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
+      try {
+        const res = await fetch(`/api/sessions/${sessionId}/${action}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.error || `Failed to ${action}`);
+        }
+        setError(null);
+        return true;
+      } catch (err) {
+        console.error(`Failed to ${action}:`, err);
+        setError(
+          err instanceof Error
+            ? err.message
+            : `Failed to ${action}, please try again.`,
+        );
+        return false;
+      }
     },
     [sessionId],
   );
@@ -629,17 +649,23 @@ export function ChatInterface({ sessionId, sessionName }: ChatInterfaceProps) {
     void handleControl("next");
   }, [handleControl, manualTurnDisabled]);
 
-  const handleResume = useCallback(() => {
-    void handleControl("resume");
+  const handleResume = useCallback(async () => {
+    const ok = await handleControl("resume");
+    if (ok) {
+      setStatus("discussing");
+    }
   }, [handleControl]);
 
-  const handlePause = useCallback(() => {
-    if (status === "idle") return;
-    void handleControl("pause");
-  }, [handleControl, status]);
+  const handlePause = useCallback(async () => {
+    if (!canPause) return;
+    const ok = await handleControl("pause");
+    if (ok) {
+      setStatus("paused");
+    }
+  }, [canPause, handleControl]);
 
   const handleInterrupt = useCallback(() => {
-    if (status !== "speaking") return;
+    if (status !== "speaking" && status !== "thinking") return;
     void handleControl("interrupt");
   }, [handleControl, status]);
 
@@ -777,7 +803,7 @@ export function ChatInterface({ sessionId, sessionName }: ChatInterfaceProps) {
                     <span className="sr-only">{t("next")}</span>
                   </Button>
                 )}
-                {status === "speaking" && (
+                {canInterrupt && (
                   <Button
                     size="icon"
                     variant="ghost"
@@ -793,7 +819,9 @@ export function ChatInterface({ sessionId, sessionName }: ChatInterfaceProps) {
                 {status === "paused" ? (
                   <Button
                     size="icon"
-                    onClick={handleResume}
+                    onClick={() => {
+                      void handleResume();
+                    }}
                     className="bg-neo-green text-black border-2 border-neo-black hover:bg-neo-green/80 hover:shadow-neo-sm rounded-none"
                     title={t("resume")}
                   >
@@ -801,17 +829,19 @@ export function ChatInterface({ sessionId, sessionName }: ChatInterfaceProps) {
                     <span className="sr-only">{t("resume")}</span>
                   </Button>
                 ) : (
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    onClick={handlePause}
-                    className="bg-neo-white text-neo-black border-2 border-neo-black hover:bg-neo-yellow hover:text-black hover:shadow-neo-sm rounded-none"
-                    disabled={status === "idle"}
-                    title={t("pause")}
-                  >
-                    <Pause className="h-5 w-5" />
-                    <span className="sr-only">{t("pause")}</span>
-                  </Button>
+                  canPause && (
+                    <Button
+                      size="icon"
+                      onClick={() => {
+                        void handlePause();
+                      }}
+                      className="bg-neo-white text-neo-black border-2 border-neo-black hover:bg-neo-yellow hover:text-black hover:shadow-neo-sm rounded-none"
+                      title={t("pause")}
+                    >
+                      <Pause className="h-5 w-5 fill-current" />
+                      <span className="sr-only">{t("pause")}</span>
+                    </Button>
+                  )
                 )}
 
                 <Button
@@ -824,6 +854,26 @@ export function ChatInterface({ sessionId, sessionName }: ChatInterfaceProps) {
                 >
                   <RotateCcw className="h-5 w-5" />
                   <span className="sr-only">{t("reset")}</span>
+                </Button>
+
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => {
+                    void exportSession({
+                      id: sessionId,
+                      name: sessionName,
+                      topic,
+                      participants,
+                      history: messages,
+                      createdAt: Date.now(), // Approximate
+                    });
+                  }}
+                  className="bg-neo-white text-neo-black border-2 border-neo-black hover:bg-neo-blue hover:text-black hover:shadow-neo-sm rounded-none"
+                  title="Export"
+                >
+                  <Download className="h-5 w-5" />
+                  <span className="sr-only">Export</span>
                 </Button>
                 <Button
                   size="icon"

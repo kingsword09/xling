@@ -4,8 +4,16 @@ import { ChatInterface } from "@/ui/components/ChatInterface";
 import { NewSessionDialog } from "@/ui/components/NewSessionDialog";
 import { Sheet, SheetContent } from "@/ui/components/ui/sheet";
 import { Button } from "@/ui/components/ui/button";
-import { Menu, Sun, Moon, Languages, Sparkles } from "lucide-react";
+import {
+  Menu,
+  Sun,
+  Moon,
+  Languages,
+  Sparkles,
+  FolderOutput,
+} from "lucide-react";
 import { I18nProvider, useI18n, Locale } from "@/ui/i18n";
+import { exportAllSessionsFromApi } from "@/ui/lib/export";
 
 interface Session {
   id: string;
@@ -80,6 +88,14 @@ function AppContent() {
     setLocale(locale === "en" ? ("zh" as Locale) : "en");
   };
 
+  const handleExportAll = async () => {
+    try {
+      await exportAllSessionsFromApi();
+    } catch (err) {
+      console.error("Failed to export sessions", err);
+    }
+  };
+
   const currentSession = sessions.find((s) => s.id === currentSessionId);
 
   return (
@@ -136,6 +152,18 @@ function AppContent() {
               size="icon"
               variant="ghost"
               className="rounded-full border-2 border-[color:var(--neo-border)] bg-[color:var(--neo-surface)] text-foreground shadow-neo-sm hover:bg-[color:var(--neo-surface-strong)]"
+              title={t("exportAll")}
+              onClick={() => {
+                void handleExportAll();
+              }}
+            >
+              <FolderOutput className="h-4 w-4" />
+              <span className="sr-only">{t("exportAll")}</span>
+            </Button>
+            <Button
+              size="icon"
+              variant="ghost"
+              className="rounded-full border-2 border-[color:var(--neo-border)] bg-[color:var(--neo-surface)] text-foreground shadow-neo-sm hover:bg-[color:var(--neo-surface-strong)]"
               title={t("language")}
               onClick={toggleLocale}
             >
@@ -160,7 +188,7 @@ function AppContent() {
           <Button
             size="icon"
             variant="ghost"
-            className="rounded-full border-2 border-[color:var(--neo-border)] bg-[color:var(--neo-surface)] text-foreground shadow-neo-sm hover:bg-[color:var(--neo-surface-strong)]"
+            className="rounded-full border-2 border-[color:var(--neo-border)] bg-neo-purple text-black shadow-neo-sm hover:bg-neo-purple/80"
             title="Quick settings"
           >
             <Sparkles className="h-4 w-4" />

@@ -29,6 +29,7 @@ export function Sidebar({
   className,
 }: SidebarProps) {
   const { t } = useI18n();
+
   return (
     <div
       className={cn(
