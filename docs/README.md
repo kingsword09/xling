@@ -8,6 +8,7 @@ below expand on each workflow.
 - [`x` – quick launcher](./x.md): Start Claude Code, Codex, or Gemini with resume/yolo controls and passthrough args.
 - [`p` – prompt router](./p.md): Send prompts through configured providers or delegate directly to codex/claude/gemini CLIs.
 - [`discuss` – roundtable](./discuss.md): Run a multi-model debate via CLI or Web UI.
+- `llms` – start a local llms gateway from `~/.claude/xling.json` so Claude Code, Codex, or Gemini can reuse your providers.
 
 ## Shortcuts
 
