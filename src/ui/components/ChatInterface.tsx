@@ -65,7 +65,10 @@ interface Participant {
 }
 
 const formatMentions = (content: string) =>
-  content.replace(/@ ?([\w.-]+)/g, "[@$1](#mention)");
+  content.replace(
+    /@ ?([\w.-]+)/g,
+    (_, name) => `[@${name}](#mention:${encodeURIComponent(name)})`,
+  );
 
 export function ChatInterface({ sessionId, sessionName }: ChatInterfaceProps) {
   const { t } = useI18n();
@@ -81,6 +84,9 @@ export function ChatInterface({ sessionId, sessionName }: ChatInterfaceProps) {
   const evtSourceRef = useRef<EventSource | null>(null);
   const scrollViewportRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const messageRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+  const highlightTimeoutRef = useRef<number | null>(null);
+  const noticeTimeoutRef = useRef<number | null>(null);
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [hasNewActivity, setHasNewActivity] = useState(false);
   const [showParticipants, setShowParticipants] = useState(true);
@@ -91,6 +97,10 @@ export function ChatInterface({ sessionId, sessionName }: ChatInterfaceProps) {
     null,
   );
   const [isSummarizing, setIsSummarizing] = useState(false);
+  const [highlightedMessageId, setHighlightedMessageId] = useState<
+    string | null
+  >(null);
+  const [mentionNotice, setMentionNotice] = useState<string | null>(null);
   const [mentionActive, setMentionActive] = useState(false);
   const [mentionQuery, setMentionQuery] = useState("");
   const [mentionTriggerIndex, setMentionTriggerIndex] = useState<number | null>(
@@ -106,6 +116,13 @@ export function ChatInterface({ sessionId, sessionName }: ChatInterfaceProps) {
     () => participants.filter((participant) => participant.type !== "human"),
     [participants],
   );
+  const participantNameMap = useMemo(() => {
+    const map = new Map<string, string>();
+    participants.forEach((participant) => {
+      map.set(participant.id.toLowerCase(), participant.name.toLowerCase());
+    });
+    return map;
+  }, [participants]);
   const summarizableParticipants = useMemo(
     () =>
       participants.filter(
@@ -135,6 +152,113 @@ export function ChatInterface({ sessionId, sessionName }: ChatInterfaceProps) {
       setCurrentSpeakerId(null);
     }
   }, [currentSpeaker, currentSpeakerId]);
+
+  const setMessageRef = useCallback(
+    (messageId: string, el: HTMLDivElement | null) => {
+      if (!messageRefs.current) return;
+      if (el) {
+        messageRefs.current.set(messageId, el);
+      } else {
+        messageRefs.current.delete(messageId);
+      }
+    },
+    [],
+  );
+
+  const showMentionNotice = useCallback((message: string) => {
+    setMentionNotice(message);
+    if (noticeTimeoutRef.current) {
+      window.clearTimeout(noticeTimeoutRef.current);
+    }
+    noticeTimeoutRef.current = window.setTimeout(() => {
+      setMentionNotice(null);
+    }, 2200);
+  }, []);
+
+  const highlightMessage = useCallback((messageId: string) => {
+    setHighlightedMessageId(messageId);
+    if (highlightTimeoutRef.current) {
+      window.clearTimeout(highlightTimeoutRef.current);
+    }
+    highlightTimeoutRef.current = window.setTimeout(() => {
+      setHighlightedMessageId(null);
+    }, 1800);
+  }, []);
+
+  const scrollToMessage = useCallback(
+    (messageId: string) => {
+      const el = messageRefs.current.get(messageId);
+      if (!el) return false;
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      highlightMessage(messageId);
+      return true;
+    },
+    [highlightMessage],
+  );
+
+  const isSenderMatch = useCallback(
+    (message: ChatMessage, normalizedTarget: string) => {
+      const senderId = message.senderId.toLowerCase();
+      const senderName = participantNameMap.get(senderId);
+      return senderId === normalizedTarget || senderName === normalizedTarget;
+    },
+    [participantNameMap],
+  );
+
+  const handleMentionNavigate = useCallback(
+    (mentionLabel: string, fromMessageId: string) => {
+      const normalized = mentionLabel.trim().toLowerCase();
+      if (!normalized) return;
+
+      const currentIndex = messages.findIndex(
+        (message) => message.id === fromMessageId,
+      );
+
+      const nextMatch = messages.find(
+        (message, idx) =>
+          (currentIndex === -1 || idx > currentIndex) &&
+          isSenderMatch(message, normalized),
+      );
+      if (nextMatch && scrollToMessage(nextMatch.id)) {
+        return;
+      }
+
+      const previousMatch = [...messages].reverse().find((message, idx) => {
+        const originalIndex = messages.length - 1 - idx;
+        return (
+          originalIndex < currentIndex && isSenderMatch(message, normalized)
+        );
+      });
+
+      if (previousMatch && scrollToMessage(previousMatch.id)) {
+        return;
+      }
+
+      showMentionNotice(t("mentionNoNext", { name: mentionLabel }));
+    },
+    [isSenderMatch, messages, scrollToMessage, showMentionNotice, t],
+  );
+
+  const handleMessageClick = useCallback(
+    (event: React.MouseEvent<HTMLDivElement>, messageId: string) => {
+      const anchor = (event.target as HTMLElement)?.closest("a");
+      if (!anchor) return;
+      const href = anchor.getAttribute("href");
+      if (!href || !href.startsWith("#mention")) return;
+
+      event.preventDefault();
+      event.stopPropagation();
+
+      const labelFromHref = href.split(":")[1];
+      const rawLabel =
+        anchor.textContent?.replace(/^@/, "").trim() ||
+        (labelFromHref ? decodeURIComponent(labelFromHref) : "");
+      if (!rawLabel) return;
+
+      handleMentionNavigate(rawLabel, messageId);
+    },
+    [handleMentionNavigate],
+  );
 
   // Fetch initial state
   useEffect(() => {
@@ -313,6 +437,17 @@ export function ChatInterface({ sessionId, sessionName }: ChatInterfaceProps) {
       setHasNewActivity(true);
     }
   }, [messages, isAtBottom, scrollToBottom]);
+
+  useEffect(() => {
+    return () => {
+      if (highlightTimeoutRef.current) {
+        window.clearTimeout(highlightTimeoutRef.current);
+      }
+      if (noticeTimeoutRef.current) {
+        window.clearTimeout(noticeTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const resetMention = useCallback(() => {
     setMentionActive(false);
@@ -739,6 +874,13 @@ export function ChatInterface({ sessionId, sessionName }: ChatInterfaceProps) {
 
             {/* Messages */}
             <div className="relative flex flex-1 min-h-0">
+              {mentionNotice && (
+                <div className="absolute top-4 left-1/2 -translate-x-1/2 z-30">
+                  <div className="px-4 py-2 bg-neo-yellow text-black border-2 border-neo-black shadow-neo-sm rounded-full text-sm font-bold">
+                    {mentionNotice}
+                  </div>
+                </div>
+              )}
               {/* Removed gradient for brutalism */}
               <ScrollArea
                 className="flex-1 h-full"
@@ -771,6 +913,7 @@ export function ChatInterface({ sessionId, sessionName }: ChatInterfaceProps) {
                           return (
                             <div
                               key={msg.id}
+                              ref={(el) => setMessageRef(msg.id, el)}
                               className="flex flex-col items-center justify-center py-10 animate-in fade-in zoom-in-95 duration-700"
                             >
                               <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground/50 uppercase tracking-[0.2em] mb-4">
@@ -788,7 +931,11 @@ export function ChatInterface({ sessionId, sessionName }: ChatInterfaceProps) {
                       }
 
                       return (
-                        <div key={msg.id} className="flex justify-center my-4">
+                        <div
+                          key={msg.id}
+                          ref={(el) => setMessageRef(msg.id, el)}
+                          className="flex justify-center my-4"
+                        >
                           <span className="bg-secondary/50 backdrop-blur-sm text-secondary-foreground/60 text-[11px] font-medium px-3 py-1 rounded-full border border-white/10 shadow-sm">
                             {msg.content}
                           </span>
@@ -796,9 +943,12 @@ export function ChatInterface({ sessionId, sessionName }: ChatInterfaceProps) {
                       );
                     }
 
+                    const isHighlighted = highlightedMessageId === msg.id;
+
                     return (
                       <div
                         key={msg.id}
+                        ref={(el) => setMessageRef(msg.id, el)}
                         className={cn(
                           "flex gap-4 max-w-3xl transition-all duration-500 animate-in fade-in slide-in-from-bottom-4",
                           isUser
@@ -834,7 +984,11 @@ export function ChatInterface({ sessionId, sessionName }: ChatInterfaceProps) {
                               isUser
                                 ? "bg-primary text-primary-foreground rounded-[24px] rounded-tr-sm border-primary/20 shadow-primary/10"
                                 : "bg-white/60 dark:bg-white/5 text-foreground rounded-[24px] rounded-tl-sm border-white/20 shadow-black/5",
+                              isHighlighted && "ring-4 ring-amber-300/80",
                             )}
+                            onClick={(event) =>
+                              handleMessageClick(event, msg.id)
+                            }
                           >
                             {(!msg.content ||
                               msg.content.trim().length === 0) &&

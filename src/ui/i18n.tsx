@@ -60,6 +60,7 @@ const messages: Messages = {
     theme: "Theme",
     light: "Light",
     dark: "Dark",
+    mentionNoNext: "No later reply from {name} yet",
   },
   zh: {
     newDiscussion: "新建讨论",
@@ -116,6 +117,7 @@ const messages: Messages = {
     theme: "主题",
     light: "浅色",
     dark: "深色",
+    mentionNoNext: "还没有 {name} 的后续回复",
   },
 };
 

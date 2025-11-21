@@ -143,7 +143,7 @@ html, body, #root {
 }
 
 /* Mention Badge Styling */
-.markdown-container a[href="#mention"] {
+.markdown-container a[href^="#mention"] {
   display: inline-flex;
   align-items: center;
   height: 22px;
@@ -159,20 +159,19 @@ html, body, #root {
   transition: all 0.1s ease;
   vertical-align: middle;
 }
-
-.markdown-container a[href="#mention"]:hover {
+.markdown-container a[href^="#mention"]:hover {
   transform: translate(1px, 1px);
   box-shadow: 1px 1px 0px 0px rgba(0,0,0,1);
 }
 
-.dark .markdown-container a[href="#mention"] {
+.dark .markdown-container a[href^="#mention"] {
   background: var(--neo-purple);
   color: #050505;
   border-color: #ffffff;
   box-shadow: 2px 2px 0px 0px #ffffff;
 }
 
-.dark .markdown-container a[href="#mention"]:hover {
+.dark .markdown-container a[href^="#mention"]:hover {
   box-shadow: 1px 1px 0px 0px #ffffff;
 }
 
