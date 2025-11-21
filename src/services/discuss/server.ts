@@ -151,6 +151,24 @@ export async function createDiscussServer(
       return;
     }
 
+    // Export All Sessions
+    if (url.pathname === "/api/export/all" && req.method === "GET") {
+      const allSessions = sessions.getAllSessions().map((s) => {
+        const session = sessions.getSession(s.id);
+        return {
+          id: s.id,
+          name: s.name,
+          createdAt: s.createdAt,
+          topic: session?.engine.topic,
+          participants: session?.engine.participants,
+          history: session?.engine.history,
+        };
+      });
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ sessions: allSessions }));
+      return;
+    }
+
     if (url.pathname === "/api/sessions" && req.method === "POST") {
       const body = await readBody(req);
       const session = sessions.createSession(body.name || "New Discussion", {
