@@ -1,9 +1,7 @@
+@config "../../tailwind.config.ts";
 @import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap");
+@import "tailwindcss";
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
- 
 @layer base {
   :root {
     --background: 0 0% 100%;
@@ -41,7 +39,7 @@
     --neo-surface-strong: #f6f1e9;
     --neo-overlay: rgba(0, 0, 0, 0.04);
   }
- 
+
   .dark {
     --background: 0 0% 2%; /* #050505 Almost Black */
     --foreground: 0 0% 98%;

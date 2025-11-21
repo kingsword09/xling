@@ -1,5 +1,6 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import tailwindcss from "@tailwindcss/vite";
 import path from "path";
 
 const cdn = "https://esm.sh";
@@ -13,7 +14,7 @@ const externalAliases: Record<string, string> = {
 };
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), tailwindcss()],
   root: "src/ui",
   build: {
     outDir: "../../dist/ui",
