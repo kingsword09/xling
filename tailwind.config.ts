@@ -1,11 +1,14 @@
-/** @type {import('tailwindcss').Config} */
-module.exports = {
-  darkMode: ["class"],
+import typography from "@tailwindcss/typography";
+import tailwindcssAnimate from "tailwindcss-animate";
+import type { Config } from "tailwindcss";
+
+const config: Config = {
+  darkMode: "class",
   content: [
-    './pages/**/*.{ts,tsx}',
-    './components/**/*.{ts,tsx}',
-    './app/**/*.{ts,tsx}',
-    './src/**/*.{ts,tsx}',
+    "./pages/**/*.{ts,tsx}",
+    "./components/**/*.{ts,tsx}",
+    "./app/**/*.{ts,tsx}",
+    "./src/**/*.{ts,tsx}",
   ],
   prefix: "",
   theme: {
@@ -51,31 +54,30 @@ module.exports = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        // Neo-Brutalism Colors
         neo: {
           bg: "var(--neo-bg)",
-          black: "var(--neo-border)", // Maps to border color (black in light, white in dark)
-          white: "var(--neo-white)", // Maps to card bg (white in light, dark gray in dark)
+          black: "var(--neo-border)",
+          white: "var(--neo-white)",
           purple: "var(--neo-purple)",
           green: "var(--neo-green)",
           red: "var(--neo-red)",
           yellow: "var(--neo-yellow)",
           blue: "var(--neo-blue)",
-        }
+        },
       },
       boxShadow: {
-        'neo': '4px 4px 0px 0px var(--neo-shadow)',
-        'neo-sm': '2px 2px 0px 0px var(--neo-shadow)',
-        'neo-lg': '8px 8px 0px 0px var(--neo-shadow)',
+        neo: "4px 4px 0px 0px var(--neo-shadow)",
+        "neo-sm": "2px 2px 0px 0px var(--neo-shadow)",
+        "neo-lg": "8px 8px 0px 0px var(--neo-shadow)",
       },
       borderWidth: {
-        '3': '3px',
+        3: "3px",
       },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
-        'none': '0px', // Explicit none for brutalism
+        none: "0px",
       },
       keyframes: {
         "accordion-down": {
@@ -93,5 +95,7 @@ module.exports = {
       },
     },
   },
-  plugins: [require("tailwindcss-animate"), require("@tailwindcss/typography")],
-}
+  plugins: [tailwindcssAnimate, typography],
+};
+
+export default config;
