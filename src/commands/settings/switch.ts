@@ -7,8 +7,19 @@ import { Args, Command, Flags, Interfaces } from "@oclif/core";
 import readline from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
 import { SettingsDispatcher } from "@/services/settings/dispatcher.ts";
+import {
+  CodexAdapter,
+  isConfigObject,
+} from "@/services/settings/adapters/codex.ts";
+import * as fsStore from "@/services/settings/fsStore.ts";
 import { formatJson } from "@/utils/format.ts";
-import type { ToolId, Scope, SettingsResult } from "@/domain/types.ts";
+import type {
+  ToolId,
+  Scope,
+  SettingsResult,
+  SettingsListData,
+  SettingsFileEntry,
+} from "@/domain/types.ts";
 
 type SwitchCommandFlags = Interfaces.InferredFlags<
   (typeof SettingsSwitch)["flags"]
@@ -50,7 +61,7 @@ export default class SettingsSwitch extends Command {
   static args: Interfaces.ArgInput = {
     profile: Args.string({
       description: "Profile name to switch to",
-      required: true,
+      required: false,
     }),
   };
 
@@ -83,24 +94,36 @@ export default class SettingsSwitch extends Command {
 
   async run(): Promise<void> {
     const { args, flags } = await this.parse(SettingsSwitch);
+    const dispatcher = new SettingsDispatcher();
+
+    let profile = args.profile;
+
+    if (!profile) {
+      if (flags.json) {
+        this.error("Profile is required when using --json output.", {
+          exit: 1,
+        });
+      }
+
+      profile = await this.#promptProfile(dispatcher, flags);
+    }
 
     try {
-      const dispatcher = new SettingsDispatcher();
       const result =
         flags.tool === "claude"
-          ? await this.#handleClaudeSwitch(dispatcher, args.profile, flags)
+          ? await this.#handleClaudeSwitch(dispatcher, profile, flags)
           : await dispatcher.execute({
               tool: flags.tool as ToolId,
               scope: flags.scope as Scope,
               action: "switch-profile",
-              profile: args.profile,
+              profile,
             });
 
       if (!result) {
         return;
       }
 
-      this.#printResult(result, args.profile, flags);
+      this.#printResult(result, profile, flags);
     } catch (error) {
       this.error((error as Error).message, { exit: 1 });
     }
@@ -155,6 +178,113 @@ export default class SettingsSwitch extends Command {
     return result;
   }
 
+  async #promptProfile(
+    dispatcher: SettingsDispatcher,
+    flags: SwitchCommandFlags,
+  ): Promise<string> {
+    const tool = flags.tool as ToolId;
+    const scope = flags.scope as Scope;
+
+    let choices: string[] = [];
+
+    if (tool === "claude") {
+      choices = await this.#listClaudeVariants(dispatcher, scope);
+    } else if (tool === "codex") {
+      choices = await this.#listCodexProfiles(scope);
+    } else {
+      this.error(`Interactive selection is not supported for tool: ${tool}`, {
+        exit: 1,
+      });
+    }
+
+    if (!choices.length) {
+      this.error("No available profiles found for the selected tool.", {
+        exit: 1,
+      });
+    }
+
+    this.log("Select a profile to switch to:");
+    choices.forEach((name, index) => {
+      this.log(`  ${index + 1}) ${name}`);
+    });
+
+    const rl = readline.createInterface({ input, output });
+    try {
+      while (true) {
+        const answer = (await rl.question("Enter number or name: "))
+          .trim()
+          .toLowerCase();
+
+        const index = Number.parseInt(answer, 10);
+        if (Number.isInteger(index) && index >= 1 && index <= choices.length) {
+          return choices[index - 1];
+        }
+
+        const exactMatch = choices.find(
+          (name) => name.toLowerCase() === answer,
+        );
+        if (exactMatch) {
+          return exactMatch;
+        }
+
+        this.log("Invalid selection. Please try again.");
+      }
+    } finally {
+      rl.close();
+    }
+  }
+
+  async #listClaudeVariants(
+    dispatcher: SettingsDispatcher,
+    scope: Scope,
+  ): Promise<string[]> {
+    const listResult = await dispatcher.execute({
+      tool: "claude",
+      scope,
+      action: "list",
+    });
+
+    if (!this.#isFilesListData(listResult.data)) {
+      return [];
+    }
+
+    return listResult.data.files
+      .filter((file: SettingsFileEntry) => !file.active)
+      .map((file: SettingsFileEntry) => file.variant)
+      .filter(Boolean);
+  }
+
+  async #listCodexProfiles(scope: Scope): Promise<string[]> {
+    const adapter = new CodexAdapter();
+    const path = adapter.resolvePath(scope);
+
+    const config = fsStore.readTOML(path);
+    const profiles = config.profiles;
+    const providers = config.model_providers;
+    const currentProvider =
+      typeof config.model_provider === "string" ? config.model_provider : null;
+
+    const names = new Set<string>();
+
+    if (isConfigObject(profiles)) {
+      Object.keys(profiles).forEach((name) => names.add(name));
+    }
+
+    if (isConfigObject(providers)) {
+      Object.keys(providers).forEach((name) => names.add(name));
+    }
+
+    if (currentProvider) {
+      names.add(currentProvider);
+    }
+
+    if (currentProvider) {
+      names.delete(currentProvider);
+    }
+
+    return Array.from(names);
+  }
+
   async #promptClaudeAction(): Promise<"overwrite" | "backup" | "cancel"> {
     const rl = readline.createInterface({ input, output });
     try {
@@ -178,6 +308,19 @@ export default class SettingsSwitch extends Command {
     } finally {
       rl.close();
     }
+  }
+
+  #isFilesListData(
+    data: SettingsResult["data"],
+  ): data is Extract<SettingsListData, { type: "files" }> {
+    return Boolean(
+      data &&
+      typeof data === "object" &&
+      "type" in data &&
+      (data as { type?: unknown }).type === "files" &&
+      "files" in data &&
+      Array.isArray((data as { files?: unknown }).files),
+    );
   }
 
   #printResult(

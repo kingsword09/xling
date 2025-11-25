@@ -11,7 +11,7 @@ import type {
   ConfigValue,
 } from "@/domain/types.ts";
 import { BaseAdapter } from "./base.ts";
-import { InvalidScopeError, ProfileNotFoundError } from "@/utils/errors.ts";
+import { InvalidScopeError } from "@/utils/errors.ts";
 import * as fsStore from "@/services/settings/fsStore.ts";
 
 /**
@@ -73,35 +73,34 @@ export class CodexAdapter extends BaseAdapter {
     const path = this.resolvePath(scope);
     const config = this.readConfig(path);
 
-    // Ensure the requested profile exists
     const profilesValue = config.profiles;
     const profiles = isConfigObject(profilesValue) ? profilesValue : undefined;
-    if (!profiles || !(profile in profiles)) {
-      throw new ProfileNotFoundError(profile);
+    const profileValue = profiles?.[profile];
+
+    // If a named profile exists, merge it as before
+    if (isConfigObject(profileValue)) {
+      const newConfig = { ...config };
+      for (const [key, value] of Object.entries(profileValue)) {
+        newConfig[key] = value;
+      }
+      newConfig.current_profile = profile;
+
+      this.writeConfig(path, newConfig);
+
+      return {
+        success: true,
+        message: `Switched to profile: ${profile}`,
+        filePath: path,
+      };
     }
 
-    // Pull the profile configuration
-    const profileValue = profiles[profile];
-    if (!isConfigObject(profileValue)) {
-      throw new ProfileNotFoundError(profile);
-    }
-    const profileConfig = profileValue;
-
-    // Merge profile values into the root config
-    const newConfig = { ...config };
-    for (const [key, value] of Object.entries(profileConfig)) {
-      newConfig[key] = value;
-    }
-
-    // Record the active profile
-    newConfig.current_profile = profile;
-
-    // Persist the updated config
+    // Fallback: treat the profile name as the desired model_provider value
+    const newConfig = { ...config, model_provider: profile };
     this.writeConfig(path, newConfig);
 
     return {
       success: true,
-      message: `Switched to profile: ${profile}`,
+      message: `Set model_provider to: ${profile}`,
       filePath: path,
     };
   }
@@ -117,7 +116,7 @@ export class CodexAdapter extends BaseAdapter {
    * Write the TOML configuration
    */
   protected writeConfig(path: string, data: ConfigObject): void {
-    fsStore.writeTOML(path, data);
+    fsStore.writeTOML(path, data, false);
   }
 
   #extractProviders(config: ConfigObject): ConfigObject {
@@ -129,7 +128,9 @@ export class CodexAdapter extends BaseAdapter {
   }
 }
 
-const isConfigObject = (value: ConfigValue): value is ConfigObject =>
+export const isConfigObject = (
+  value: ConfigValue | undefined,
+): value is ConfigObject =>
   typeof value === "object" &&
   value !== null &&
   !Array.isArray(value) &&
