@@ -7,11 +7,7 @@ import { Args, Command, Flags, Interfaces } from "@oclif/core";
 import readline from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
 import { SettingsDispatcher } from "@/services/settings/dispatcher.ts";
-import {
-  CodexAdapter,
-  isConfigObject,
-} from "@/services/settings/adapters/codex.ts";
-import * as fsStore from "@/services/settings/fsStore.ts";
+import { CodexAdapter } from "@/services/settings/adapters/codex.ts";
 import { formatJson } from "@/utils/format.ts";
 import type {
   ToolId,
@@ -30,16 +26,25 @@ export default class SettingsSwitch extends Command {
   static description = `
     Switch to a different profile configuration for Codex
     or activate a specific settings.<variant>.json for Claude.
+
+    For Codex, you can switch between:
+    - Auth profiles (saved login credentials)
+    - Model providers (API endpoints)
+    - Named profiles (from config.toml)
   `;
 
   static examples: Command.Example[] = [
     {
-      description: "Switch Codex to the oss profile",
-      command: "<%= config.bin %> <%= command.id %> oss --tool codex",
+      description: "Switch Codex to an auth profile (saved login)",
+      command: "<%= config.bin %> <%= command.id %> personal --tool codex",
     },
     {
-      description: "Swap Codex to production profile",
-      command: "<%= config.bin %> <%= command.id %> production --tool codex",
+      description: "Switch Codex to a provider",
+      command: "<%= config.bin %> <%= command.id %> my-provider --tool codex",
+    },
+    {
+      description: "Interactive selection for Codex",
+      command: "<%= config.bin %> <%= command.id %> --tool codex",
     },
     {
       description: "Activate a Claude variant (user scope)",
@@ -129,6 +134,7 @@ export default class SettingsSwitch extends Command {
     }
   }
 
+
   async #handleClaudeSwitch(
     dispatcher: SettingsDispatcher,
     profile: string,
@@ -217,14 +223,31 @@ export default class SettingsSwitch extends Command {
 
         const index = Number.parseInt(answer, 10);
         if (Number.isInteger(index) && index >= 1 && index <= choices.length) {
-          return choices[index - 1];
+          const selected = choices[index - 1];
+          // For Codex, extract the actual profile name from display format
+          return tool === "codex"
+            ? this.#extractCodexProfileName(selected)
+            : selected;
         }
 
         const exactMatch = choices.find(
           (name) => name.toLowerCase() === answer,
         );
         if (exactMatch) {
-          return exactMatch;
+          return tool === "codex"
+            ? this.#extractCodexProfileName(exactMatch)
+            : exactMatch;
+        }
+
+        // Also try matching just the profile name (without prefix)
+        if (tool === "codex") {
+          const nameMatch = choices.find((choice) => {
+            const extracted = this.#extractCodexProfileName(choice);
+            return extracted.toLowerCase() === answer;
+          });
+          if (nameMatch) {
+            return this.#extractCodexProfileName(nameMatch);
+          }
         }
 
         this.log("Invalid selection. Please try again.");
@@ -256,33 +279,34 @@ export default class SettingsSwitch extends Command {
 
   async #listCodexProfiles(scope: Scope): Promise<string[]> {
     const adapter = new CodexAdapter();
-    const path = adapter.resolvePath(scope);
+    const { providers, authProfiles } = adapter.getAllSwitchableProfiles(scope);
 
-    const config = fsStore.readTOML(path);
-    const profiles = config.profiles;
-    const providers = config.model_providers;
-    const currentProvider =
-      typeof config.model_provider === "string" ? config.model_provider : null;
+    const choices: string[] = [];
 
-    const names = new Set<string>();
-
-    if (isConfigObject(profiles)) {
-      Object.keys(profiles).forEach((name) => names.add(name));
+    // Auth profiles first (with prefix for clarity)
+    if (authProfiles.length > 0) {
+      for (const name of authProfiles) {
+        choices.push(`[auth] ${name}`);
+      }
     }
 
-    if (isConfigObject(providers)) {
-      Object.keys(providers).forEach((name) => names.add(name));
+    // Then providers
+    if (providers.length > 0) {
+      for (const name of providers) {
+        choices.push(`[provider] ${name}`);
+      }
     }
 
-    if (currentProvider) {
-      names.add(currentProvider);
-    }
+    return choices;
+  }
 
-    if (currentProvider) {
-      names.delete(currentProvider);
-    }
-
-    return Array.from(names);
+  /**
+   * Extract the actual profile name from the display format
+   * e.g., "[auth] personal" -> "personal"
+   */
+  #extractCodexProfileName(displayName: string): string {
+    const match = displayName.match(/^\[(auth|provider)\]\s+(.+)$/);
+    return match ? match[2] : displayName;
   }
 
   async #promptClaudeAction(): Promise<"overwrite" | "backup" | "cancel"> {

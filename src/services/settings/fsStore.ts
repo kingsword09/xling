@@ -189,3 +189,75 @@ export function getFileInfo(filepath: string): FileInfo | null {
     lastModified: stats.mtime,
   };
 }
+
+/**
+ * Check whether a directory exists
+ */
+export function dirExists(dirPath: string): boolean {
+  const resolvedPath = resolveHome(dirPath);
+  return fs.existsSync(resolvedPath) && fs.statSync(resolvedPath).isDirectory();
+}
+
+/**
+ * List files in a directory
+ */
+export function listFiles(dirPath: string): string[] {
+  const resolvedPath = resolveHome(dirPath);
+  if (!fs.existsSync(resolvedPath)) {
+    return [];
+  }
+  return fs.readdirSync(resolvedPath);
+}
+
+/**
+ * Copy a file (atomic operation)
+ */
+export function copyFile(src: string, dest: string): void {
+  const resolvedSrc = resolveHome(src);
+  const resolvedDest = resolveHome(dest);
+
+  if (!fs.existsSync(resolvedSrc)) {
+    throw new ConfigFileNotFoundError(resolvedSrc);
+  }
+
+  ensureDir(path.dirname(resolvedDest));
+
+  try {
+    // Atomic write: copy to temp file then rename
+    const tempPath = `${resolvedDest}.tmp`;
+    fs.copyFileSync(resolvedSrc, tempPath);
+    fs.renameSync(tempPath, resolvedDest);
+  } catch (error) {
+    throw new FileWriteError(resolvedDest, (error as Error).message);
+  }
+}
+
+/**
+ * Move/rename a file
+ */
+export function moveFile(src: string, dest: string): void {
+  const resolvedSrc = resolveHome(src);
+  const resolvedDest = resolveHome(dest);
+
+  if (!fs.existsSync(resolvedSrc)) {
+    throw new ConfigFileNotFoundError(resolvedSrc);
+  }
+
+  ensureDir(path.dirname(resolvedDest));
+
+  try {
+    fs.renameSync(resolvedSrc, resolvedDest);
+  } catch (error) {
+    throw new FileWriteError(resolvedDest, (error as Error).message);
+  }
+}
+
+/**
+ * Delete a file
+ */
+export function deleteFile(filepath: string): void {
+  const resolvedPath = resolveHome(filepath);
+  if (fs.existsSync(resolvedPath)) {
+    fs.unlinkSync(resolvedPath);
+  }
+}
