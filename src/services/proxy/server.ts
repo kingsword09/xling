@@ -3,6 +3,8 @@
  * Provides OpenAI-compatible API proxy with load balancing and key rotation
  */
 
+/* eslint-disable no-console */
+
 import type { ProviderConfig, XlingConfig } from "@/domain/xling/config.ts";
 import { getProviderApiKeys } from "@/domain/xling/config.ts";
 import { XlingAdapter } from "@/services/settings/adapters/xling.ts";
@@ -20,6 +22,7 @@ import {
 } from "./transformer.ts";
 import type {
   ProxyRequestContext,
+  ProxyProviderConfig,
   ProxyServerContext,
   ProxyServerOptions,
 } from "./types.ts";
@@ -31,6 +34,28 @@ export const DEFAULT_PROXY_PORT = 4320;
  */
 function createRequestId(): string {
   return `req_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function toLogString(value: unknown): string {
+  if (typeof value === "string") return value;
+  if (typeof value === "number" || typeof value === "boolean") {
+    return String(value);
+  }
+
+  if (value === null || value === undefined) return "";
+
+  if (typeof value === "object") {
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return "[object Object]";
+    }
+  }
+
+  if (typeof value === "symbol") return value.toString();
+  if (typeof value === "function") return value.name || "[function]";
+
+  return "";
 }
 
 /**
@@ -62,7 +87,7 @@ export async function startProxyServer(
   const server = Bun.serve({
     hostname: host,
     port,
-    async fetch(req) {
+    async fetch(req: Request) {
       const url = new URL(req.url);
       const path = url.pathname;
 
@@ -109,9 +134,13 @@ export async function startProxyServer(
 
         if (providedKey !== accessKey) {
           if (options.logger) {
-            console.log(`[auth] Access key validation failed for path: ${path}`);
+            console.log(
+              `[auth] Access key validation failed for path: ${path}`,
+            );
             console.log(`[auth] Expected: ${accessKey.slice(0, 4)}...`);
-            console.log(`[auth] Received: ${providedKey ? providedKey.slice(0, 4) + '...' : '(none)'}`);
+            console.log(
+              `[auth] Received: ${providedKey ? providedKey.slice(0, 4) + "..." : "(none)"}`,
+            );
           }
           return Response.json(
             { error: { message: "Invalid access key", type: "auth_error" } },
@@ -168,7 +197,7 @@ export async function startProxyServer(
     models,
     server,
     shutdown: async () => {
-      server.stop();
+      await server.stop();
     },
   };
 }
@@ -238,7 +267,11 @@ async function handleProxyRequest(
 
   // Extract and map model from request
   const originalModel = extractModel(body);
-  const mappedModel = mapModel(originalModel, config.modelMapping, config.defaultModel);
+  const mappedModel = mapModel(
+    originalModel,
+    config.modelMapping,
+    config.defaultModel,
+  );
 
   // Convert Anthropic request to OpenAI format if needed
   if (needsAnthropicConversion && body && typeof body === "object") {
@@ -255,7 +288,9 @@ async function handleProxyRequest(
     }
 
     if (logger) {
-      console.log(`[${context.requestId}] Converting Anthropic -> OpenAI format (path: ${normalizedPath})`);
+      console.log(
+        `[${context.requestId}] Converting Anthropic -> OpenAI format (path: ${normalizedPath})`,
+      );
     }
   } else if (needsResponsesAPIConversion && body && typeof body === "object") {
     // Convert Responses API request to OpenAI Chat Completions format
@@ -265,14 +300,23 @@ async function handleProxyRequest(
     responseFormat = "responses";
 
     if (logger) {
-      console.log(`[${context.requestId}] Responses API request: stream=${isStreaming}, model=${responsesBody.model}`);
+      const modelLabel = toLogString(responsesBody.model);
+      console.log(
+        `[${context.requestId}] Responses API request: stream=${isStreaming}, model=${modelLabel}`,
+      );
       // Log tools if present
       if (responsesBody.tools) {
         const tools = responsesBody.tools as unknown[];
         console.log(`[${context.requestId}] Tools count: ${tools.length}`);
         tools.slice(0, 3).forEach((t, i) => {
           const tool = t as Record<string, unknown>;
-          console.log(`[${context.requestId}] Tool[${i}]: type=${tool.type}, name=${(tool as any).function?.name || (tool as any).name || 'N/A'}`);
+          const toolType = toLogString(tool.type);
+          const toolName = toLogString(
+            (tool as any).function?.name ?? (tool as any).name ?? "N/A",
+          );
+          console.log(
+            `[${context.requestId}] Tool[${i}]: type=${toolType}, name=${toolName}`,
+          );
         });
       }
     }
@@ -285,9 +329,16 @@ async function handleProxyRequest(
     }
 
     if (logger) {
-      console.log(`[${context.requestId}] Converting Responses API -> OpenAI format (path: ${normalizedPath})`);
+      console.log(
+        `[${context.requestId}] Converting Responses API -> OpenAI format (path: ${normalizedPath})`,
+      );
     }
-  } else if (body && typeof body === "object" && mappedModel && mappedModel !== originalModel) {
+  } else if (
+    body &&
+    typeof body === "object" &&
+    mappedModel &&
+    mappedModel !== originalModel
+  ) {
     // Just update model for non-Anthropic requests
     (body as Record<string, unknown>).model = mappedModel;
     processedBody = body;
@@ -295,14 +346,17 @@ async function handleProxyRequest(
   }
 
   if (logger && mappedModel && mappedModel !== originalModel) {
-    console.log(`[${context.requestId}] Model mapped: ${originalModel} -> ${mappedModel}`);
+    console.log(
+      `[${context.requestId}] Model mapped: ${originalModel} -> ${mappedModel}`,
+    );
   }
 
   // Use mapped model for provider selection
   const requestedModel = mappedModel;
 
   // Try providers with retry
-  const maxRetries = config.keyRotation?.enabled !== false ? config.providers.length * 2 : 1;
+  const maxRetries =
+    config.keyRotation?.enabled !== false ? config.providers.length * 2 : 1;
   let lastError: Response | null = null;
 
   while (context.retryCount < maxRetries) {
@@ -394,7 +448,10 @@ async function handleProxyRequest(
       }
 
       // Handle error response
-      const errorBody = await response.clone().json().catch(() => null);
+      const errorBody = await response
+        .clone()
+        .json()
+        .catch(() => null);
       const error = classifyError(response.status, errorBody);
 
       loadBalancer.reportError(provider.name, keyIndex, error);
@@ -418,9 +475,7 @@ async function handleProxyRequest(
       loadBalancer.reportError(provider.name, keyIndex, error);
 
       if (logger) {
-        console.log(
-          `[${context.requestId}] Network error: ${error.message}`,
-        );
+        console.log(`[${context.requestId}] Network error: ${error.message}`);
       }
 
       if (error.retryable) {
@@ -580,7 +635,9 @@ async function convertAnthropicResponse(
   if (isStreaming) {
     // Transform streaming response
     if (logger) {
-      console.log(`[${requestId}] Converting streaming response OpenAI -> Anthropic`);
+      console.log(
+        `[${requestId}] Converting streaming response OpenAI -> Anthropic`,
+      );
     }
 
     const transformer = createStreamTransformer(originalModel);
@@ -592,7 +649,7 @@ async function convertAnthropicResponse(
         ...corsHeaders(),
         "Content-Type": "text/event-stream",
         "Cache-Control": "no-cache, no-transform",
-        "Connection": "keep-alive",
+        Connection: "keep-alive",
         "X-Accel-Buffering": "no",
       },
     });
@@ -614,10 +671,15 @@ async function convertAnthropicResponse(
     }
 
     if (logger) {
-      console.log(`[${requestId}] Response type: ${typeof openAIResponse}, keys: ${Object.keys(openAIResponse as object).join(", ")}`);
+      console.log(
+        `[${requestId}] Response type: ${typeof openAIResponse}, keys: ${Object.keys(openAIResponse as object).join(", ")}`,
+      );
     }
 
-    const anthropicResponse = openAIToAnthropicResponse(openAIResponse, originalModel);
+    const anthropicResponse = openAIToAnthropicResponse(
+      openAIResponse,
+      originalModel,
+    );
 
     if (logger) {
       console.log(`[${requestId}] Converted response OpenAI -> Anthropic`);
@@ -657,7 +719,9 @@ async function convertResponsesAPIResponse(
   if (isStreaming) {
     // Transform streaming response
     if (logger) {
-      console.log(`[${requestId}] Converting streaming response OpenAI -> Responses API`);
+      console.log(
+        `[${requestId}] Converting streaming response OpenAI -> Responses API`,
+      );
     }
 
     const transformer = createResponsesAPIStreamTransformer(originalModel);
@@ -669,7 +733,7 @@ async function convertResponsesAPIResponse(
         ...corsHeaders(),
         "Content-Type": "text/event-stream",
         "Cache-Control": "no-cache, no-transform",
-        "Connection": "keep-alive",
+        Connection: "keep-alive",
         "X-Accel-Buffering": "no",
       },
     });
@@ -691,10 +755,15 @@ async function convertResponsesAPIResponse(
     }
 
     if (logger) {
-      console.log(`[${requestId}] Response type: ${typeof openAIResponse}, keys: ${Object.keys(openAIResponse as object).join(", ")}`);
+      console.log(
+        `[${requestId}] Response type: ${typeof openAIResponse}, keys: ${Object.keys(openAIResponse as object).join(", ")}`,
+      );
     }
 
-    const responsesAPIResponse = openAIToResponsesAPIResponse(openAIResponse, originalModel);
+    const responsesAPIResponse = openAIToResponsesAPIResponse(
+      openAIResponse,
+      originalModel,
+    );
 
     if (logger) {
       console.log(`[${requestId}] Converted response OpenAI -> Responses API`);
@@ -767,8 +836,7 @@ function corsHeaders(): Record<string, string> {
   return {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-    "Access-Control-Allow-Headers":
-      "Content-Type, Authorization, X-Request-ID",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Request-ID",
     "Access-Control-Max-Age": "86400",
   };
 }

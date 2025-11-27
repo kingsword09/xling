@@ -3,7 +3,11 @@
  */
 
 export { ProxyLoadBalancer } from "./loadBalancer.ts";
-export { classifyError, isRetryable, shouldRotateKey } from "./errorClassifier.ts";
+export {
+  classifyError,
+  isRetryable,
+  shouldRotateKey,
+} from "./errorClassifier.ts";
 export { startProxyServer, DEFAULT_PROXY_PORT } from "./server.ts";
 export type {
   LoadBalancer,

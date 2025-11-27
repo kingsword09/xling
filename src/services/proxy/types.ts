@@ -12,6 +12,9 @@ interface NormalizedProvider extends ProviderConfig {
   apiKeys: string[];
 }
 
+// Alias used by request forwarding helpers
+export type ProxyProviderConfig = ProviderConfig;
+
 /**
  * Provider state for tracking health and key rotation
  */
@@ -46,11 +49,7 @@ export interface LoadBalancer {
   selectProvider(providers: NormalizedProvider[]): NormalizedProvider | null;
   selectKey(provider: NormalizedProvider, state: ProviderState): string | null;
   reportSuccess(providerName: string, keyIndex: number): void;
-  reportError(
-    providerName: string,
-    keyIndex: number,
-    error: ProxyError,
-  ): void;
+  reportError(providerName: string, keyIndex: number, error: ProxyError): void;
   getProviderState(providerName: string): ProviderState | undefined;
 }
 

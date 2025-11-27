@@ -81,6 +81,27 @@ interface OpenAIContentPart {
   };
 }
 
+const toSafeText = (value: unknown): string => {
+  if (typeof value === "string") return value;
+  if (typeof value === "number" || typeof value === "boolean") {
+    return String(value);
+  }
+  if (value === null || value === undefined) return "";
+
+  if (typeof value === "object") {
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return "[object Object]";
+    }
+  }
+
+  if (typeof value === "symbol") return value.toString();
+  if (typeof value === "function") return value.name || "[function]";
+
+  return "";
+};
+
 interface OpenAIToolCall {
   id: string;
   type: "function";
@@ -111,7 +132,11 @@ interface OpenAIRequest {
   presence_penalty?: number;
   frequency_penalty?: number;
   tools?: OpenAITool[];
-  tool_choice?: "none" | "auto" | "required" | { type: "function"; function: { name: string } };
+  tool_choice?:
+    | "none"
+    | "auto"
+    | "required"
+    | { type: "function"; function: { name: string } };
 }
 
 interface OpenAIChoice {
@@ -122,19 +147,6 @@ interface OpenAIChoice {
     tool_calls?: OpenAIToolCall[];
   };
   finish_reason: "stop" | "length" | "tool_calls" | "content_filter" | null;
-}
-
-interface OpenAIResponse {
-  id: string;
-  object: "chat.completion";
-  created: number;
-  model: string;
-  choices: OpenAIChoice[];
-  usage?: {
-    prompt_tokens: number;
-    completion_tokens: number;
-    total_tokens: number;
-  };
 }
 
 // Streaming Types
@@ -171,7 +183,9 @@ interface OpenAIStreamChunk {
 /**
  * Convert Anthropic request to OpenAI format
  */
-export function anthropicToOpenAIRequest(anthropicReq: AnthropicRequest): OpenAIRequest {
+export function anthropicToOpenAIRequest(
+  anthropicReq: AnthropicRequest,
+): OpenAIRequest {
   const messages: OpenAIMessage[] = [];
 
   // Add system message if present
@@ -245,7 +259,9 @@ function convertAnthropicTools(tools: AnthropicTool[]): OpenAITool[] {
  * Clean JSON schema for OpenAI compatibility
  * Remove unsupported fields
  */
-function cleanJsonSchema(schema: Record<string, unknown>): Record<string, unknown> {
+function cleanJsonSchema(
+  schema: Record<string, unknown>,
+): Record<string, unknown> {
   const cleaned = { ...schema };
 
   // Remove unsupported fields
@@ -293,7 +309,9 @@ function convertToolChoice(
   return "auto";
 }
 
-function convertAnthropicMessage(msg: AnthropicMessage): OpenAIMessage | OpenAIMessage[] | null {
+function convertAnthropicMessage(
+  msg: AnthropicMessage,
+): OpenAIMessage | OpenAIMessage[] | null {
   if (typeof msg.content === "string") {
     return {
       role: msg.role,
@@ -329,7 +347,10 @@ function convertAnthropicMessage(msg: AnthropicMessage): OpenAIMessage | OpenAIM
     return toolResults.map((result) => ({
       role: "tool" as const,
       tool_call_id: result.tool_use_id || "",
-      content: typeof result.content === "string" ? result.content : JSON.stringify(result.content),
+      content:
+        typeof result.content === "string"
+          ? result.content
+          : JSON.stringify(result.content),
     }));
   }
 
@@ -412,7 +433,7 @@ export function openAIToAnthropicResponse(
     // Legacy format
     content.push({
       type: "text",
-      text: String(res.text),
+      text: toSafeText(res.text),
     });
   } else if (res.message) {
     // Another common format
@@ -420,7 +441,7 @@ export function openAIToAnthropicResponse(
     if (msg.content) {
       content.push({
         type: "text",
-        text: String(msg.content),
+        text: toSafeText(msg.content),
       });
     }
   }
@@ -471,7 +492,9 @@ export function openAIToAnthropicResponse(
   }
 
   // Extract usage info
-  const usage = res.usage as { prompt_tokens?: number; completion_tokens?: number } | undefined;
+  const usage = res.usage as
+    | { prompt_tokens?: number; completion_tokens?: number }
+    | undefined;
 
   return {
     id: (res.id as string) || `msg_${Date.now()}`,
@@ -502,7 +525,9 @@ interface ToolCallAccumulator {
 /**
  * Transform OpenAI SSE stream to Anthropic SSE stream
  */
-export function createStreamTransformer(originalModel: string): TransformStream<Uint8Array, Uint8Array> {
+export function createStreamTransformer(
+  originalModel: string,
+): TransformStream<Uint8Array, Uint8Array> {
   const decoder = new TextDecoder();
   const encoder = new TextEncoder();
   let buffer = "";
@@ -527,11 +552,20 @@ export function createStreamTransformer(originalModel: string): TransformStream<
 
         if (data === "[DONE]") {
           // Emit any accumulated tool calls before finishing
-          emitAccumulatedToolCalls(controller, encoder, toolCallAccumulators, currentBlockIndex);
+          emitAccumulatedToolCalls(
+            controller,
+            encoder,
+            toolCallAccumulators,
+            currentBlockIndex,
+          );
 
           // Send message_stop event
           const stopEvent = { type: "message_stop" };
-          controller.enqueue(encoder.encode(`event: message_stop\ndata: ${JSON.stringify(stopEvent)}\n\n`));
+          controller.enqueue(
+            encoder.encode(
+              `event: message_stop\ndata: ${JSON.stringify(stopEvent)}\n\n`,
+            ),
+          );
           continue;
         }
 
@@ -551,10 +585,17 @@ export function createStreamTransformer(originalModel: string): TransformStream<
                 model: originalModel,
                 stop_reason: null,
                 stop_sequence: null,
-                usage: { input_tokens: inputTokens, output_tokens: outputTokens },
+                usage: {
+                  input_tokens: inputTokens,
+                  output_tokens: outputTokens,
+                },
               },
             };
-            controller.enqueue(encoder.encode(`event: message_start\ndata: ${JSON.stringify(startEvent)}\n\n`));
+            controller.enqueue(
+              encoder.encode(
+                `event: message_start\ndata: ${JSON.stringify(startEvent)}\n\n`,
+              ),
+            );
           }
 
           const delta = streamChunk.choices[0]?.delta;
@@ -571,7 +612,11 @@ export function createStreamTransformer(originalModel: string): TransformStream<
                 index: currentBlockIndex,
                 content_block: { type: "text", text: "" },
               };
-              controller.enqueue(encoder.encode(`event: content_block_start\ndata: ${JSON.stringify(blockStartEvent)}\n\n`));
+              controller.enqueue(
+                encoder.encode(
+                  `event: content_block_start\ndata: ${JSON.stringify(blockStartEvent)}\n\n`,
+                ),
+              );
             }
 
             outputTokens += Math.ceil(delta.content.length / 4);
@@ -581,15 +626,26 @@ export function createStreamTransformer(originalModel: string): TransformStream<
               index: currentBlockIndex,
               delta: { type: "text_delta", text: delta.content },
             };
-            controller.enqueue(encoder.encode(`event: content_block_delta\ndata: ${JSON.stringify(deltaEvent)}\n\n`));
+            controller.enqueue(
+              encoder.encode(
+                `event: content_block_delta\ndata: ${JSON.stringify(deltaEvent)}\n\n`,
+              ),
+            );
           }
 
           // Handle tool calls
           if (delta?.tool_calls) {
             // Close text block if we had one
             if (sentTextBlockStart && hasTextContent) {
-              const blockStopEvent = { type: "content_block_stop", index: currentBlockIndex };
-              controller.enqueue(encoder.encode(`event: content_block_stop\ndata: ${JSON.stringify(blockStopEvent)}\n\n`));
+              const blockStopEvent = {
+                type: "content_block_stop",
+                index: currentBlockIndex,
+              };
+              controller.enqueue(
+                encoder.encode(
+                  `event: content_block_stop\ndata: ${JSON.stringify(blockStopEvent)}\n\n`,
+                ),
+              );
               currentBlockIndex++;
               sentTextBlockStart = false;
             }
@@ -598,14 +654,19 @@ export function createStreamTransformer(originalModel: string): TransformStream<
               const tcIndex = toolCall.index ?? 0;
 
               if (!toolCallAccumulators.has(tcIndex)) {
-                toolCallAccumulators.set(tcIndex, { id: "", name: "", arguments: "" });
+                toolCallAccumulators.set(tcIndex, {
+                  id: "",
+                  name: "",
+                  arguments: "",
+                });
               }
 
               const acc = toolCallAccumulators.get(tcIndex)!;
 
               if (toolCall.id) acc.id = toolCall.id;
               if (toolCall.function?.name) acc.name = toolCall.function.name;
-              if (toolCall.function?.arguments) acc.arguments += toolCall.function.arguments;
+              if (toolCall.function?.arguments)
+                acc.arguments += toolCall.function.arguments;
             }
           }
 
@@ -615,14 +676,29 @@ export function createStreamTransformer(originalModel: string): TransformStream<
 
             // Close text block if open
             if (sentTextBlockStart) {
-              const blockStopEvent = { type: "content_block_stop", index: currentBlockIndex };
-              controller.enqueue(encoder.encode(`event: content_block_stop\ndata: ${JSON.stringify(blockStopEvent)}\n\n`));
+              const blockStopEvent = {
+                type: "content_block_stop",
+                index: currentBlockIndex,
+              };
+              controller.enqueue(
+                encoder.encode(
+                  `event: content_block_stop\ndata: ${JSON.stringify(blockStopEvent)}\n\n`,
+                ),
+              );
               currentBlockIndex++;
             }
 
             // Emit accumulated tool calls
-            if (finishReason === "tool_calls" || toolCallAccumulators.size > 0) {
-              emitAccumulatedToolCalls(controller, encoder, toolCallAccumulators, currentBlockIndex);
+            if (
+              finishReason === "tool_calls" ||
+              toolCallAccumulators.size > 0
+            ) {
+              emitAccumulatedToolCalls(
+                controller,
+                encoder,
+                toolCallAccumulators,
+                currentBlockIndex,
+              );
             }
 
             // Send message_delta with stop_reason
@@ -638,7 +714,11 @@ export function createStreamTransformer(originalModel: string): TransformStream<
               delta: { stop_reason: stopReason, stop_sequence: null },
               usage: { output_tokens: outputTokens },
             };
-            controller.enqueue(encoder.encode(`event: message_delta\ndata: ${JSON.stringify(messageDeltaEvent)}\n\n`));
+            controller.enqueue(
+              encoder.encode(
+                `event: message_delta\ndata: ${JSON.stringify(messageDeltaEvent)}\n\n`,
+              ),
+            );
           }
         } catch {
           // Ignore parse errors
@@ -684,7 +764,11 @@ function emitAccumulatedToolCalls(
         input: {},
       },
     };
-    controller.enqueue(encoder.encode(`event: content_block_start\ndata: ${JSON.stringify(blockStartEvent)}\n\n`));
+    controller.enqueue(
+      encoder.encode(
+        `event: content_block_start\ndata: ${JSON.stringify(blockStartEvent)}\n\n`,
+      ),
+    );
 
     // Send content_block_delta with input
     const deltaEvent = {
@@ -695,11 +779,19 @@ function emitAccumulatedToolCalls(
         partial_json: JSON.stringify(input),
       },
     };
-    controller.enqueue(encoder.encode(`event: content_block_delta\ndata: ${JSON.stringify(deltaEvent)}\n\n`));
+    controller.enqueue(
+      encoder.encode(
+        `event: content_block_delta\ndata: ${JSON.stringify(deltaEvent)}\n\n`,
+      ),
+    );
 
     // Send content_block_stop
     const blockStopEvent = { type: "content_block_stop", index };
-    controller.enqueue(encoder.encode(`event: content_block_stop\ndata: ${JSON.stringify(blockStopEvent)}\n\n`));
+    controller.enqueue(
+      encoder.encode(
+        `event: content_block_stop\ndata: ${JSON.stringify(blockStopEvent)}\n\n`,
+      ),
+    );
 
     index++;
   }
@@ -738,7 +830,9 @@ export function isOpenAIResponse(body: unknown): boolean {
   if (!body || typeof body !== "object") return false;
   const obj = body as Record<string, unknown>;
 
-  return obj.object === "chat.completion" || obj.object === "chat.completion.chunk";
+  return (
+    obj.object === "chat.completion" || obj.object === "chat.completion.chunk"
+  );
 }
 
 // ============================================================================
@@ -763,7 +857,11 @@ interface ResponsesAPIRequest {
 }
 
 interface ResponsesAPIInputItem {
-  type?: "message" | "item_reference" | "function_call" | "function_call_output";
+  type?:
+    | "message"
+    | "item_reference"
+    | "function_call"
+    | "function_call_output";
   role?: "user" | "assistant" | "system" | "developer";
   content?: string | ResponsesAPIContentPart[];
   id?: string;
@@ -837,13 +935,19 @@ export function isResponsesAPIRequest(body: unknown): boolean {
 
   // Responses API uses "input" instead of "messages"
   // and may have "instructions" instead of system message
-  return obj.input !== undefined || obj.instructions !== undefined || obj.previous_response_id !== undefined;
+  return (
+    obj.input !== undefined ||
+    obj.instructions !== undefined ||
+    obj.previous_response_id !== undefined
+  );
 }
 
 /**
  * Convert OpenAI Responses API request to OpenAI Chat Completions format
  */
-export function responsesAPIToOpenAIRequest(req: ResponsesAPIRequest): OpenAIRequest {
+export function responsesAPIToOpenAIRequest(
+  req: ResponsesAPIRequest,
+): OpenAIRequest {
   const messages: OpenAIMessage[] = [];
 
   // Add instructions as system message
@@ -915,7 +1019,7 @@ export function responsesAPIToOpenAIRequest(req: ResponsesAPIRequest): OpenAIReq
         pendingToolCalls = [];
       }
 
-      const role = item.role === "developer" ? "system" : (item.role || "user");
+      const role = item.role === "developer" ? "system" : item.role || "user";
 
       if (typeof item.content === "string") {
         messages.push({
@@ -1047,10 +1151,12 @@ export function openAIToResponsesAPIResponse(
 
   // Handle text content
   if (choice?.message?.content) {
-    const outputContent: ResponsesAPIOutputContent[] = [{
-      type: "output_text",
-      text: choice.message.content,
-    }];
+    const outputContent: ResponsesAPIOutputContent[] = [
+      {
+        type: "output_text",
+        text: choice.message.content,
+      },
+    ];
 
     output.push({
       type: "message",
@@ -1069,7 +1175,13 @@ export function openAIToResponsesAPIResponse(
   }
 
   // Extract usage info
-  const usage = res.usage as { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number } | undefined;
+  const usage = res.usage as
+    | {
+        prompt_tokens?: number;
+        completion_tokens?: number;
+        total_tokens?: number;
+      }
+    | undefined;
 
   return {
     id: (res.id as string) || `resp_${Date.now()}`,
@@ -1077,11 +1189,13 @@ export function openAIToResponsesAPIResponse(
     created_at: Math.floor(Date.now() / 1000),
     model: originalModel,
     output: output as ResponsesAPIOutputItem[],
-    usage: usage ? {
-      input_tokens: usage.prompt_tokens ?? 0,
-      output_tokens: usage.completion_tokens ?? 0,
-      total_tokens: usage.total_tokens ?? 0,
-    } : undefined,
+    usage: usage
+      ? {
+          input_tokens: usage.prompt_tokens ?? 0,
+          output_tokens: usage.completion_tokens ?? 0,
+          total_tokens: usage.total_tokens ?? 0,
+        }
+      : undefined,
     status: "completed",
   };
 }
@@ -1099,7 +1213,9 @@ interface StreamToolCallAccumulator {
  * Create stream transformer for Responses API format
  * Converts OpenAI SSE stream to Responses API SSE stream
  */
-export function createResponsesAPIStreamTransformer(originalModel: string): TransformStream<Uint8Array, Uint8Array> {
+export function createResponsesAPIStreamTransformer(
+  originalModel: string,
+): TransformStream<Uint8Array, Uint8Array> {
   const decoder = new TextDecoder();
   const encoder = new TextEncoder();
   let buffer = "";
@@ -1109,7 +1225,8 @@ export function createResponsesAPIStreamTransformer(originalModel: string): Tran
   let textBuffer = "";
   let inputTokens = 0;
   let outputTokens = 0;
-  const toolCallAccumulators: Map<number, StreamToolCallAccumulator> = new Map();
+  const toolCallAccumulators: Map<number, StreamToolCallAccumulator> =
+    new Map();
   let outputIndex = 0;
 
   return new TransformStream({
@@ -1164,7 +1281,11 @@ export function createResponsesAPIStreamTransformer(originalModel: string): Tran
               status: "completed",
             },
           };
-          controller.enqueue(encoder.encode(`event: response.completed\ndata: ${JSON.stringify(completedEvent)}\n\n`));
+          controller.enqueue(
+            encoder.encode(
+              `event: response.completed\ndata: ${JSON.stringify(completedEvent)}\n\n`,
+            ),
+          );
           continue;
         }
 
@@ -1185,7 +1306,11 @@ export function createResponsesAPIStreamTransformer(originalModel: string): Tran
                 status: "in_progress",
               },
             };
-            controller.enqueue(encoder.encode(`event: response.created\ndata: ${JSON.stringify(createdEvent)}\n\n`));
+            controller.enqueue(
+              encoder.encode(
+                `event: response.created\ndata: ${JSON.stringify(createdEvent)}\n\n`,
+              ),
+            );
           }
 
           const delta = streamChunk.choices[0]?.delta;
@@ -1196,7 +1321,11 @@ export function createResponsesAPIStreamTransformer(originalModel: string): Tran
               const tcIndex = toolCall.index ?? 0;
 
               if (!toolCallAccumulators.has(tcIndex)) {
-                toolCallAccumulators.set(tcIndex, { id: "", name: "", arguments: "" });
+                toolCallAccumulators.set(tcIndex, {
+                  id: "",
+                  name: "",
+                  arguments: "",
+                });
 
                 // Send response.output_item.added for function_call
                 const itemAddedEvent = {
@@ -1209,7 +1338,11 @@ export function createResponsesAPIStreamTransformer(originalModel: string): Tran
                     arguments: "",
                   },
                 };
-                controller.enqueue(encoder.encode(`event: response.output_item.added\ndata: ${JSON.stringify(itemAddedEvent)}\n\n`));
+                controller.enqueue(
+                  encoder.encode(
+                    `event: response.output_item.added\ndata: ${JSON.stringify(itemAddedEvent)}\n\n`,
+                  ),
+                );
                 outputIndex++;
               }
 
@@ -1225,7 +1358,11 @@ export function createResponsesAPIStreamTransformer(originalModel: string): Tran
                   output_index: tcIndex,
                   delta: toolCall.function.arguments,
                 };
-                controller.enqueue(encoder.encode(`event: response.function_call_arguments.delta\ndata: ${JSON.stringify(argsDeltaEvent)}\n\n`));
+                controller.enqueue(
+                  encoder.encode(
+                    `event: response.function_call_arguments.delta\ndata: ${JSON.stringify(argsDeltaEvent)}\n\n`,
+                  ),
+                );
               }
             }
           }
@@ -1244,7 +1381,11 @@ export function createResponsesAPIStreamTransformer(originalModel: string): Tran
                   content: [],
                 },
               };
-              controller.enqueue(encoder.encode(`event: response.output_item.added\ndata: ${JSON.stringify(itemAddedEvent)}\n\n`));
+              controller.enqueue(
+                encoder.encode(
+                  `event: response.output_item.added\ndata: ${JSON.stringify(itemAddedEvent)}\n\n`,
+                ),
+              );
 
               // Send response.content_part.added
               const contentAddedEvent = {
@@ -1253,7 +1394,11 @@ export function createResponsesAPIStreamTransformer(originalModel: string): Tran
                 content_index: 0,
                 part: { type: "output_text", text: "" },
               };
-              controller.enqueue(encoder.encode(`event: response.content_part.added\ndata: ${JSON.stringify(contentAddedEvent)}\n\n`));
+              controller.enqueue(
+                encoder.encode(
+                  `event: response.content_part.added\ndata: ${JSON.stringify(contentAddedEvent)}\n\n`,
+                ),
+              );
             }
 
             textBuffer += delta.content;
@@ -1265,12 +1410,15 @@ export function createResponsesAPIStreamTransformer(originalModel: string): Tran
               content_index: 0,
               delta: delta.content,
             };
-            controller.enqueue(encoder.encode(`event: response.output_text.delta\ndata: ${JSON.stringify(textDeltaEvent)}\n\n`));
+            controller.enqueue(
+              encoder.encode(
+                `event: response.output_text.delta\ndata: ${JSON.stringify(textDeltaEvent)}\n\n`,
+              ),
+            );
           }
 
           // Check for finish
           if (streamChunk.choices[0]?.finish_reason) {
-
             // Send done events for tool calls
             for (const [tcIndex, acc] of toolCallAccumulators) {
               const itemDoneEvent = {
@@ -1283,7 +1431,11 @@ export function createResponsesAPIStreamTransformer(originalModel: string): Tran
                   arguments: acc.arguments,
                 },
               };
-              controller.enqueue(encoder.encode(`event: response.output_item.done\ndata: ${JSON.stringify(itemDoneEvent)}\n\n`));
+              controller.enqueue(
+                encoder.encode(
+                  `event: response.output_item.done\ndata: ${JSON.stringify(itemDoneEvent)}\n\n`,
+                ),
+              );
             }
 
             // Send done events for message if there's text
@@ -1294,7 +1446,11 @@ export function createResponsesAPIStreamTransformer(originalModel: string): Tran
                 content_index: 0,
                 text: textBuffer,
               };
-              controller.enqueue(encoder.encode(`event: response.output_text.done\ndata: ${JSON.stringify(textDoneEvent)}\n\n`));
+              controller.enqueue(
+                encoder.encode(
+                  `event: response.output_text.done\ndata: ${JSON.stringify(textDoneEvent)}\n\n`,
+                ),
+              );
 
               const contentDoneEvent = {
                 type: "response.content_part.done",
@@ -1302,7 +1458,11 @@ export function createResponsesAPIStreamTransformer(originalModel: string): Tran
                 content_index: 0,
                 part: { type: "output_text", text: textBuffer },
               };
-              controller.enqueue(encoder.encode(`event: response.content_part.done\ndata: ${JSON.stringify(contentDoneEvent)}\n\n`));
+              controller.enqueue(
+                encoder.encode(
+                  `event: response.content_part.done\ndata: ${JSON.stringify(contentDoneEvent)}\n\n`,
+                ),
+              );
 
               const itemDoneEvent = {
                 type: "response.output_item.done",
@@ -1313,7 +1473,11 @@ export function createResponsesAPIStreamTransformer(originalModel: string): Tran
                   content: [{ type: "output_text", text: textBuffer }],
                 },
               };
-              controller.enqueue(encoder.encode(`event: response.output_item.done\ndata: ${JSON.stringify(itemDoneEvent)}\n\n`));
+              controller.enqueue(
+                encoder.encode(
+                  `event: response.output_item.done\ndata: ${JSON.stringify(itemDoneEvent)}\n\n`,
+                ),
+              );
             }
 
             // Send response.completed immediately after finish_reason
@@ -1357,7 +1521,11 @@ export function createResponsesAPIStreamTransformer(originalModel: string): Tran
                 status: "completed",
               },
             };
-            controller.enqueue(encoder.encode(`event: response.completed\ndata: ${JSON.stringify(completedEvent)}\n\n`));
+            controller.enqueue(
+              encoder.encode(
+                `event: response.completed\ndata: ${JSON.stringify(completedEvent)}\n\n`,
+              ),
+            );
           }
         } catch {
           // Ignore parse errors

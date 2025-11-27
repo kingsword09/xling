@@ -48,15 +48,15 @@ const defaultLogger: Logger = {
 export class ModelRouter {
   #registry: ProviderRegistry;
   #clients: Map<string, PromptClient | CliPromptClient>;
-  #retryPolicy: RetryPolicy;
+  #retryPolicy: Required<RetryPolicy>;
   #logger: Logger;
 
   constructor(config: XlingConfig, logger?: Logger) {
     this.#registry = new ProviderRegistry(config);
     this.#clients = new Map();
-    this.#retryPolicy = config.retryPolicy || {
-      maxRetries: 2,
-      backoffMs: 1000,
+    this.#retryPolicy = {
+      maxRetries: config.retryPolicy?.maxRetries ?? 2,
+      backoffMs: config.retryPolicy?.backoffMs ?? 1000,
     };
     this.#logger = logger || defaultLogger;
   }

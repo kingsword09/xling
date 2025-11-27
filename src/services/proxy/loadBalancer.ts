@@ -76,7 +76,7 @@ export class ProxyLoadBalancer implements LoadBalancer {
       const state = this.#providerStates.get(p.name);
       if (!state?.healthy) return false;
       // Check if at least one key is available
-      return this.#hasAvailableKey(p, state);
+      return this.#hasAvailableKey(p);
     });
 
     if (healthyProviders.length === 0) {
@@ -150,11 +150,7 @@ export class ProxyLoadBalancer implements LoadBalancer {
   /**
    * Report error and potentially rotate key
    */
-  reportError(
-    providerName: string,
-    keyIndex: number,
-    error: ProxyError,
-  ): void {
+  reportError(providerName: string, keyIndex: number, error: ProxyError): void {
     const state = this.#providerStates.get(providerName);
     if (state) {
       state.errorCount++;
@@ -163,7 +159,8 @@ export class ProxyLoadBalancer implements LoadBalancer {
 
       if (error.shouldRotateKey) {
         state.failedKeys.add(keyIndex);
-        state.currentKeyIndex = (keyIndex + 1) % (this.#keyStates.get(providerName)?.length ?? 1);
+        state.currentKeyIndex =
+          (keyIndex + 1) % (this.#keyStates.get(providerName)?.length ?? 1);
       }
 
       // Mark provider unhealthy if all keys failed
@@ -192,7 +189,7 @@ export class ProxyLoadBalancer implements LoadBalancer {
   /**
    * Check if provider has at least one available key
    */
-  #hasAvailableKey(provider: NormalizedProvider, state: ProviderState): boolean {
+  #hasAvailableKey(provider: NormalizedProvider): boolean {
     const keyStates = this.#keyStates.get(provider.name);
     if (!keyStates) return true;
 
@@ -302,8 +299,14 @@ export class ProxyLoadBalancer implements LoadBalancer {
   /**
    * Get statistics for all providers
    */
-  getStats(): Record<string, { requests: number; errors: number; healthy: boolean }> {
-    const stats: Record<string, { requests: number; errors: number; healthy: boolean }> = {};
+  getStats(): Record<
+    string,
+    { requests: number; errors: number; healthy: boolean }
+  > {
+    const stats: Record<
+      string,
+      { requests: number; errors: number; healthy: boolean }
+    > = {};
     for (const [name, state] of this.#providerStates) {
       stats[name] = {
         requests: state.requestCount,

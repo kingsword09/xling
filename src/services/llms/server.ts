@@ -34,7 +34,14 @@ export type LlmsGatewayContext = {
 function mapProvider(
   provider: ProviderConfig,
   warnings: string[],
-): LlmsProviderConfig {
+): LlmsProviderConfig | null {
+  const apiKey = provider.apiKey ?? provider.apiKeys?.[0];
+
+  if (!apiKey?.trim()) {
+    warnings.push(`${provider.name}: skipping provider with no apiKey/apiKeys`);
+    return null;
+  }
+
   if (provider.headers && Object.keys(provider.headers).length > 0) {
     warnings.push(
       `${provider.name}: custom headers are not passed through the llms gateway`,
@@ -50,7 +57,7 @@ function mapProvider(
   return {
     name: provider.name,
     api_base_url: provider.baseUrl,
-    api_key: provider.apiKey,
+    api_key: apiKey,
     models: provider.models,
   };
 }
@@ -62,9 +69,9 @@ export async function startLlmsGateway(
   const config = adapter.readConfig(adapter.resolvePath("user"));
 
   const warnings: string[] = [];
-  const mappedProviders = config.prompt.providers
-    .filter((provider: ProviderConfig) => provider.apiKey?.trim())
-    .map((provider: ProviderConfig) => mapProvider(provider, warnings));
+  const mappedProviders = config.providers
+    .map((provider: ProviderConfig) => mapProvider(provider, warnings))
+    .filter((provider): provider is LlmsProviderConfig => Boolean(provider));
 
   if (!mappedProviders.length) {
     throw new Error(

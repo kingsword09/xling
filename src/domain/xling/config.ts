@@ -28,53 +28,54 @@ export interface ProviderConfig {
  * Unified provider configuration schema
  * Supports both single apiKey and multiple apiKeys for rotation
  */
-export const ProviderConfigSchema: z.ZodType<ProviderConfig> = z.object({
-  name: z
-    .string()
-    .min(1, "Provider name cannot be empty")
-    .describe("Provider name (unique identifier)"),
-  baseUrl: z
-    .string()
-    .url("Base URL must be a valid URL")
-    .describe("API base URL"),
-  apiKey: z
-    .string()
-    .optional()
-    .describe("Single API key (use apiKey or apiKeys, not both)"),
-  apiKeys: z
-    .array(z.string().min(1))
-    .optional()
-    .describe("Multiple API keys for rotation"),
-  models: z
-    .array(z.string().min(1))
-    .min(1, "Provider must support at least one model")
-    .describe("List of supported models"),
-  priority: z
-    .number()
-    .int()
-    .positive()
-    .optional()
-    .describe("Provider priority (lower = higher priority)"),
-  timeout: z
-    .number()
-    .int()
-    .positive()
-    .optional()
-    .describe("Request timeout in milliseconds"),
-  headers: z
-    .record(z.string(), z.string())
-    .optional()
-    .describe("Custom headers to include in requests"),
-  weight: z
-    .number()
-    .int()
-    .positive()
-    .optional()
-    .describe("Weight for weighted load balancing"),
-}).refine(
-  (data) => data.apiKey || (data.apiKeys && data.apiKeys.length > 0),
-  { message: "Either apiKey or apiKeys must be provided" }
-);
+export const ProviderConfigSchema: z.ZodType<ProviderConfig> = z
+  .object({
+    name: z
+      .string()
+      .min(1, "Provider name cannot be empty")
+      .describe("Provider name (unique identifier)"),
+    baseUrl: z
+      .string()
+      .url("Base URL must be a valid URL")
+      .describe("API base URL"),
+    apiKey: z
+      .string()
+      .optional()
+      .describe("Single API key (use apiKey or apiKeys, not both)"),
+    apiKeys: z
+      .array(z.string().min(1))
+      .optional()
+      .describe("Multiple API keys for rotation"),
+    models: z
+      .array(z.string().min(1))
+      .min(1, "Provider must support at least one model")
+      .describe("List of supported models"),
+    priority: z
+      .number()
+      .int()
+      .positive()
+      .optional()
+      .describe("Provider priority (lower = higher priority)"),
+    timeout: z
+      .number()
+      .int()
+      .positive()
+      .optional()
+      .describe("Request timeout in milliseconds"),
+    headers: z
+      .record(z.string(), z.string())
+      .optional()
+      .describe("Custom headers to include in requests"),
+    weight: z
+      .number()
+      .int()
+      .positive()
+      .optional()
+      .describe("Weight for weighted load balancing"),
+  })
+  .refine((data) => data.apiKey || (data.apiKeys && data.apiKeys.length > 0), {
+    message: "Either apiKey or apiKeys must be provided",
+  });
 
 /**
  * Get all API keys from a provider config
@@ -94,14 +95,15 @@ export function getProviderApiKeys(provider: ProviderConfig): string[] {
 // Load Balancing
 // ============================================================================
 
-export type LoadBalanceStrategy = "round-robin" | "random" | "weighted" | "failover";
+export type LoadBalanceStrategy =
+  | "round-robin"
+  | "random"
+  | "weighted"
+  | "failover";
 
-export const LoadBalanceStrategySchema: z.ZodType<LoadBalanceStrategy> = z.enum([
-  "round-robin",
-  "random",
-  "weighted",
-  "failover",
-]);
+export const LoadBalanceStrategySchema: z.ZodType<LoadBalanceStrategy> = z.enum(
+  ["round-robin", "random", "weighted", "failover"],
+);
 
 // ============================================================================
 // Proxy Configuration (Simplified)
@@ -123,8 +125,16 @@ export interface ProxyConfig {
 
 export const ProxyConfigSchema: z.ZodType<ProxyConfig> = z.object({
   enabled: z.boolean().default(true).describe("Enable proxy server"),
-  port: z.number().int().positive().optional().describe("Proxy server port (default: 4320)"),
-  host: z.string().optional().describe("Proxy server host (default: 127.0.0.1)"),
+  port: z
+    .number()
+    .int()
+    .positive()
+    .optional()
+    .describe("Proxy server port (default: 4320)"),
+  host: z
+    .string()
+    .optional()
+    .describe("Proxy server host (default: 127.0.0.1)"),
   accessKey: z
     .string()
     .optional()
@@ -254,20 +264,26 @@ export const ShortcutConfigSchema: z.ZodType<ShortcutConfig> = z
     command: z.string().min(1).optional(),
     args: z.array(z.string()).optional(),
     shell: z.union([z.string().min(1), PlatformShellSchema]).optional(),
-    pipeline: z.union([z.array(PipelineStepSchema).min(1), PlatformPipelineSchema]).optional(),
+    pipeline: z
+      .union([z.array(PipelineStepSchema).min(1), PlatformPipelineSchema])
+      .optional(),
     description: z.string().optional(),
   })
   .refine(
     (data) => {
-      const count = [data.command, data.shell, data.pipeline].filter(Boolean).length;
+      const count = [data.command, data.shell, data.pipeline].filter(
+        Boolean,
+      ).length;
       return count === 1;
     },
-    { message: "Exactly one of 'command', 'shell', or 'pipeline' must be specified" }
+    {
+      message:
+        "Exactly one of 'command', 'shell', or 'pipeline' must be specified",
+    },
   )
-  .refine(
-    (data) => !(data.args && (data.shell || data.pipeline)),
-    { message: "'args' can only be used with 'command'" }
-  );
+  .refine((data) => !(data.args && (data.shell || data.pipeline)), {
+    message: "'args' can only be used with 'command'",
+  });
 
 // ============================================================================
 // Main Xling Configuration (Simplified)
@@ -298,7 +314,7 @@ export const XlingConfigSchema: z.ZodType<XlingConfig> = z.object({
         const names = providers.map((p) => p.name);
         return names.length === new Set(names).size;
       },
-      { message: "Provider names must be unique" }
+      { message: "Provider names must be unique" },
     ),
   defaultModel: z.string().optional(),
   proxy: ProxyConfigSchema.optional(),
@@ -322,7 +338,11 @@ export function validateXlingConfig(data: unknown): XlingConfig {
   const config = data as Record<string, unknown>;
 
   // Migration: Old format with prompt.providers
-  if ("prompt" in config && typeof config.prompt === "object" && config.prompt !== null) {
+  if (
+    "prompt" in config &&
+    typeof config.prompt === "object" &&
+    config.prompt !== null
+  ) {
     const prompt = config.prompt as Record<string, unknown>;
     const proxy = config.proxy as Record<string, unknown> | undefined;
 
@@ -331,31 +351,39 @@ export function validateXlingConfig(data: unknown): XlingConfig {
     const proxyProviders = (proxy?.providers as ProviderConfig[]) || [];
 
     // Use proxy providers if available (they have apiKeys), otherwise use prompt providers
-    const providers = proxyProviders.length > 0 ? proxyProviders : promptProviders;
+    const providers =
+      proxyProviders.length > 0 ? proxyProviders : promptProviders;
 
-    // Normalize apiKeys
-    const normalizedProviders = providers.map((p: Record<string, unknown>) => {
-      if (p.apiKeys && !p.apiKey) {
-        return p;
+    // Normalize apiKey/apiKeys to always have apiKeys when a single key is provided
+    const normalizedProviders: ProviderConfig[] = providers.map((provider) => {
+      if (provider.apiKeys && provider.apiKeys.length > 0) {
+        return provider;
       }
-      if (p.apiKey && !p.apiKeys) {
-        return p;
+
+      if (provider.apiKey) {
+        return { ...provider, apiKeys: [provider.apiKey] };
       }
-      return p;
+
+      return provider;
     });
 
     const migratedConfig: XlingConfig = {
-      providers: normalizedProviders as ProviderConfig[],
-      defaultModel: (prompt.defaultModel as string) || (proxy?.defaultModel as string),
-      modelMapping: proxy?.modelMapping as Record<string, string> | undefined,
-      proxy: proxy ? {
-        enabled: proxy.enabled as boolean ?? true,
-        port: proxy.port as number | undefined,
-        host: proxy.host as string | undefined,
-        accessKey: proxy.accessKey as string | undefined,
-        loadBalance: proxy.loadBalance as LoadBalanceStrategy | undefined,
-        keyRotation: proxy.keyRotation as ProxyConfig["keyRotation"],
-      } : undefined,
+      providers: normalizedProviders,
+      defaultModel:
+        (prompt.defaultModel as string) || (proxy?.defaultModel as string),
+      proxy: proxy
+        ? {
+            enabled: (proxy.enabled as boolean) ?? true,
+            port: proxy.port as number | undefined,
+            host: proxy.host as string | undefined,
+            accessKey: proxy.accessKey as string | undefined,
+            loadBalance: proxy.loadBalance as LoadBalanceStrategy | undefined,
+            modelMapping: proxy.modelMapping as
+              | Record<string, string>
+              | undefined,
+            keyRotation: proxy.keyRotation as ProxyConfig["keyRotation"],
+          }
+        : undefined,
       retryPolicy: prompt.retryPolicy as RetryPolicy | undefined,
       shortcuts: config.shortcuts as Record<string, ShortcutConfig> | undefined,
     };

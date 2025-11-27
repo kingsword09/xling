@@ -59,7 +59,8 @@ export function classifyError(
     case 401:
       return {
         type: "auth_failure",
-        message: errorBody?.message ?? "Authentication failed - invalid API key",
+        message:
+          errorBody?.message ?? "Authentication failed - invalid API key",
         statusCode,
         retryable: false,
         shouldRotateKey: true, // Rotate to next key
@@ -68,7 +69,8 @@ export function classifyError(
     case 403:
       return {
         type: "auth_failure",
-        message: errorBody?.message ?? "Access forbidden - check API key permissions",
+        message:
+          errorBody?.message ?? "Access forbidden - check API key permissions",
         statusCode,
         retryable: false,
         shouldRotateKey: true,
@@ -156,8 +158,35 @@ export function classifyError(
 /**
  * Parse error body from various formats
  */
-function parseErrorBody(body: unknown): { message?: string; code?: string } | null {
+function parseErrorBody(
+  body: unknown,
+): { message?: string; code?: string } | null {
   if (!body) return null;
+
+  const toSafeString = (value: unknown): string => {
+    if (typeof value === "string") return value;
+    if (typeof value === "number" || typeof value === "boolean") {
+      return String(value);
+    }
+    if (value === null || value === undefined) return "";
+
+    if (value instanceof Error && typeof value.message === "string") {
+      return value.message;
+    }
+
+    if (typeof value === "object") {
+      try {
+        return JSON.stringify(value);
+      } catch {
+        return "[object Object]";
+      }
+    }
+
+    if (typeof value === "symbol") return value.toString();
+    if (typeof value === "function") return value.name || "[function]";
+
+    return "";
+  };
 
   if (typeof body === "string") {
     try {
@@ -174,8 +203,8 @@ function parseErrorBody(body: unknown): { message?: string; code?: string } | nu
     if (obj.error && typeof obj.error === "object") {
       const error = obj.error as Record<string, unknown>;
       return {
-        message: String(error.message ?? ""),
-        code: String(error.code ?? error.type ?? ""),
+        message: toSafeString(error.message ?? ""),
+        code: toSafeString(error.code ?? error.type ?? ""),
       };
     }
 
@@ -183,16 +212,16 @@ function parseErrorBody(body: unknown): { message?: string; code?: string } | nu
     if (obj.type === "error" && obj.error) {
       const error = obj.error as Record<string, unknown>;
       return {
-        message: String(error.message ?? ""),
-        code: String(error.type ?? ""),
+        message: toSafeString(error.message ?? ""),
+        code: toSafeString(error.type ?? ""),
       };
     }
 
     // Generic format
     if (obj.message) {
       return {
-        message: String(obj.message),
-        code: obj.code ? String(obj.code) : undefined,
+        message: toSafeString(obj.message),
+        code: obj.code ? toSafeString(obj.code) : undefined,
       };
     }
   }

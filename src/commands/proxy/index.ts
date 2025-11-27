@@ -75,9 +75,7 @@ Configuration is read from ~/.claude/xling.json under the 'proxy' section.`;
 
       this.#printStartup(context, flags["access-key"]);
 
-      this.log(
-        "\nPress Ctrl+C to stop the proxy server.",
-      );
+      this.log("\nPress Ctrl+C to stop the proxy server.");
 
       // Keep the process alive
       await new Promise(() => {});
@@ -101,9 +99,7 @@ Configuration is read from ~/.claude/xling.json under the 'proxy' section.`;
         : context.models.join(", ");
 
     this.log(
-      context.models.length
-        ? `Models: ${sampleModels}`
-        : "No models detected.",
+      context.models.length ? `Models: ${sampleModels}` : "No models detected.",
     );
 
     if (accessKey) {
@@ -113,9 +109,15 @@ Configuration is read from ~/.claude/xling.json under the 'proxy' section.`;
 
     this.log("\nEndpoints:");
     this.log(`  ${context.baseUrl}/v1/chat/completions  - OpenAI Chat API`);
-    this.log(`  ${context.baseUrl}/v1/responses         - OpenAI Responses API (Codex)`);
-    this.log(`  ${context.baseUrl}/v1/messages          - Anthropic Messages API`);
-    this.log(`  ${context.baseUrl}/v1/completions       - OpenAI Completions API`);
+    this.log(
+      `  ${context.baseUrl}/v1/responses         - OpenAI Responses API (Codex)`,
+    );
+    this.log(
+      `  ${context.baseUrl}/v1/messages          - Anthropic Messages API`,
+    );
+    this.log(
+      `  ${context.baseUrl}/v1/completions       - OpenAI Completions API`,
+    );
     this.log(`  ${context.baseUrl}/health               - Health check`);
     this.log(`  ${context.baseUrl}/stats                - Provider statistics`);
 
@@ -139,6 +141,8 @@ Configuration is read from ~/.claude/xling.json under the 'proxy' section.`;
     if (accessKey) {
       this.log(`    -H "Authorization: Bearer <access-key>" \\`);
     }
-    this.log(`    -d '{"model": "gpt-4", "messages": [{"role": "user", "content": "Hello"}]}'`);
+    this.log(
+      `    -d '{"model": "gpt-4", "messages": [{"role": "user", "content": "Hello"}]}'`,
+    );
   }
 }
