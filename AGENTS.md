@@ -8,6 +8,13 @@
 - **Testing**: Vitest (invoked through `bun test`) covers unit and integration flows.
 - **CLI Framework**: oclif powers subcommands, flag validation, and auto-generated help.
 
+## UI Stack
+
+- **Frontend**: React 19 + React DOM 19; avoid legacy class components and keep hooks idiomatic to the current major.
+- **Build**: Vite 7 with Tailwind CSS 4 builds `src/ui` into `dist/ui`; `bun run build` already triggers `bun run build:ui`, or run `bun run build:ui` directly when iterating on the frontend.
+- **Dev Server**: `bunx vite dev --config vite.config.ts --host --port 3000` serves the React UI; keep the port in sync with `discuss --ui` (defaults to 3000).
+- **Static Assets**: The discuss server serves files from `dist/ui`; rebuild after UI changes so the CLI can load the latest bundle.
+
 ## Environment Setup
 
 1. Install Bun (recommended: `curl -fsSL https://bun.sh/install | bash`).
@@ -33,6 +40,7 @@ xling/
 |  |- commands/              # oclif command files
 |  |  |- x/index.ts          # Quick launcher
 |  |  |- settings/{list,get,set,switch,inspect}.ts
+|  |- ui/                    # React 19 Web UI (Vite root, Tailwind 4)
 |  |- domain/                # Types, interfaces, validators
 |  |- services/
 |  |  |- launch/             # Launch adapters + dispatcher

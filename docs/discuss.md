@@ -5,6 +5,8 @@ the terminal or launch a lightweight Web UI. Models come from the xling prompt
 router configuration (`~/.claude/xling.json`), so any provider supported by
 `xling p` can join the discussion.
 
+> Web UI stack: React 19 + React DOM 19, built with Vite 7 and Tailwind CSS 4.
+
 ## Usage
 
 ```bash
@@ -36,6 +38,11 @@ xling discuss --strategy round-robin --timeout 10
 # Launch the Web UI
 xling discuss --ui
 ```
+
+## Web UI Build Notes
+
+- `discuss --ui` serves static assets from `dist/ui`; rebuild with `bun run build` (runs `build:ui`) or `bun run build:ui` after frontend changes.
+- The Vite dev server for the React 19 UI can be started with `bunx vite dev --config vite.config.ts --host --port 3000`; keep the port aligned with the CLI server default (3000).
 
 ## CLI Controls
 
