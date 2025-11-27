@@ -168,6 +168,7 @@ export async function startProxyServer(
             providers: config.providers,
             modelMapping: proxyConfig.modelMapping,
             defaultModel: config.defaultModel,
+            passthroughResponsesAPI: proxyConfig.passthroughResponsesAPI,
             keyRotation: proxyConfig.keyRotation,
           },
           loadBalancer,
@@ -209,6 +210,7 @@ interface ProxyRequestConfig {
   providers: ProviderConfig[];
   modelMapping?: Record<string, string>;
   defaultModel?: string;
+  passthroughResponsesAPI?: string[];
   keyRotation?: {
     enabled?: boolean;
     onError?: boolean;
@@ -293,45 +295,81 @@ async function handleProxyRequest(
       );
     }
   } else if (needsResponsesAPIConversion && body && typeof body === "object") {
-    // Convert Responses API request to OpenAI Chat Completions format
     const responsesBody = body as Record<string, unknown>;
     responsesBody.model = mappedModel || originalModel;
     isStreaming = responsesBody.stream === true;
-    responseFormat = "responses";
 
-    if (logger) {
-      const modelLabel = toLogString(responsesBody.model);
-      console.log(
-        `[${context.requestId}] Responses API request: stream=${isStreaming}, model=${modelLabel}`,
-      );
-      // Log tools if present
-      if (responsesBody.tools) {
-        const tools = responsesBody.tools as unknown[];
-        console.log(`[${context.requestId}] Tools count: ${tools.length}`);
-        tools.slice(0, 3).forEach((t, i) => {
-          const tool = t as Record<string, unknown>;
-          const toolType = toLogString(tool.type);
-          const toolName = toLogString(
-            (tool as any).function?.name ?? (tool as any).name ?? "N/A",
-          );
-          console.log(
-            `[${context.requestId}] Tool[${i}]: type=${toolType}, name=${toolName}`,
-          );
-        });
+    // Check if this model should passthrough Responses API without conversion
+    const passthroughModels = config.passthroughResponsesAPI ?? [];
+    const shouldPassthrough = passthroughModels.some((pattern: string) => {
+      if (pattern.endsWith("*")) {
+        return String(responsesBody.model).startsWith(pattern.slice(0, -1));
       }
-    }
+      return responsesBody.model === pattern;
+    });
 
-    processedBody = responsesAPIToOpenAIRequest(responsesBody as any);
+    if (shouldPassthrough) {
+      // Passthrough: keep Responses API format, don't convert
+      responseFormat = "openai"; // Don't convert response either
+      processedBody = responsesBody;
 
-    // Convert path from Responses API to Chat Completions
-    if (normalizedPath === "/v1/responses" || normalizedPath === "/responses") {
-      normalizedPath = "/v1/chat/completions";
-    }
+      if (logger) {
+        console.log(
+          `[${context.requestId}] Responses API passthrough (native support): model=${toLogString(responsesBody.model)}`,
+        );
+      }
+    } else {
+      // Convert Responses API request to OpenAI Chat Completions format
+      responseFormat = "responses";
 
-    if (logger) {
-      console.log(
-        `[${context.requestId}] Converting Responses API -> OpenAI format (path: ${normalizedPath})`,
-      );
+      if (logger) {
+        const modelLabel = toLogString(responsesBody.model);
+        console.log(
+          `[${context.requestId}] Responses API request: stream=${isStreaming}, model=${modelLabel}`,
+        );
+        // Log tools if present
+        if (responsesBody.tools) {
+          const tools = responsesBody.tools as unknown[];
+          console.log(`[${context.requestId}] Tools count: ${tools.length}`);
+          tools.slice(0, 5).forEach((t, i) => {
+            const tool = t as Record<string, unknown>;
+            const toolType = toLogString(tool.type);
+            const toolName = toLogString(
+              (tool as any).function?.name ?? (tool as any).name ?? "N/A",
+            );
+            console.log(
+              `[${context.requestId}] Tool[${i}]: type=${toolType}, name=${toolName}, keys=${Object.keys(tool).join(",")}`,
+            );
+          });
+        } else {
+          console.log(`[${context.requestId}] No tools in request`);
+        }
+      }
+
+      processedBody = responsesAPIToOpenAIRequest(responsesBody as any);
+
+      // Convert path from Responses API to Chat Completions
+      if (
+        normalizedPath === "/v1/responses" ||
+        normalizedPath === "/responses"
+      ) {
+        normalizedPath = "/v1/chat/completions";
+      }
+
+      if (logger) {
+        console.log(
+          `[${context.requestId}] Converting Responses API -> OpenAI format (path: ${normalizedPath})`,
+        );
+        // Log converted tools
+        const convertedTools = (processedBody as any)?.tools;
+        if (convertedTools) {
+          console.log(
+            `[${context.requestId}] Converted tools count: ${convertedTools.length}`,
+          );
+        } else {
+          console.log(`[${context.requestId}] No tools after conversion`);
+        }
+      }
     }
   } else if (
     body &&

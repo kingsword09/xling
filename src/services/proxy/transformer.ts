@@ -1207,12 +1207,88 @@ export function openAIToResponsesAPIResponse(
 }
 
 /**
+ * Format function call name to a human-readable status text
+ * e.g., "search_files" -> "Searching files"
+ *       "read_file" -> "Reading file"
+ *       "execute_command" -> "Executing command"
+ */
+function formatFunctionCallStatus(functionName: string): string {
+  // Common function name patterns and their friendly descriptions
+  const patterns: [RegExp, string][] = [
+    [/^(search|find|grep|glob)[-_]?(files?|code|content)?$/i, "Searching"],
+    [/^(read|get|fetch|load)[-_]?(file|content|data)?$/i, "Reading"],
+    [/^(write|save|create|update)[-_]?(file|content|data)?$/i, "Writing"],
+    [
+      /^(execute|run|exec|shell)[-_]?(command|cmd|bash)?$/i,
+      "Executing command",
+    ],
+    [/^(list|ls)[-_]?(files?|dir|directory)?$/i, "Listing"],
+    [/^(edit|modify|patch)[-_]?(file)?$/i, "Editing"],
+    [/^(delete|remove|rm)[-_]?(file)?$/i, "Deleting"],
+    [/^(move|mv|rename)[-_]?(file)?$/i, "Moving"],
+    [/^(copy|cp)[-_]?(file)?$/i, "Copying"],
+    [/^(mkdir|create[-_]?dir)$/i, "Creating directory"],
+    [/^(git)[-_]?(.+)?$/i, "Running git"],
+    [/^(npm|yarn|pnpm|bun)[-_]?(.+)?$/i, "Running package manager"],
+    [/^(test|check|verify|validate)[-_]?(.+)?$/i, "Testing"],
+    [/^(build|compile)[-_]?(.+)?$/i, "Building"],
+    [/^(install|setup)[-_]?(.+)?$/i, "Installing"],
+    [/^(analyze|inspect)[-_]?(.+)?$/i, "Analyzing"],
+  ];
+
+  for (const [pattern, description] of patterns) {
+    if (pattern.test(functionName)) {
+      return description;
+    }
+  }
+
+  // Default: convert snake_case/camelCase to readable format
+  // e.g., "doSomething" -> "Doing something", "do_something" -> "Doing something"
+  const words = functionName
+    .replace(/[-_]/g, " ")
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .toLowerCase()
+    .split(" ");
+
+  if (words.length > 0) {
+    // Convert first word to -ing form if it's a verb
+    const firstWord = words[0];
+    const ingForm = toIngForm(firstWord);
+    words[0] = ingForm.charAt(0).toUpperCase() + ingForm.slice(1);
+    return words.join(" ");
+  }
+
+  return `Calling ${functionName}`;
+}
+
+/**
+ * Convert a verb to its -ing form
+ */
+function toIngForm(verb: string): string {
+  if (verb.endsWith("e") && !verb.endsWith("ee")) {
+    return verb.slice(0, -1) + "ing";
+  }
+  if (verb.endsWith("ie")) {
+    return verb.slice(0, -2) + "ying";
+  }
+  if (
+    /^[a-z]+[aeiou][bcdfghjklmnpqrstvwxyz]$/i.test(verb) &&
+    verb.length <= 4
+  ) {
+    return verb + verb.slice(-1) + "ing";
+  }
+  return verb + "ing";
+}
+
+/**
  * Tool call accumulator for streaming
  */
 interface StreamToolCallAccumulator {
   id: string;
   name: string;
   arguments: string;
+  outputIndex: number; // Track the output index for this tool call
+  sentAdded: boolean; // Track if we've sent the output_item.added event
 }
 
 /**
@@ -1249,9 +1325,9 @@ export function createResponsesAPIStreamTransformer(
           // Build final output array
           const finalOutput: unknown[] = [];
 
-          // Add tool calls first
+          // Add tool calls first (only those that were properly sent)
           for (const [, acc] of toolCallAccumulators) {
-            if (acc.id && acc.name) {
+            if (acc.sentAdded && acc.id && acc.name) {
               finalOutput.push({
                 type: "function_call",
                 call_id: acc.id,
@@ -1345,19 +1421,49 @@ export function createResponsesAPIStreamTransformer(
 
               if (!toolCallAccumulators.has(tcIndex)) {
                 toolCallAccumulators.set(tcIndex, {
-                  id: "",
-                  name: "",
+                  id: toolCall.id || "",
+                  name: toolCall.function?.name || "",
                   arguments: "",
+                  outputIndex: -1, // Will be set when we send output_item.added
+                  sentAdded: false,
                 });
+              }
 
-                // Send response.output_item.added for function_call
+              const acc = toolCallAccumulators.get(tcIndex)!;
+
+              if (toolCall.id) acc.id = toolCall.id;
+              if (toolCall.function?.name) acc.name = toolCall.function.name;
+              if (toolCall.function?.arguments) {
+                acc.arguments += toolCall.function.arguments;
+              }
+
+              // Send response.output_item.added when we have the function name
+              // This ensures Codex can display the correct status text
+              if (!acc.sentAdded && acc.name) {
+                acc.sentAdded = true;
+                acc.outputIndex = outputIndex;
+
+                // Generate a reasoning event with the function name as status
+                // Codex extracts **bold text** from reasoning to show as status
+                const statusText = formatFunctionCallStatus(acc.name);
+                const reasoningEvent = {
+                  type: "response.reasoning_summary_text.delta",
+                  delta: `**${statusText}**\n`,
+                  summary_index: 0,
+                };
+                controller.enqueue(
+                  encoder.encode(
+                    `event: response.reasoning_summary_text.delta\ndata: ${JSON.stringify(reasoningEvent)}\n\n`,
+                  ),
+                );
+
                 const itemAddedEvent = {
                   type: "response.output_item.added",
                   output_index: outputIndex,
                   item: {
                     type: "function_call",
-                    call_id: toolCall.id || "",
-                    name: toolCall.function?.name || "",
+                    call_id: acc.id,
+                    name: acc.name,
                     arguments: "",
                   },
                 };
@@ -1369,16 +1475,11 @@ export function createResponsesAPIStreamTransformer(
                 outputIndex++;
               }
 
-              const acc = toolCallAccumulators.get(tcIndex)!;
-              if (toolCall.id) acc.id = toolCall.id;
-              if (toolCall.function?.name) acc.name = toolCall.function.name;
-              if (toolCall.function?.arguments) {
-                acc.arguments += toolCall.function.arguments;
-
-                // Send response.function_call_arguments.delta
+              // Send response.function_call_arguments.delta
+              if (toolCall.function?.arguments && acc.outputIndex >= 0) {
                 const argsDeltaEvent = {
                   type: "response.function_call_arguments.delta",
-                  output_index: tcIndex,
+                  output_index: acc.outputIndex,
                   delta: toolCall.function.arguments,
                 };
                 controller.enqueue(
@@ -1443,22 +1544,24 @@ export function createResponsesAPIStreamTransformer(
           // Check for finish
           if (streamChunk.choices[0]?.finish_reason) {
             // Send done events for tool calls
-            for (const [tcIndex, acc] of toolCallAccumulators) {
-              const itemDoneEvent = {
-                type: "response.output_item.done",
-                output_index: tcIndex,
-                item: {
-                  type: "function_call",
-                  call_id: acc.id,
-                  name: acc.name,
-                  arguments: acc.arguments,
-                },
-              };
-              controller.enqueue(
-                encoder.encode(
-                  `event: response.output_item.done\ndata: ${JSON.stringify(itemDoneEvent)}\n\n`,
-                ),
-              );
+            for (const [, acc] of toolCallAccumulators) {
+              if (acc.sentAdded && acc.outputIndex >= 0) {
+                const itemDoneEvent = {
+                  type: "response.output_item.done",
+                  output_index: acc.outputIndex,
+                  item: {
+                    type: "function_call",
+                    call_id: acc.id,
+                    name: acc.name,
+                    arguments: acc.arguments,
+                  },
+                };
+                controller.enqueue(
+                  encoder.encode(
+                    `event: response.output_item.done\ndata: ${JSON.stringify(itemDoneEvent)}\n\n`,
+                  ),
+                );
+              }
             }
 
             // Send done events for message if there's text
@@ -1507,9 +1610,9 @@ export function createResponsesAPIStreamTransformer(
             // Don't wait for [DONE] as some providers may not send it or delay it
             const finalOutput: unknown[] = [];
 
-            // Add tool calls first
+            // Add tool calls first (only those that were properly sent)
             for (const [, acc] of toolCallAccumulators) {
-              if (acc.id && acc.name) {
+              if (acc.sentAdded && acc.id && acc.name) {
                 finalOutput.push({
                   type: "function_call",
                   call_id: acc.id,
