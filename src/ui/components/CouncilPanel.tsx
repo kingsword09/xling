@@ -6,7 +6,16 @@ import { ModelSelector } from "@/ui/components/ModelSelector";
 import { useI18n } from "@/ui/i18n";
 import { StreamdownRenderer } from "@/ui/components/StreamdownRenderer";
 import { cn } from "@/ui/lib/utils";
-import { Loader2, Gavel, Crown, AlertCircle, Layout, MessageSquare, FileText, Settings } from "lucide-react";
+import {
+  Loader2,
+  Gavel,
+  Crown,
+  AlertCircle,
+  Layout,
+  MessageSquare,
+  FileText,
+  Settings,
+} from "lucide-react";
 
 // Types matching backend
 interface CandidateResponse {
@@ -66,15 +75,21 @@ interface CouncilResult {
   };
 }
 
+type Stage3Mode = "direct" | "synthesize";
+
 type CouncilProgressEvent =
   | { type: "stage1-start"; models: string[] }
   | { type: "stage1-answer"; response: CandidateResponse }
   | { type: "stage1-complete"; responses: CandidateResponse[] }
   | { type: "stage2-start"; judges: string[] }
   | { type: "stage2-review"; result: JudgeResult }
-  | { type: "stage2-complete"; results: JudgeResult[]; aggregates: AggregateScore[] }
-  | { type: "stage3-start"; model: string }
-  | { type: "stage3-complete"; content: string }
+  | {
+      type: "stage2-complete";
+      results: JudgeResult[];
+      aggregates: AggregateScore[];
+    }
+  | { type: "stage3-start"; model: string; mode: Stage3Mode }
+  | { type: "stage3-complete"; content: string; mode: Stage3Mode }
   | { type: "complete"; result: CouncilResult }
   | { type: "error"; error: string };
 
@@ -87,18 +102,40 @@ export function CouncilPanel() {
   const [judgeModels, setJudgeModels] = useState<string[]>([]);
   const [finalModel, setFinalModel] = useState("");
   const [availableModels, setAvailableModels] = useState<string[]>([]);
-  
+
   // State for streaming results
   const [isRunning, setIsRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [stage1Responses, setStage1Responses] = useState<CandidateResponse[]>([]);
+  const [stage1Responses, setStage1Responses] = useState<CandidateResponse[]>(
+    [],
+  );
   const [stage2Results, setStage2Results] = useState<JudgeResult[]>([]);
   const [aggregates, setAggregates] = useState<AggregateScore[]>([]);
-  const [finalResult, setFinalResult] = useState<{ model: string; content: string } | null>(null);
-  const [currentStage, setCurrentStage] = useState<"idle" | "stage1" | "stage2" | "stage3" | "complete">("idle");
+  const [finalResult, setFinalResult] = useState<{
+    model: string;
+    content: string;
+    mode: Stage3Mode;
+  } | null>(null);
+  const [currentStage, setCurrentStage] = useState<
+    "idle" | "stage1" | "stage2" | "stage3" | "complete"
+  >("idle");
   const [pendingModels, setPendingModels] = useState<string[]>([]);
   const [pendingJudges, setPendingJudges] = useState<string[]>([]);
-  
+
+  // Final model selector state (like @ mention)
+  const [finalModelQuery, setFinalModelQuery] = useState("");
+  const [finalModelActive, setFinalModelActive] = useState(false);
+  const [finalModelHighlightIndex, setFinalModelHighlightIndex] = useState(0);
+  const finalModelInputRef = useRef<HTMLInputElement>(null);
+
+  const finalModelSuggestions = useMemo(() => {
+    if (!finalModelActive) return [];
+    const query = finalModelQuery.toLowerCase();
+    return availableModels.filter((model) =>
+      model.toLowerCase().includes(query),
+    );
+  }, [finalModelActive, finalModelQuery, availableModels]);
+
   const [activeTab, setActiveTab] = useState<Tab>("candidates");
 
   useEffect(() => {
@@ -197,7 +234,9 @@ export function CouncilPanel() {
         break;
       case "stage1-answer":
         setStage1Responses((prev) => [...prev, event.response]);
-        setPendingModels((prev) => prev.filter((m) => m !== event.response.model));
+        setPendingModels((prev) =>
+          prev.filter((m) => m !== event.response.model),
+        );
         break;
       case "stage1-complete":
         setStage1Responses(event.responses);
@@ -210,7 +249,9 @@ export function CouncilPanel() {
         break;
       case "stage2-review":
         setStage2Results((prev) => [...prev, event.result]);
-        setPendingJudges((prev) => prev.filter((m) => m !== event.result.judgeModel));
+        setPendingJudges((prev) =>
+          prev.filter((m) => m !== event.result.judgeModel),
+        );
         break;
       case "stage2-complete":
         setStage2Results(event.results);
@@ -219,11 +260,13 @@ export function CouncilPanel() {
         break;
       case "stage3-start":
         setCurrentStage("stage3");
-        setFinalResult({ model: event.model, content: "" });
+        setFinalResult({ model: event.model, content: "", mode: event.mode });
         setActiveTab("synthesis");
         break;
       case "stage3-complete":
-        setFinalResult((prev) => prev ? { ...prev, content: event.content } : null);
+        setFinalResult((prev) =>
+          prev ? { ...prev, content: event.content, mode: event.mode } : null,
+        );
         break;
       case "complete":
         setCurrentStage("complete");
@@ -237,9 +280,9 @@ export function CouncilPanel() {
   };
 
   return (
-    <div className="flex h-full bg-neo-white overflow-hidden">
+    <div className="flex h-full bg-neo-bg overflow-hidden">
       {/* Left Sidebar - Configuration */}
-      <div className="w-[320px] shrink-0 border-r-2 border-neo-black bg-white flex flex-col h-full">
+      <div className="w-[320px] shrink-0 border-r-2 border-neo-black bg-neo-white flex flex-col h-full">
         <div className="p-4 border-b-2 border-neo-black bg-neo-purple">
           <div className="text-xs font-bold uppercase tracking-widest text-black mb-1">
             {t("councilMode")}
@@ -248,24 +291,24 @@ export function CouncilPanel() {
             {t("councilSubtitle")}
           </h1>
         </div>
-        
+
         <div className="flex-1 overflow-y-auto p-4 space-y-6">
           <div className="space-y-2">
-            <label className="text-sm font-bold uppercase flex items-center gap-2">
+            <label className="text-sm font-bold uppercase flex items-center gap-2 text-foreground">
               <MessageSquare className="h-4 w-4" />
               {t("councilQuestion")}
             </label>
             <textarea
-              className="w-full neo-input min-h-[120px] p-3 resize-none text-sm"
+              className="w-full neo-input min-h-[120px] p-3 resize-none text-sm text-foreground placeholder:text-muted-foreground"
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
               placeholder={t("councilQuestionPlaceholder")}
               disabled={isRunning}
             />
           </div>
-          
+
           <Separator className="bg-neo-black/20" />
-          
+
           <ModelSelector
             availableModels={availableModels}
             selectedModels={models}
@@ -273,11 +316,11 @@ export function CouncilPanel() {
             disabled={isRunning}
             className="text-sm"
           />
-          
+
           <Separator className="bg-neo-black/20" />
-          
+
           <div className="space-y-2">
-             <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between">
               <label className="text-sm font-bold uppercase flex items-center gap-2">
                 <Gavel className="h-4 w-4" />
                 {t("councilJudges")}
@@ -302,27 +345,130 @@ export function CouncilPanel() {
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-bold uppercase flex items-center gap-2">
+            <label className="text-sm font-bold uppercase flex items-center gap-2 text-foreground">
               <Crown className="h-4 w-4" />
               {t("councilFinalModel")}
             </label>
-            <select
-              value={finalModel}
-              onChange={(e) => setFinalModel(e.target.value)}
-              disabled={isRunning}
-              className="neo-input h-9 text-sm w-full bg-white"
-            >
-              <option value="">{t("councilFinalModelPlaceholder")}</option>
-              {availableModels.map((model) => (
-                <option key={model} value={model}>
-                  {model}
-                </option>
-              ))}
-            </select>
+            <div className="relative">
+              <input
+                ref={finalModelInputRef}
+                type="text"
+                value={finalModelActive ? finalModelQuery : finalModel}
+                onChange={(e) => {
+                  setFinalModelQuery(e.target.value);
+                  setFinalModelHighlightIndex(0);
+                }}
+                onFocus={() => {
+                  setFinalModelActive(true);
+                  setFinalModelQuery(finalModel);
+                  setFinalModelHighlightIndex(0);
+                }}
+                onBlur={() => {
+                  // Delay to allow click on suggestion, then save the manual input
+                  setTimeout(() => {
+                    // Save the manually typed value when losing focus
+                    setFinalModel(finalModelQuery.trim());
+                    setFinalModelActive(false);
+                  }, 150);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Escape") {
+                    e.preventDefault();
+                    // Revert to previous value on Escape
+                    setFinalModelQuery(finalModel);
+                    setFinalModelActive(false);
+                    finalModelInputRef.current?.blur();
+                    return;
+                  }
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    // If there are suggestions and one is highlighted, use it
+                    if (finalModelSuggestions.length > 0) {
+                      const selected =
+                        finalModelSuggestions[finalModelHighlightIndex];
+                      if (selected) {
+                        setFinalModel(selected);
+                        setFinalModelQuery(selected);
+                      }
+                    } else {
+                      // No suggestions, save the manual input
+                      setFinalModel(finalModelQuery.trim());
+                    }
+                    setFinalModelActive(false);
+                    finalModelInputRef.current?.blur();
+                    return;
+                  }
+                  if (!finalModelActive || finalModelSuggestions.length === 0) {
+                    return;
+                  }
+                  if (e.key === "ArrowDown") {
+                    e.preventDefault();
+                    setFinalModelHighlightIndex(
+                      (prev) => (prev + 1) % finalModelSuggestions.length,
+                    );
+                  } else if (e.key === "ArrowUp") {
+                    e.preventDefault();
+                    setFinalModelHighlightIndex(
+                      (prev) =>
+                        (prev - 1 + finalModelSuggestions.length) %
+                        finalModelSuggestions.length,
+                    );
+                  }
+                }}
+                placeholder={t("councilFinalModelPlaceholder")}
+                disabled={isRunning}
+                className="neo-input h-9 text-sm w-full px-3 text-foreground placeholder:text-muted-foreground"
+              />
+              {finalModel && !finalModelActive && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFinalModel("");
+                    setFinalModelQuery("");
+                  }}
+                  disabled={isRunning}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground text-xs"
+                >
+                  ✕
+                </button>
+              )}
+              {finalModelActive && (
+                <div className="absolute bottom-full left-0 right-0 mb-2 neo-box p-0 overflow-hidden animate-in fade-in slide-in-from-bottom-2 max-h-48 overflow-y-auto z-50">
+                  {finalModelSuggestions.length === 0 ? (
+                    <div className="px-4 py-3 text-sm text-muted-foreground">
+                      {t("noModelsFound")}
+                    </div>
+                  ) : (
+                    finalModelSuggestions.map((model, index) => (
+                      <button
+                        key={model}
+                        type="button"
+                        className={cn(
+                          "flex w-full items-center gap-3 px-4 py-2 text-sm transition-all border-b-2 border-neo-black last:border-0 text-foreground",
+                          index === finalModelHighlightIndex
+                            ? "bg-neo-yellow text-black"
+                            : "hover:bg-neo-yellow/20",
+                        )}
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          setFinalModel(model);
+                          setFinalModelQuery(model);
+                          setFinalModelActive(false);
+                        }}
+                        onMouseEnter={() => setFinalModelHighlightIndex(index)}
+                      >
+                        <Crown className="h-4 w-4 shrink-0" />
+                        <span className="font-bold truncate">{model}</span>
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
-        <div className="p-4 border-t-2 border-neo-black bg-white">
+        <div className="p-4 border-t-2 border-neo-black bg-neo-white">
           {error && (
             <div className="mb-4 neo-box-sm bg-neo-red text-white p-2 flex items-start gap-2 text-xs">
               <AlertCircle className="h-4 w-4 shrink-0" />
@@ -350,25 +496,25 @@ export function CouncilPanel() {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 h-full">
         {/* Top Tabs */}
-        <div className="flex items-center border-b-2 border-neo-black bg-white px-4 pt-4 gap-2 shrink-0">
-          <TabButton 
-            active={activeTab === "candidates"} 
+        <div className="flex items-center border-b-2 border-neo-black bg-neo-white px-4 pt-4 gap-2 shrink-0">
+          <TabButton
+            active={activeTab === "candidates"}
             onClick={() => setActiveTab("candidates")}
             icon={<Layout className="h-4 w-4" />}
             label={t("councilStage1")}
             count={stage1Responses.length}
             loading={currentStage === "stage1"}
           />
-          <TabButton 
-            active={activeTab === "evaluation"} 
+          <TabButton
+            active={activeTab === "evaluation"}
             onClick={() => setActiveTab("evaluation")}
             icon={<Gavel className="h-4 w-4" />}
             label={t("councilStage2")}
             count={stage2Results.length}
             loading={currentStage === "stage2"}
           />
-          <TabButton 
-            active={activeTab === "synthesis"} 
+          <TabButton
+            active={activeTab === "synthesis"}
             onClick={() => setActiveTab("synthesis")}
             icon={<FileText className="h-4 w-4" />}
             label={t("councilStage3")}
@@ -377,42 +523,56 @@ export function CouncilPanel() {
         </div>
 
         {/* Content Pane */}
-        <div className="flex-1 overflow-y-auto p-6 bg-neo-white scroll-smooth relative">
-          {/* Empty State */}
-          {currentStage === "idle" && !stage1Responses.length && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground opacity-40">
-              <Settings className="h-24 w-24 mb-4 stroke-1" />
-              <p className="text-xl font-black uppercase tracking-widest">Configure & Run Council</p>
-            </div>
-          )}
+        <div className="flex-1 overflow-y-auto p-6 bg-neo-bg scroll-smooth relative">
+          {/* Empty State - only show on candidates tab */}
+          {currentStage === "idle" &&
+            !stage1Responses.length &&
+            activeTab === "candidates" && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground opacity-40">
+                <Settings className="h-24 w-24 mb-4 stroke-1" />
+                <p className="text-xl font-black uppercase tracking-widest">
+                  Configure & Run Council
+                </p>
+              </div>
+            )}
 
           {/* Candidates View */}
           {activeTab === "candidates" && (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
               {stage1Responses.map((c) => (
-                <div key={c.label} className="neo-box bg-white flex flex-col h-full">
+                <div key={c.label} className="neo-box flex flex-col h-full">
                   <div className="p-3 border-b-2 border-neo-black bg-neo-yellow/10 flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="bg-neo-yellow text-black rounded-none border-neo-black font-bold">
+                      <Badge
+                        variant="outline"
+                        className="bg-neo-yellow text-black rounded-none border-neo-black font-bold"
+                      >
                         {c.label}
                       </Badge>
-                      <span className="text-xs font-bold uppercase text-muted-foreground">{c.model}</span>
+                      <span className="text-xs font-bold uppercase text-muted-foreground">
+                        {c.model}
+                      </span>
                     </div>
                   </div>
-                  <div className="p-4 prose prose-sm max-w-none flex-1 overflow-y-auto max-h-[500px]">
+                  <div className="p-4 prose prose-sm dark:prose-invert max-w-none flex-1 overflow-y-auto max-h-[500px]">
                     <StreamdownRenderer content={c.content} />
                   </div>
                   {c.error && (
-                    <div className="p-2 bg-red-100 text-red-600 text-xs font-bold border-t-2 border-neo-black">
+                    <div className="p-2 bg-neo-red/20 text-neo-red text-xs font-bold border-t-2 border-neo-black">
                       Error: {c.error}
                     </div>
                   )}
                 </div>
               ))}
               {pendingModels.map((m) => (
-                <div key={m} className="neo-box bg-white/50 p-8 flex flex-col items-center justify-center gap-3 opacity-60 border-dashed min-h-[200px]">
-                  <Loader2 className="h-8 w-8 animate-spin text-neo-black" />
-                  <span className="font-bold uppercase text-sm">Waiting for {m}...</span>
+                <div
+                  key={m}
+                  className="neo-box p-8 flex flex-col items-center justify-center gap-3 opacity-60 border-dashed min-h-[200px]"
+                >
+                  <Loader2 className="h-8 w-8 animate-spin text-foreground" />
+                  <span className="font-bold uppercase text-sm text-foreground">
+                    Waiting for {m}...
+                  </span>
                 </div>
               ))}
             </div>
@@ -421,21 +581,23 @@ export function CouncilPanel() {
           {/* Evaluation View */}
           {activeTab === "evaluation" && (
             <div className="flex flex-col gap-6 h-full">
-              {/* Score Matrix */}
-              <div className="neo-box bg-white p-4 shrink-0">
-                <h3 className="font-black uppercase mb-4 flex items-center gap-2">
+              {/* Score Matrix - max 40% height with scroll */}
+              <div className="neo-box p-4 shrink-0 max-h-[40%] flex flex-col">
+                <h3 className="font-black uppercase mb-4 flex items-center gap-2 text-foreground shrink-0">
                   <Layout className="h-5 w-5" />
                   Score Matrix
                 </h3>
-                <div className="overflow-x-auto">
+                <div className="overflow-auto flex-1 min-h-0">
                   <table className="w-full border-collapse min-w-[600px]">
                     <thead>
                       <tr>
-                        <th className="p-3 border-2 border-neo-black bg-neo-black text-white font-bold uppercase text-left text-xs w-48">
+                        <th className="p-3 border-2 border-neo-black bg-neo-black text-neo-white font-bold uppercase text-left text-xs w-48">
                           Judge \ Candidate
                         </th>
                         {models.map((m) => {
-                          const resp = stage1Responses.find((r) => r.model === m);
+                          const resp = stage1Responses.find(
+                            (r) => r.model === m,
+                          );
                           return (
                             <th
                               key={m}
@@ -450,7 +612,7 @@ export function CouncilPanel() {
                                     {resp.label}
                                   </Badge>
                                 )}
-                                <span className="text-[10px] font-normal opacity-70 truncate max-w-[120px]">
+                                <span className="text-[10px] font-normal text-foreground/70 truncate max-w-[120px]">
                                   {m}
                                 </span>
                               </div>
@@ -462,7 +624,7 @@ export function CouncilPanel() {
                     <tbody>
                       {judgesToUse.map((judge) => (
                         <tr key={judge}>
-                          <td className="p-3 border-2 border-neo-black font-bold text-xs bg-white">
+                          <td className="p-3 border-2 border-neo-black font-bold text-xs bg-muted text-foreground">
                             {judge}
                           </td>
                           {models.map((candidate) => {
@@ -473,7 +635,7 @@ export function CouncilPanel() {
                             const candidateLabel = stage1Responses.find(
                               (r) => r.model === candidate,
                             )?.label;
-                            
+
                             // Match evaluation by label (e.g. "A" or "Response A")
                             const evaluation = result?.evaluations.find(
                               (e) =>
@@ -487,8 +649,8 @@ export function CouncilPanel() {
                                 className={cn(
                                   "p-2 border-2 border-neo-black text-center transition-colors",
                                   isSelf
-                                    ? "bg-gray-100 text-gray-400"
-                                    : "bg-white hover:bg-neo-yellow/10",
+                                    ? "bg-muted text-muted-foreground"
+                                    : "bg-neo-white hover:bg-neo-yellow/10",
                                 )}
                               >
                                 {isSelf ? (
@@ -497,11 +659,11 @@ export function CouncilPanel() {
                                   </span>
                                 ) : evaluation ? (
                                   <div className="flex flex-col items-center">
-                                    <span className="font-black text-xl leading-none">
+                                    <span className="font-black text-xl leading-none text-foreground">
                                       {evaluation.scores.total}
                                     </span>
                                     <div className="flex gap-1 mt-1">
-                                      <span className="text-[9px] font-mono text-muted-foreground bg-gray-100 px-1 rounded">
+                                      <span className="text-[9px] font-mono text-muted-foreground bg-muted px-1 rounded">
                                         U:{evaluation.scores.utility.score}
                                       </span>
                                     </div>
@@ -524,13 +686,13 @@ export function CouncilPanel() {
               <div className="flex flex-col lg:flex-row gap-6 flex-1 min-h-0 overflow-hidden">
                 {/* Leaderboard (Sticky on Desktop) */}
                 <div className="lg:w-80 shrink-0 space-y-4 overflow-y-auto">
-                  <div className="neo-box bg-neo-yellow text-black p-4">
-                    <h3 className="font-black uppercase flex items-center gap-2 mb-4">
+                  <div className="neo-box p-4">
+                    <h3 className="font-black uppercase flex items-center gap-2 mb-4 text-foreground">
                       <Crown className="h-5 w-5" />
                       Leaderboard
                     </h3>
                     {aggregates.length === 0 ? (
-                      <div className="text-sm opacity-60 italic">
+                      <div className="text-sm text-muted-foreground italic">
                         Waiting for scores...
                       </div>
                     ) : (
@@ -538,14 +700,14 @@ export function CouncilPanel() {
                         {aggregates.map((a, i) => (
                           <div
                             key={a.label}
-                            className="neo-box-sm bg-white p-2 flex items-center justify-between"
+                            className="border-2 border-neo-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] dark:shadow-[2px_2px_0px_0px_rgba(0,255,255,0.3)] bg-neo-white p-2 flex items-center justify-between"
                           >
                             <div className="flex items-center gap-2">
-                              <span className="font-black text-lg w-6 text-center">
+                              <span className="font-black text-lg w-6 text-center text-foreground">
                                 {i + 1}
                               </span>
                               <div className="flex flex-col">
-                                <span className="font-bold text-sm">
+                                <span className="font-bold text-sm text-foreground">
                                   {a.label}
                                 </span>
                                 <span className="text-[10px] uppercase text-muted-foreground">
@@ -554,7 +716,7 @@ export function CouncilPanel() {
                               </div>
                             </div>
                             <div className="text-right">
-                              <div className="font-black text-lg">
+                              <div className="font-black text-lg text-foreground">
                                 {a.average.toFixed(2)}
                               </div>
                               <div className="text-[10px] text-muted-foreground">
@@ -571,10 +733,10 @@ export function CouncilPanel() {
                 {/* Detailed Reviews */}
                 <div className="flex-1 space-y-4 overflow-y-auto pb-4">
                   {stage2Results.map((j) => (
-                    <div key={j.judgeModel} className="neo-box bg-white p-4">
+                    <div key={j.judgeModel} className="neo-box p-4">
                       <div className="flex items-center gap-2 mb-4 pb-2 border-b-2 border-neo-black/10">
                         <Gavel className="h-4 w-4" />
-                        <span className="font-bold uppercase text-sm">
+                        <span className="font-bold uppercase text-sm text-foreground">
                           Judge: {j.judgeModel}
                         </span>
                       </div>
@@ -582,12 +744,12 @@ export function CouncilPanel() {
                         {j.evaluations.map((ev) => (
                           <div
                             key={ev.label}
-                            className="flex flex-col sm:flex-row gap-3 p-3 bg-neo-black/5 rounded-lg border border-neo-black/10"
+                            className="flex flex-col sm:flex-row gap-3 p-3 bg-muted/50 rounded-lg border border-neo-black/10"
                           >
                             <div className="flex items-center gap-3 sm:w-40 shrink-0">
                               <Badge
                                 variant="outline"
-                                className="bg-white rounded-none h-8 w-8 flex items-center justify-center p-0 text-sm"
+                                className="bg-neo-white rounded-none h-8 w-8 flex items-center justify-center p-0 text-sm border-neo-black"
                               >
                                 {ev.label.replace("Response ", "")}
                               </Badge>
@@ -595,7 +757,7 @@ export function CouncilPanel() {
                                 <span className="text-xs uppercase font-bold text-muted-foreground">
                                   Total
                                 </span>
-                                <span className="font-black text-2xl leading-none">
+                                <span className="font-black text-2xl leading-none text-foreground">
                                   {ev.scores.total}
                                 </span>
                               </div>
@@ -633,10 +795,10 @@ export function CouncilPanel() {
                   {pendingJudges.map((m) => (
                     <div
                       key={m}
-                      className="neo-box-sm bg-white/50 p-4 flex items-center justify-center gap-2 opacity-70 border-dashed"
+                      className="neo-box-sm p-4 flex items-center justify-center gap-2 opacity-70 border-dashed"
                     >
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      <span className="text-sm font-bold uppercase">
+                      <Loader2 className="h-4 w-4 animate-spin text-foreground" />
+                      <span className="text-sm font-bold uppercase text-foreground">
                         Judge {m} is reviewing...
                       </span>
                     </div>
@@ -650,24 +812,57 @@ export function CouncilPanel() {
           {activeTab === "synthesis" && (
             <div className="max-w-4xl mx-auto h-full flex flex-col">
               {finalResult ? (
-                <div className="neo-box bg-white border-neo-green shadow-neo-lg flex flex-col h-full">
-                  <div className="p-4 bg-neo-green border-b-2 border-neo-black flex items-center justify-between">
+                <div
+                  className={cn(
+                    "neo-box shadow-neo-lg flex flex-col h-full",
+                    finalResult.mode === "direct"
+                      ? "border-neo-yellow"
+                      : "border-neo-green",
+                  )}
+                >
+                  <div
+                    className={cn(
+                      "p-4 border-b-2 border-neo-black flex items-center justify-between",
+                      finalResult.mode === "direct"
+                        ? "bg-neo-yellow"
+                        : "bg-neo-green",
+                    )}
+                  >
                     <div className="flex items-center gap-2">
                       <Crown className="h-5 w-5 text-black" />
-                      <span className="font-black uppercase text-black">Final Synthesis</span>
+                      <span className="font-black uppercase text-black">
+                        {finalResult.mode === "direct"
+                          ? t("councilBestAnswer")
+                          : t("councilFinalSynthesis")}
+                      </span>
                     </div>
-                    <Badge variant="outline" className="bg-white text-black border-neo-black">
-                      Chair: {finalResult.model}
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                      {finalResult.mode === "direct" && (
+                        <Badge className="bg-neo-black text-neo-white border-none text-[10px]">
+                          {t("councilDirectMode")}
+                        </Badge>
+                      )}
+                      <Badge
+                        variant="outline"
+                        className="bg-neo-white text-foreground border-neo-black"
+                      >
+                        {finalResult.mode === "direct"
+                          ? t("councilWinner")
+                          : t("councilChair")}
+                        : {finalResult.model}
+                      </Badge>
+                    </div>
                   </div>
-                  <div className="p-8 prose prose-lg max-w-none flex-1 overflow-y-auto">
+                  <div className="p-8 prose prose-lg dark:prose-invert max-w-none flex-1 overflow-y-auto">
                     <StreamdownRenderer content={finalResult.content} />
                   </div>
                 </div>
               ) : (
                 <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground opacity-50">
                   <FileText className="h-16 w-16 mb-4" />
-                  <p className="text-lg font-bold uppercase">Synthesis not started</p>
+                  <p className="text-lg font-bold uppercase">
+                    {t("councilSynthesisNotStarted")}
+                  </p>
                 </div>
               )}
             </div>
@@ -684,18 +879,22 @@ function TabButton({ active, onClick, icon, label, count, loading }: any) {
       onClick={onClick}
       className={cn(
         "flex items-center gap-2 px-4 py-3 font-bold uppercase text-sm border-t-2 border-x-2 rounded-t-lg transition-all relative top-[2px]",
-        active 
-          ? "bg-neo-white border-neo-black text-black z-10" 
-          : "bg-gray-100 border-transparent text-muted-foreground hover:bg-gray-200"
+        active
+          ? "bg-neo-bg border-neo-black text-foreground z-10"
+          : "bg-muted border-transparent text-muted-foreground hover:bg-muted/80",
       )}
     >
       {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : icon}
       {label}
       {count !== undefined && (
-        <span className={cn(
-          "ml-1 text-xs px-1.5 py-0.5 rounded-full",
-          active ? "bg-neo-black text-white" : "bg-gray-300 text-gray-600"
-        )}>
+        <span
+          className={cn(
+            "ml-1 text-xs px-1.5 py-0.5 rounded-full",
+            active
+              ? "bg-neo-black text-neo-white"
+              : "bg-muted-foreground/20 text-muted-foreground",
+          )}
+        >
           {count}
         </span>
       )}
@@ -703,7 +902,15 @@ function TabButton({ active, onClick, icon, label, count, loading }: any) {
   );
 }
 
-function ScoreItem({ labelKey, item, expanded = false }: { labelKey: string; item: ScoredCriteria | number; expanded?: boolean }) {
+function ScoreItem({
+  labelKey,
+  item,
+  expanded = false,
+}: {
+  labelKey: string;
+  item: ScoredCriteria | number;
+  expanded?: boolean;
+}) {
   const { t } = useI18n();
   const [isExpanded, setIsExpanded] = useState(expanded);
 
@@ -711,20 +918,21 @@ function ScoreItem({ labelKey, item, expanded = false }: { labelKey: string; ite
   const score = typeof item === "number" ? item : (item?.score ?? 0);
   const reason = typeof item === "object" ? (item?.reason ?? "") : "";
 
-  // Color based on score (1-5 scale)
+  // Color based on score (1-5 scale) - works in both light and dark mode
   const getScoreColor = (s: number) => {
-    if (s >= 4) return "bg-green-100 text-green-700";
-    if (s >= 3) return "bg-yellow-100 text-yellow-700";
-    if (s >= 1) return "bg-red-100 text-red-600";
-    return "bg-gray-100 text-gray-500";
+    if (s >= 4) return "bg-neo-green/20 text-neo-green dark:text-neo-green";
+    if (s >= 3) return "bg-neo-yellow/20 text-neo-yellow dark:text-neo-yellow";
+    if (s >= 1) return "bg-neo-red/20 text-neo-red dark:text-neo-red";
+    return "bg-muted text-muted-foreground";
   };
 
   return (
     <div
       className={cn(
-        "flex flex-col p-2 bg-white/50 rounded border border-neo-black/5 transition-all",
-        reason && "cursor-pointer hover:bg-white/80",
-        isExpanded ? "min-h-[80px]" : "min-h-[60px]"
+        "flex flex-col p-2 bg-neo-white/50 dark:bg-neo-white/10 rounded border border-neo-black/5 transition-all",
+        reason &&
+          "cursor-pointer hover:bg-neo-white/80 dark:hover:bg-neo-white/20",
+        isExpanded ? "min-h-[80px]" : "min-h-[60px]",
       )}
       onClick={() => reason && setIsExpanded(!isExpanded)}
     >
@@ -732,16 +940,22 @@ function ScoreItem({ labelKey, item, expanded = false }: { labelKey: string; ite
         <span className="text-[10px] uppercase text-muted-foreground font-bold flex items-center gap-1">
           {t(labelKey as any) || labelKey}
           {reason && (
-            <span className="text-[8px] opacity-50">{isExpanded ? "▼" : "▶"}</span>
+            <span className="text-[8px] opacity-50">
+              {isExpanded ? "▼" : "▶"}
+            </span>
           )}
         </span>
-        <span className={`font-black text-lg px-1.5 rounded ${getScoreColor(score)}`}>{score}</span>
+        <span
+          className={`font-black text-lg px-1.5 rounded ${getScoreColor(score)}`}
+        >
+          {score}
+        </span>
       </div>
       {reason && (
         <p
           className={cn(
             "text-[10px] text-muted-foreground leading-tight transition-all",
-            isExpanded ? "" : "line-clamp-2"
+            isExpanded ? "" : "line-clamp-2",
           )}
           title={reason}
         >

@@ -1,5 +1,6 @@
 import { ModelRouter } from "@/services/prompt/router.ts";
 import type { PromptRequest } from "@/services/prompt/types.ts";
+import { logger } from "@/utils/logger.ts";
 
 const LABELS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 const RUBRIC_KEYS = ["accuracy", "completeness", "clarity", "utility"] as const;
@@ -55,6 +56,7 @@ export interface CouncilResult {
   final?: {
     model: string;
     content: string;
+    mode: Stage3Mode;
   };
   metadata: {
     rubric: RubricKey[];
@@ -73,17 +75,26 @@ export interface CouncilRequest {
   temperature?: number;
 }
 
+export type Stage3Mode = "direct" | "synthesize";
+
 export type CouncilProgressEvent =
   | { type: "stage1-start"; models: string[] }
   | { type: "stage1-answer"; response: CandidateResponse }
   | { type: "stage1-complete"; responses: CandidateResponse[] }
   | { type: "stage2-start"; judges: string[] }
   | { type: "stage2-review"; result: JudgeResult }
-  | { type: "stage2-complete"; results: JudgeResult[]; aggregates: AggregateScore[] }
-  | { type: "stage3-start"; model: string }
-  | { type: "stage3-complete"; content: string }
+  | {
+      type: "stage2-complete";
+      results: JudgeResult[];
+      aggregates: AggregateScore[];
+    }
+  | { type: "stage3-start"; model: string; mode: Stage3Mode }
+  | { type: "stage3-complete"; content: string; mode: Stage3Mode }
   | { type: "complete"; result: CouncilResult }
   | { type: "error"; error: string };
+
+// Threshold for score gap to skip synthesis (0.5 on 1-5 scale)
+const SYNTHESIS_THRESHOLD = 0.5;
 
 export async function runCouncil(
   router: ModelRouter,
@@ -100,7 +111,12 @@ export async function runCouncil(
 
   // Stage 1
   onProgress?.({ type: "stage1-start", models });
-  const stage1 = await collectResponses(router, req.question, models, onProgress);
+  const stage1 = await collectResponses(
+    router,
+    req.question,
+    models,
+    onProgress,
+  );
   if (stage1.length === 0) {
     throw new Error("No models returned a response. Check configuration.");
   }
@@ -111,7 +127,12 @@ export async function runCouncil(
   onProgress?.({ type: "stage2-start", judges });
   const stage2: JudgeResult[] = [];
   for (const judge of judges) {
-    const results = await evaluateResponses(router, req.question, judge, stage1);
+    const results = await evaluateResponses(
+      router,
+      req.question,
+      judge,
+      stage1,
+    );
     if (results) {
       stage2.push(results);
       onProgress?.({ type: "stage2-review", result: results });
@@ -120,26 +141,69 @@ export async function runCouncil(
   const aggregates = aggregateScores(stage1, stage2);
   onProgress?.({ type: "stage2-complete", results: stage2, aggregates });
 
-  // Stage 3
+  // Stage 3 - Smart selection: synthesize only when scores are close
+  const scoreGap =
+    aggregates.length >= 2 ? aggregates[0].average - aggregates[1].average : 0;
+
+  // Synthesize if: user specified finalModel, only one candidate, or scores are close
+  const shouldSynthesize =
+    !!req.finalModel || aggregates.length < 2 || scoreGap < SYNTHESIS_THRESHOLD;
+
   const finalModel =
     req.finalModel || aggregates[0]?.model || judges[0] || models[0];
-  
-  console.log("Final Model Selection:", {
-    reqFinal: req.finalModel,
-    agg0: aggregates[0],
-    judges0: judges[0],
-    models0: models[0],
-    selected: finalModel
+
+  logger.debug("Stage 3 Decision", {
+    scoreGap: scoreGap.toFixed(2),
+    threshold: SYNTHESIS_THRESHOLD,
+    shouldSynthesize,
+    userSpecifiedFinal: !!req.finalModel,
+    selectedModel: finalModel,
   });
-  
-  onProgress?.({ type: "stage3-start", model: finalModel });
-  const final =
-    aggregates.length > 0 && finalModel
-      ? await synthesize(router, req.question, finalModel, stage1, aggregates)
-      : undefined;
-  
-  if (final) {
-    onProgress?.({ type: "stage3-complete", content: final.content });
+
+  let final: { model: string; content: string; mode: Stage3Mode } | undefined;
+
+  if (aggregates.length > 0 && finalModel) {
+    if (shouldSynthesize) {
+      // Scores are close or user specified - synthesize
+      onProgress?.({
+        type: "stage3-start",
+        model: finalModel,
+        mode: "synthesize",
+      });
+      const synthesized = await synthesize(
+        router,
+        req.question,
+        finalModel,
+        stage1,
+        aggregates,
+      );
+      final = { ...synthesized, mode: "synthesize" };
+      onProgress?.({
+        type: "stage3-complete",
+        content: final.content,
+        mode: "synthesize",
+      });
+    } else {
+      // Clear winner - use best answer directly
+      const bestResponse = stage1.find((r) => r.model === aggregates[0].model);
+      if (bestResponse) {
+        onProgress?.({
+          type: "stage3-start",
+          model: aggregates[0].model,
+          mode: "direct",
+        });
+        final = {
+          model: aggregates[0].model,
+          content: bestResponse.content,
+          mode: "direct",
+        };
+        onProgress?.({
+          type: "stage3-complete",
+          content: final.content,
+          mode: "direct",
+        });
+      }
+    }
   }
 
   const result: CouncilResult = {
@@ -167,40 +231,42 @@ async function collectResponses(
   models: string[],
   onProgress?: (event: CouncilProgressEvent) => void,
 ): Promise<CandidateResponse[]> {
-  const requests = models.map(async (model, idx): Promise<CandidateResponse> => {
-    const label = formatLabel(idx);
-    try {
-      const res = await router.execute({
-        model,
-        messages: [
-          {
-            role: "system",
-            content:
-              "Answer the user's question directly. Do not mention your model name or speculate about other responders.",
-          },
-          { role: "user", content: question },
-        ],
-      });
-      const response: CandidateResponse = {
-        label,
-        model,
-        content: res.content.trim(),
-      };
-      
-      onProgress?.({ type: "stage1-answer", response });
-      return response;
-    } catch (error) {
-      const response: CandidateResponse = {
-        label,
-        model,
-        content: "",
-        error: (error as Error).message,
-      };
-      
-      onProgress?.({ type: "stage1-answer", response });
-      return response;
-    }
-  });
+  const requests = models.map(
+    async (model, idx): Promise<CandidateResponse> => {
+      const label = formatLabel(idx);
+      try {
+        const res = await router.execute({
+          model,
+          messages: [
+            {
+              role: "system",
+              content:
+                "Answer the user's question directly. Do not mention your model name or speculate about other responders.",
+            },
+            { role: "user", content: question },
+          ],
+        });
+        const response: CandidateResponse = {
+          label,
+          model,
+          content: res.content.trim(),
+        };
+
+        onProgress?.({ type: "stage1-answer", response });
+        return response;
+      } catch (error) {
+        const response: CandidateResponse = {
+          label,
+          model,
+          content: "",
+          error: (error as Error).message,
+        };
+
+        onProgress?.({ type: "stage1-answer", response });
+        return response;
+      }
+    },
+  );
 
   const results = await Promise.all(requests);
   return results;
@@ -212,7 +278,9 @@ async function evaluateResponses(
   judgeModel: string,
   candidates: CandidateResponse[],
 ): Promise<JudgeResult | null> {
-  const visible = candidates.filter((c) => c.model !== judgeModel && !c.error && c.content.length > 0);
+  const visible = candidates.filter(
+    (c) => c.model !== judgeModel && !c.error && c.content.length > 0,
+  );
   if (visible.length === 0) return null;
 
   const prompt = buildJudgePrompt(question, visible);
@@ -259,10 +327,7 @@ async function synthesize(
 
 function buildJudgePrompt(question: string, candidates: CandidateResponse[]) {
   const responsesText = candidates
-    .map(
-      (c) =>
-        `${c.label}:\n${c.content}\n\n`,
-    )
+    .map((c) => `${c.label}:\n${c.content}\n\n`)
     .join("\n");
 
   return `You are scoring anonymous answers to the same question.
@@ -393,21 +458,42 @@ function parseJudgeResponse(text: string): {
   return { evaluations, ranking };
 }
 
-function extractJson(text: string): any | null {
+type JudgeJson = {
+  evaluations?: unknown;
+  ranking?: unknown;
+};
+
+function extractJson(text: string): JudgeJson | null {
   const match = text.match(/\{[\s\S]*\}/);
   if (!match) return null;
   try {
-    return JSON.parse(match[0]);
+    return JSON.parse(match[0]) as JudgeJson;
   } catch {
     return null;
   }
+}
+
+// Normalize label to match "Response X" format
+// Handles: "A", "Response A", "response a", " A ", etc.
+function normalizeLabel(label: string): string {
+  const trimmed = label.trim();
+  // If already has "Response " prefix (case-insensitive), normalize it
+  const match = trimmed.match(/^response\s+(.+)$/i);
+  if (match) {
+    return `Response ${match[1].toUpperCase()}`;
+  }
+  // Otherwise, assume it's just the letter/identifier
+  return `Response ${trimmed.toUpperCase()}`;
 }
 
 function aggregateScores(
   candidates: CandidateResponse[],
   judgeResults: JudgeResult[],
 ): AggregateScore[] {
-  const totals = new Map<string, { model: string; scores: number[]; rankScore: number }>();
+  const totals = new Map<
+    string,
+    { model: string; scores: number[]; rankScore: number }
+  >();
 
   candidates.forEach((c) => {
     totals.set(c.label, { model: c.model, scores: [], rankScore: 0 });
@@ -415,14 +501,18 @@ function aggregateScores(
 
   for (const jr of judgeResults) {
     jr.evaluations.forEach((ev) => {
-      const bucket = totals.get(ev.label);
+      // Normalize the label to handle both "A" and "Response A" formats
+      const normalizedLabel = normalizeLabel(ev.label);
+      const bucket = totals.get(normalizedLabel);
       if (bucket) {
         bucket.scores.push(ev.scores.total / RUBRIC_KEYS.length);
       }
     });
 
     jr.ranking.forEach((label, idx) => {
-      const bucket = totals.get(label);
+      // Normalize ranking labels as well
+      const normalizedLabel = normalizeLabel(label);
+      const bucket = totals.get(normalizedLabel);
       if (bucket) {
         bucket.rankScore += candidates.length - idx;
       }
@@ -446,7 +536,7 @@ function aggregateScores(
   }
 
   const sorted = aggregates.sort((a, b) => b.average - a.average);
-  console.log("Sorted Aggregates:", JSON.stringify(sorted, null, 2));
+  logger.debug("Sorted aggregates", sorted);
   return sorted;
 }
 
@@ -457,12 +547,4 @@ function dedupe(list: string[]): string[] {
 function formatLabel(idx: number): string {
   const letter = LABELS[idx] ?? `#${idx + 1}`;
   return `Response ${letter}`;
-}
-
-function isScoreShape(input: unknown): input is Omit<JudgeScore, "total"> {
-  if (!input || typeof input !== "object") return false;
-  const record = input as Record<string, unknown>;
-  return RUBRIC_KEYS.every(
-    (k) => typeof record[k] === "number" && Number.isFinite(record[k]),
-  );
 }

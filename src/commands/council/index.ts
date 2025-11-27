@@ -122,7 +122,9 @@ export default class CouncilCommand extends Command {
     }
 
     if (result.final) {
-      this.log(`\nFinal (${result.final.model}):\n${indent(result.final.content)}`);
+      this.log(
+        `\nFinal (${result.final.model}):\n${indent(result.final.content)}`,
+      );
     }
   }
 

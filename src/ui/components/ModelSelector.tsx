@@ -31,7 +31,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
       <label className="block text-sm font-bold uppercase text-foreground">
         {t("participants")} ({selectedModels.length})
       </label>
-      <div className="max-h-48 overflow-y-auto neo-box-sm p-2 bg-neo-white">
+      <div className="max-h-48 overflow-y-auto neo-box-sm p-2">
         {availableModels.map((model) => (
           <label
             key={model}
@@ -42,7 +42,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
           >
             <input
               type="checkbox"
-              className="w-4 h-4 rounded-none border-2 border-neo-black text-neo-black focus:ring-0 checked:bg-neo-black"
+              className="w-4 h-4 rounded-none border-2 border-neo-black focus:ring-0 accent-neo-yellow"
               checked={selectedModels.includes(model)}
               onChange={() => !disabled && toggleModel(model)}
               disabled={disabled}

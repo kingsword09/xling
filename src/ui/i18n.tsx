@@ -6,7 +6,8 @@ type Messages = Record<Locale, Record<string, string>>;
 const messages: Messages = {
   en: {
     councilMode: "Council Mode",
-    councilSubtitle: "Ask multiple models, let them judge peers, pick the best.",
+    councilSubtitle:
+      "Ask multiple models, let them judge peers, pick the best.",
     councilSteps:
       "Stage 1: collect answers · Stage 2: anonymous scoring · Stage 3: chair synthesis. Judges default to responders.",
     councilRun: "Run council",
@@ -89,11 +90,18 @@ const messages: Messages = {
     completeness: "Completeness",
     clarity: "Clarity",
     utility: "Utility",
+    noModelsFound: "No models found",
+    councilBestAnswer: "Best Answer",
+    councilFinalSynthesis: "Final Synthesis",
+    councilDirectMode: "Direct",
+    councilWinner: "Winner",
+    councilSynthesisNotStarted: "Synthesis not started",
   },
   zh: {
     councilMode: "评议模式",
     councilSubtitle: "同题多模，匿名互评，选优再综合。",
-    councilSteps: "阶段1：收集回答 · 阶段2：匿名打分 · 阶段3：主席综合。默认评委即回答模型。",
+    councilSteps:
+      "阶段1：收集回答 · 阶段2：匿名打分 · 阶段3：主席综合。默认评委即回答模型。",
     councilRun: "开始评议",
     councilRunning: "运行中...",
     councilQuestion: "问题",
@@ -173,6 +181,12 @@ const messages: Messages = {
     completeness: "完整性",
     clarity: "清晰度",
     utility: "实用性",
+    noModelsFound: "未找到模型",
+    councilBestAnswer: "最佳答案",
+    councilFinalSynthesis: "综合答案",
+    councilDirectMode: "直选",
+    councilWinner: "胜出",
+    councilSynthesisNotStarted: "综合尚未开始",
   },
 };
 
