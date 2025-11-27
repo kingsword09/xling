@@ -11,6 +11,7 @@ import type {
   SettingsListData,
   SettingsResult,
   ConfigObject,
+  ConfigValue,
   EditOptions,
 } from "@/domain/types.ts";
 import { BaseAdapter } from "./base.ts";
@@ -19,6 +20,9 @@ import { InvalidScopeError, ConfigParseError } from "@/utils/errors.ts";
 import {
   type XlingConfig,
   type ProviderConfig,
+  type PlatformPipeline,
+  type PlatformShell,
+  type PipelineStep,
   validateXlingConfig,
 } from "@/domain/xling/config.ts";
 import { DEFAULT_XLING_CONFIG } from "@/domain/xling/template.ts";
@@ -186,22 +190,109 @@ export class XlingAdapter extends BaseAdapter<XlingConfig> {
     const configPath = this.resolvePath(scope);
     const config = this.readConfig(configPath);
 
+    const serializeShell = (shell?: string | PlatformShell): ConfigValue => {
+      if (!shell) return null;
+      if (typeof shell === "string") return shell;
+
+      return {
+        win32: shell.win32 ?? null,
+        darwin: shell.darwin ?? null,
+        linux: shell.linux ?? null,
+        default: shell.default,
+      } satisfies ConfigObject;
+    };
+
+    const serializePipelineStep = (step: PipelineStep): ConfigObject => ({
+      command:
+        typeof step.command === "string"
+          ? step.command
+          : {
+              win32: step.command.win32 ?? null,
+              darwin: step.command.darwin ?? null,
+              linux: step.command.linux ?? null,
+              default: step.command.default,
+            },
+      args: Array.isArray(step.args)
+        ? step.args
+        : step.args
+          ? {
+              win32: step.args.win32 ?? null,
+              darwin: step.args.darwin ?? null,
+              linux: step.args.linux ?? null,
+              default: step.args.default,
+            }
+          : null,
+    });
+
+    const serializePipeline = (
+      pipeline?: PipelineStep[] | PlatformPipeline,
+    ): ConfigValue => {
+      if (!pipeline) return null;
+      if (Array.isArray(pipeline)) {
+        return pipeline.map((step) =>
+          serializePipelineStep(step),
+        ) as ConfigValue;
+      }
+
+      return {
+        win32: pipeline.win32?.map(serializePipelineStep) ?? null,
+        darwin: pipeline.darwin?.map(serializePipelineStep) ?? null,
+        linux: pipeline.linux?.map(serializePipelineStep) ?? null,
+        default: pipeline.default?.map(serializePipelineStep) ?? [],
+      } satisfies ConfigObject;
+    };
+
     // Convert to ConfigObject format
     const entries: ConfigObject = {
-      prompt: {
-        defaultModel: config.prompt.defaultModel || null,
-        retryPolicy: config.prompt.retryPolicy || null,
-        providers: config.prompt.providers.map((p: ProviderConfig) => ({
+      defaultModel: config.defaultModel || null,
+      retryPolicy: config.retryPolicy
+        ? {
+            maxRetries: config.retryPolicy.maxRetries ?? null,
+            backoffMs: config.retryPolicy.backoffMs ?? null,
+          }
+        : null,
+      providers: config.providers.map(
+        (p: ProviderConfig): ConfigObject => ({
           name: p.name,
           baseUrl: p.baseUrl,
           models: p.models,
           priority: p.priority ?? null,
           timeout: p.timeout ?? null,
-          // Mask API key for security
-          apiKey: this.#maskApiKey(p.apiKey),
-        })),
-      },
-      shortcuts: config.shortcuts || null,
+          apiKey: p.apiKey ? this.#maskApiKey(p.apiKey) : null,
+          apiKeys: p.apiKeys ? p.apiKeys.map((k) => this.#maskApiKey(k)) : null,
+        }),
+      ),
+      proxy: config.proxy
+        ? {
+            enabled: config.proxy.enabled ?? null,
+            port: config.proxy.port ?? null,
+            host: config.proxy.host ?? null,
+            accessKey: config.proxy.accessKey ?? null,
+            loadBalance: config.proxy.loadBalance ?? null,
+            modelMapping: config.proxy.modelMapping ?? null,
+            keyRotation: config.proxy.keyRotation
+              ? {
+                  enabled: config.proxy.keyRotation.enabled ?? null,
+                  onError: config.proxy.keyRotation.onError ?? null,
+                  cooldownMs: config.proxy.keyRotation.cooldownMs ?? null,
+                }
+              : null,
+          }
+        : null,
+      shortcuts: config.shortcuts
+        ? Object.fromEntries(
+            Object.entries(config.shortcuts).map(([name, shortcut]) => [
+              name,
+              {
+                command: shortcut.command ?? null,
+                args: shortcut.args ?? null,
+                shell: serializeShell(shortcut.shell),
+                pipeline: serializePipeline(shortcut.pipeline),
+                description: shortcut.description ?? null,
+              } satisfies ConfigObject,
+            ]),
+          )
+        : null,
     };
 
     return {
@@ -238,9 +329,7 @@ export class XlingAdapter extends BaseAdapter<XlingConfig> {
 
     // Check for duplicate name
     if (
-      config.prompt.providers.some(
-        (p: ProviderConfig) => p.name === provider.name,
-      )
+      config.providers.some((p: ProviderConfig) => p.name === provider.name)
     ) {
       return {
         success: false,
@@ -249,7 +338,7 @@ export class XlingAdapter extends BaseAdapter<XlingConfig> {
       };
     }
 
-    config.prompt.providers.push(provider);
+    config.providers.push(provider);
     this.writeConfig(configPath, config);
 
     return {
@@ -266,7 +355,7 @@ export class XlingAdapter extends BaseAdapter<XlingConfig> {
     const configPath = this.resolvePath(scope);
     const config = this.readConfig(configPath);
 
-    const index = config.prompt.providers.findIndex(
+    const index = config.providers.findIndex(
       (p: ProviderConfig) => p.name === name,
     );
     if (index === -1) {
@@ -277,7 +366,7 @@ export class XlingAdapter extends BaseAdapter<XlingConfig> {
       };
     }
 
-    if (config.prompt.providers.length === 1) {
+    if (config.providers.length === 1) {
       return {
         success: false,
         message:
@@ -286,7 +375,7 @@ export class XlingAdapter extends BaseAdapter<XlingConfig> {
       };
     }
 
-    config.prompt.providers.splice(index, 1);
+    config.providers.splice(index, 1);
     this.writeConfig(configPath, config);
 
     return {
@@ -307,7 +396,7 @@ export class XlingAdapter extends BaseAdapter<XlingConfig> {
     const configPath = this.resolvePath(scope);
     const config = this.readConfig(configPath);
 
-    const provider = config.prompt.providers.find(
+    const provider = config.providers.find(
       (p: ProviderConfig) => p.name === name,
     );
     if (!provider) {
@@ -337,7 +426,7 @@ export class XlingAdapter extends BaseAdapter<XlingConfig> {
     const configPath = this.resolvePath(scope);
     const config = this.readConfig(configPath);
 
-    config.prompt.defaultModel = model;
+    config.defaultModel = model;
     this.writeConfig(configPath, config);
 
     return {

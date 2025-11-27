@@ -93,6 +93,12 @@ Filesystem routing maps files such as `src/commands/settings/list.ts` to `xling 
 bun run build             # Compile via tsdown
 bun run dev               # tsdown --watch
 
+# Proxy server (OpenAI-compatible API gateway)
+./dist/run.js proxy                           # Start on default port 4320
+./dist/run.js proxy --port 8080               # Custom port
+./dist/run.js proxy --access-key my-key       # With access protection
+./dist/run.js proxy --host 0.0.0.0            # Bind to all interfaces
+
 # Quality
 bun run lint              # oxlint
 bun run lint:fix          # oxlint auto-fix
