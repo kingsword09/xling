@@ -50,9 +50,9 @@ export class ProviderRegistry {
 
   constructor(config: XlingConfig) {
     this.#providers = this.#sortByPriority(
-      mergeWithBuiltinProviders(config.prompt.providers),
+      mergeWithBuiltinProviders(config.providers),
     );
-    this.#defaultModel = config.prompt.defaultModel;
+    this.#defaultModel = config.defaultModel;
     this.#modelIndex = this.#buildModelIndex();
   }
 
@@ -153,9 +153,9 @@ export class ProviderRegistry {
     const config = adapter.readConfig(adapter.resolvePath("user"));
 
     this.#providers = this.#sortByPriority(
-      mergeWithBuiltinProviders(config.prompt.providers),
+      mergeWithBuiltinProviders(config.providers),
     );
-    this.#defaultModel = config.prompt.defaultModel;
+    this.#defaultModel = config.defaultModel;
     this.#modelIndex = this.#buildModelIndex();
   }
 

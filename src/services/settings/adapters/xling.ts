@@ -188,19 +188,19 @@ export class XlingAdapter extends BaseAdapter<XlingConfig> {
 
     // Convert to ConfigObject format
     const entries: ConfigObject = {
-      prompt: {
-        defaultModel: config.prompt.defaultModel || null,
-        retryPolicy: config.prompt.retryPolicy || null,
-        providers: config.prompt.providers.map((p: ProviderConfig) => ({
-          name: p.name,
-          baseUrl: p.baseUrl,
-          models: p.models,
-          priority: p.priority ?? null,
-          timeout: p.timeout ?? null,
-          // Mask API key for security
-          apiKey: this.#maskApiKey(p.apiKey),
-        })),
-      },
+      defaultModel: config.defaultModel || null,
+      retryPolicy: config.retryPolicy || null,
+      providers: config.providers.map((p: ProviderConfig) => ({
+        name: p.name,
+        baseUrl: p.baseUrl,
+        models: p.models,
+        priority: p.priority ?? null,
+        timeout: p.timeout ?? null,
+        // Mask API key for security
+        apiKey: p.apiKey ? this.#maskApiKey(p.apiKey) : null,
+        apiKeys: p.apiKeys ? p.apiKeys.map((k) => this.#maskApiKey(k)) : null,
+      })),
+      proxy: config.proxy || null,
       shortcuts: config.shortcuts || null,
     };
 
@@ -238,7 +238,7 @@ export class XlingAdapter extends BaseAdapter<XlingConfig> {
 
     // Check for duplicate name
     if (
-      config.prompt.providers.some(
+      config.providers.some(
         (p: ProviderConfig) => p.name === provider.name,
       )
     ) {
@@ -249,7 +249,7 @@ export class XlingAdapter extends BaseAdapter<XlingConfig> {
       };
     }
 
-    config.prompt.providers.push(provider);
+    config.providers.push(provider);
     this.writeConfig(configPath, config);
 
     return {
@@ -266,7 +266,7 @@ export class XlingAdapter extends BaseAdapter<XlingConfig> {
     const configPath = this.resolvePath(scope);
     const config = this.readConfig(configPath);
 
-    const index = config.prompt.providers.findIndex(
+    const index = config.providers.findIndex(
       (p: ProviderConfig) => p.name === name,
     );
     if (index === -1) {
@@ -277,7 +277,7 @@ export class XlingAdapter extends BaseAdapter<XlingConfig> {
       };
     }
 
-    if (config.prompt.providers.length === 1) {
+    if (config.providers.length === 1) {
       return {
         success: false,
         message:
@@ -286,7 +286,7 @@ export class XlingAdapter extends BaseAdapter<XlingConfig> {
       };
     }
 
-    config.prompt.providers.splice(index, 1);
+    config.providers.splice(index, 1);
     this.writeConfig(configPath, config);
 
     return {
@@ -307,7 +307,7 @@ export class XlingAdapter extends BaseAdapter<XlingConfig> {
     const configPath = this.resolvePath(scope);
     const config = this.readConfig(configPath);
 
-    const provider = config.prompt.providers.find(
+    const provider = config.providers.find(
       (p: ProviderConfig) => p.name === name,
     );
     if (!provider) {
@@ -337,7 +337,7 @@ export class XlingAdapter extends BaseAdapter<XlingConfig> {
     const configPath = this.resolvePath(scope);
     const config = this.readConfig(configPath);
 
-    config.prompt.defaultModel = model;
+    config.defaultModel = model;
     this.writeConfig(configPath, config);
 
     return {
