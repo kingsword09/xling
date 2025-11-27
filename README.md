@@ -27,6 +27,7 @@ Together, `xling` is more than just a tool; it's an intelligent partner that amp
 - **Unified Interface**: Launch AI CLIs, route prompts, and manage settings with one tool
 - **Prompt Router**: `xling p` fan-outs requests across providers with fallback and streaming support
 - **Multi-Model Roundtable**: `xling discuss` runs multi-agent debates via CLI or Web UI
+- **React 19 Web UI**: `discuss --ui` serves a Vite-built React 19 + Tailwind 4 interface on port 3000
 - **Quick Launcher**: Just type `xling x` to start Claude Code instantly with yolo mode
 - **Command Shortcuts**: Define custom aliases for frequently used commands with `sx`
 - **Multiple Scopes**: Support for user, project, local, and system-level configurations
@@ -75,6 +76,12 @@ place.
 - `git:prc|prr|prv`: Create, checkout, and view GitHub pull requests with automatic gh/git fallbacks.
 - `git:wta|wtl|wtp|wtr|wts`: Manage git worktrees (add/list/prune/remove/switch) with guard rails and subshell support.
 - `version`: Print the installed xling version.
+
+### Web UI (React 19)
+
+- `discuss --ui` serves a React 19 + React DOM 19 interface built with Vite 7 and Tailwind CSS 4 from `dist/ui` (port 3000 by default).
+- Build the bundle with `bun run build` (runs `build:ui`) or `bun run build:ui` after frontend changes so the CLI can find `dist/ui`.
+- For live UI development, run `bunx vite dev --config vite.config.ts --host --port 3000` from the repo root; keep the port aligned with the discuss server default.
 
 ### Command Documentation (inline excerpt)
 
