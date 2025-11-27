@@ -116,6 +116,8 @@ export interface ProxyConfig {
   accessKey?: string;
   loadBalance?: LoadBalanceStrategy;
   modelMapping?: Record<string, string>;
+  /** Models that natively support Responses API - skip conversion for these */
+  passthroughResponsesAPI?: string[];
   keyRotation?: {
     enabled?: boolean;
     onError?: boolean;
@@ -146,6 +148,12 @@ export const ProxyConfigSchema: z.ZodType<ProxyConfig> = z.object({
     .record(z.string(), z.string())
     .optional()
     .describe("Map client model names to actual models (proxy only)"),
+  passthroughResponsesAPI: z
+    .array(z.string())
+    .optional()
+    .describe(
+      "Models that natively support Responses API - skip conversion (e.g., gpt-5.1-codex-max)",
+    ),
   keyRotation: z
     .object({
       enabled: z.boolean().default(true),
