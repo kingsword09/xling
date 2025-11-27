@@ -26,7 +26,8 @@ export default class SettingsAuth extends Command {
     },
     {
       description: "Save current auth as a named profile",
-      command: "<%= config.bin %> <%= command.id %> --save personal --tool codex",
+      command:
+        "<%= config.bin %> <%= command.id %> --save personal --tool codex",
     },
     {
       description: "Overwrite an existing profile",
@@ -77,15 +78,19 @@ export default class SettingsAuth extends Command {
     }
 
     const adapter = new CodexAdapter();
+    const force = Boolean(flags.force);
+    const json = Boolean(flags.json);
+    const saveName = flags.save;
+    const deleteName = flags.delete;
 
     // Determine action based on flags
-    if (flags.save) {
-      await this.#handleSave(adapter, flags.save, flags);
-    } else if (flags.delete) {
-      await this.#handleDelete(adapter, flags.delete, flags);
+    if (saveName) {
+      await this.#handleSave(adapter, saveName, { force, json });
+    } else if (deleteName) {
+      await this.#handleDelete(adapter, deleteName, { json });
     } else {
       // Default: list profiles
-      await this.#handleList(adapter, flags);
+      await this.#handleList(adapter, { json });
     }
   }
 

@@ -134,7 +134,6 @@ export default class SettingsSwitch extends Command {
     }
   }
 
-
   async #handleClaudeSwitch(
     dispatcher: SettingsDispatcher,
     profile: string,

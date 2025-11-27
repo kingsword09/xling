@@ -18,8 +18,6 @@ import * as fsStore from "@/services/settings/fsStore.ts";
 const AUTH_PROFILES_DIR = "~/.codex/auth-profiles";
 /** Auth file path */
 const AUTH_FILE_PATH = "~/.codex/auth.json";
-/** Auth backup file path */
-const AUTH_BACKUP_PATH = "~/.codex/auth.json.bak";
 
 /**
  * Resolves ~/.codex/config.toml (user scope) and supports profile switching
