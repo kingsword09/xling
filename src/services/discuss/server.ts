@@ -4,6 +4,7 @@ import * as path from "node:path";
 import { DiscussionEngine, DiscussionConfig } from "./engine.ts";
 import { createRouter } from "@/services/prompt/router.ts";
 import type { ModelRouter } from "@/services/prompt/router.ts";
+import { runCouncil } from "@/services/council/runner.ts";
 
 interface Session {
   id: string;
@@ -141,6 +142,101 @@ export async function createDiscussServer(
       const models = router.getRegistry().getAllModels();
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ models }));
+      return;
+    }
+
+    // Council run (collect -> judge -> synthesize)
+    if (url.pathname === "/api/council/run" && req.method === "POST") {
+      const body = await readBody(req);
+      const question = typeof body.question === "string" ? body.question : "";
+      const models = Array.isArray(body.models)
+        ? body.models.filter((m: unknown) => typeof m === "string")
+        : [];
+      const judges = Array.isArray(body.judges)
+        ? body.judges.filter((m: unknown) => typeof m === "string")
+        : undefined;
+      const finalModel =
+        typeof body.finalModel === "string" ? body.finalModel : undefined;
+
+      if (!question || models.length < 2) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        res.end(
+          JSON.stringify({
+            error: "Provide question and at least two models.",
+          }),
+        );
+        return;
+      }
+
+      try {
+        const result = await runCouncil(router, {
+          question,
+          models,
+          judgeModels: judges,
+          finalModel,
+        });
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify(result));
+      } catch (error) {
+        res.writeHead(500, { "Content-Type": "application/json" });
+        res.end(
+          JSON.stringify({
+            error: (error as Error).message,
+          }),
+        );
+      }
+      return;
+    }
+
+    // Council Stream
+    if (url.pathname === "/api/council/stream" && req.method === "POST") {
+      const body = await readBody(req);
+      const question = typeof body.question === "string" ? body.question : "";
+      const models = Array.isArray(body.models)
+        ? body.models.filter((m: unknown) => typeof m === "string")
+        : [];
+      const judges = Array.isArray(body.judges)
+        ? body.judges.filter((m: unknown) => typeof m === "string")
+        : undefined;
+      const finalModel =
+        typeof body.finalModel === "string" ? body.finalModel : undefined;
+
+      if (!question || models.length < 2) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        res.end(
+          JSON.stringify({
+            error: "Provide question and at least two models.",
+          }),
+        );
+        return;
+      }
+
+      res.writeHead(200, {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        Connection: "keep-alive",
+      });
+
+      try {
+        await runCouncil(
+          router,
+          {
+            question,
+            models,
+            judgeModels: judges,
+            finalModel,
+          },
+          (event) => {
+            res.write(`data: ${JSON.stringify(event)}\n\n`);
+          },
+        );
+      } catch (error) {
+        res.write(
+          `data: ${JSON.stringify({ type: "error", error: (error as Error).message })}\n\n`,
+        );
+      } finally {
+        res.end();
+      }
       return;
     }
 

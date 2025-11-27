@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Sidebar } from "@/ui/components/Sidebar";
 import { ChatInterface } from "@/ui/components/ChatInterface";
 import { NewSessionDialog } from "@/ui/components/NewSessionDialog";
+import { CouncilPanel } from "@/ui/components/CouncilPanel";
 import { Sheet, SheetContent } from "@/ui/components/ui/sheet";
 import { Button } from "@/ui/components/ui/button";
 import {
@@ -27,6 +28,7 @@ function AppContent() {
   const [isNewSessionOpen, setIsNewSessionOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [theme, setTheme] = useState<"light" | "dark">("light");
+  const [viewMode, setViewMode] = useState<"discuss" | "council">("discuss");
   const { t, locale, setLocale } = useI18n();
 
   const fetchSessions = async () => {
@@ -104,45 +106,49 @@ function AppContent() {
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_80%_10%,rgba(16,185,129,0.14),transparent_50%)] opacity-80 blur-3xl" />
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_60%_70%,rgba(236,72,153,0.12),transparent_50%)] opacity-60 blur-3xl" />
       {/* Desktop Sidebar */}
-      <div className="hidden md:block w-[280px] h-full shrink-0">
-        <div className="h-full rounded-2xl border-2 border-[color:var(--neo-border)] neo-surface-strong shadow-neo-lg overflow-hidden">
-          <Sidebar
-            sessions={sessions}
-            currentSessionId={currentSessionId}
-            onSelectSession={setCurrentSessionId}
-            onCreateSession={() => setIsNewSessionOpen(true)}
-            onDeleteSession={(id) => {
-              void handleDeleteSession(id);
-            }}
-          />
-        </div>
-      </div>
-
-      {/* Mobile Sidebar */}
-      <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
-        <SheetContent
-          side="left"
-          className="p-0 w-[280px] border-r-0 bg-transparent shadow-none"
-        >
-          <div className="h-full rounded-r-2xl border-2 border-l-0 border-[color:var(--neo-border)] neo-surface shadow-neo">
+      {viewMode === "discuss" && (
+        <div className="hidden md:block w-[280px] h-full shrink-0">
+          <div className="h-full rounded-2xl border-2 border-[color:var(--neo-border)] neo-surface-strong shadow-neo-lg overflow-hidden">
             <Sidebar
               sessions={sessions}
               currentSessionId={currentSessionId}
-              onSelectSession={(id) => {
-                setCurrentSessionId(id);
-                setIsMobileMenuOpen(false);
-              }}
-              onCreateSession={() => {
-                setIsNewSessionOpen(true);
-                setIsMobileMenuOpen(false);
-              }}
+              onSelectSession={setCurrentSessionId}
+              onCreateSession={() => setIsNewSessionOpen(true)}
               onDeleteSession={(id) => {
                 void handleDeleteSession(id);
               }}
             />
           </div>
-        </SheetContent>
-      </Sheet>
+        </div>
+      )}
+
+      {/* Mobile Sidebar */}
+      {viewMode === "discuss" && (
+        <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+          <SheetContent
+            side="left"
+            className="p-0 w-[280px] border-r-0 bg-transparent shadow-none"
+          >
+            <div className="h-full rounded-r-2xl border-2 border-l-0 border-[color:var(--neo-border)] neo-surface shadow-neo">
+              <Sidebar
+                sessions={sessions}
+                currentSessionId={currentSessionId}
+                onSelectSession={(id) => {
+                  setCurrentSessionId(id);
+                  setIsMobileMenuOpen(false);
+                }}
+                onCreateSession={() => {
+                  setIsNewSessionOpen(true);
+                  setIsMobileMenuOpen(false);
+                }}
+                onDeleteSession={(id) => {
+                  void handleDeleteSession(id);
+                }}
+              />
+            </div>
+          </SheetContent>
+        </Sheet>
+      )}
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col h-full relative min-w-0">
@@ -197,20 +203,55 @@ function AppContent() {
         </div>
 
         {/* Mobile Menu Trigger */}
-        <div className="md:hidden absolute top-3 left-4 z-20">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setIsMobileMenuOpen(true)}
-            className="hover:bg-secondary/50 bg-[color:var(--neo-surface)] backdrop-blur-xl border-2 border-[color:var(--neo-border)] shadow-neo-sm text-foreground"
-          >
-            <Menu className="h-5 w-5" />
-          </Button>
+        {viewMode === "discuss" && (
+          <div className="md:hidden absolute top-3 left-4 z-20">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsMobileMenuOpen(true)}
+              className="hover:bg-secondary/50 bg-[color:var(--neo-surface)] backdrop-blur-xl border-2 border-[color:var(--neo-border)] shadow-neo-sm text-foreground"
+            >
+              <Menu className="h-5 w-5" />
+            </Button>
+          </div>
+        )}
+
+        <div className="flex items-center gap-2 mb-3">
+          <div className="rounded-full border-2 border-[color:var(--neo-border)] bg-[color:var(--neo-surface)] shadow-neo-sm p-1 inline-flex">
+            <Button
+              size="sm"
+              variant={viewMode === "discuss" ? "default" : "ghost"}
+              onClick={() => setViewMode("discuss")}
+              className={`rounded-full px-4 ${
+                viewMode === "discuss"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-foreground"
+              }`}
+            >
+              Discuss
+            </Button>
+            <Button
+              size="sm"
+              variant={viewMode === "council" ? "default" : "ghost"}
+              onClick={() => setViewMode("council")}
+              className={`rounded-full px-4 ${
+                viewMode === "council"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-foreground"
+              }`}
+            >
+              Council
+            </Button>
+          </div>
         </div>
 
         <div className="flex-1 h-full rounded-2xl border-2 border-[color:var(--neo-border)] neo-surface-strong shadow-neo-lg overflow-hidden flex flex-col relative">
           <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_35%_20%,var(--neo-overlay),transparent_55%)]" />
-          {currentSessionId && currentSession ? (
+          {viewMode === "council" ? (
+            <div className="flex-1 overflow-auto p-4">
+              <CouncilPanel />
+            </div>
+          ) : currentSessionId && currentSession ? (
             <ChatInterface
               key={currentSessionId} // Force remount on session change
               sessionId={currentSessionId}
@@ -241,13 +282,15 @@ function AppContent() {
         </div>
       </div>
 
-      <NewSessionDialog
-        open={isNewSessionOpen}
-        onOpenChange={setIsNewSessionOpen}
-        onCreate={(data) => {
-          void handleCreateSession(data);
-        }}
-      />
+      {viewMode === "discuss" && (
+        <NewSessionDialog
+          open={isNewSessionOpen}
+          onOpenChange={setIsNewSessionOpen}
+          onCreate={(data) => {
+            void handleCreateSession(data);
+          }}
+        />
+      )}
     </div>
   );
 }
