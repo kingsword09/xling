@@ -171,6 +171,12 @@ interface OpenAIStreamChunk {
       role?: "assistant";
       content?: string;
       tool_calls?: OpenAIStreamToolCall[];
+      // Reasoning/thinking content (used by o1, deepseek, etc.)
+      reasoning_content?: string;
+      thinking?: {
+        content?: string;
+        signature?: string;
+      };
     };
     finish_reason: "stop" | "length" | "tool_calls" | "content_filter" | null;
   }>;
@@ -1314,6 +1320,23 @@ export function createResponsesAPIStreamTransformer(
           }
 
           const delta = streamChunk.choices[0]?.delta;
+
+          // Handle reasoning/thinking content (from o1, deepseek, etc.)
+          const reasoningContent =
+            delta?.reasoning_content || delta?.thinking?.content;
+          if (reasoningContent) {
+            // Send response.reasoning_summary_text.delta event
+            const reasoningDeltaEvent = {
+              type: "response.reasoning_summary_text.delta",
+              delta: reasoningContent,
+              summary_index: 0,
+            };
+            controller.enqueue(
+              encoder.encode(
+                `event: response.reasoning_summary_text.delta\ndata: ${JSON.stringify(reasoningDeltaEvent)}\n\n`,
+              ),
+            );
+          }
 
           // Handle tool calls
           if (delta?.tool_calls) {
