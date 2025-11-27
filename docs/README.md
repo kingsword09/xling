@@ -8,6 +8,11 @@ below expand on each workflow.
 - [`x` – quick launcher](./x.md): Start Claude Code, Codex, or Gemini with resume/yolo controls and passthrough args.
 - [`p` – prompt router](./p.md): Send prompts through configured providers or delegate directly to codex/claude/gemini CLIs.
 - [`discuss` – roundtable](./discuss.md): Run a multi-model debate via CLI or React 19 Web UI (default port 3000).
+- [`council` – model jury](./council.md): Collect answers from multiple models, cross-judge them, and synthesize a winner.
+
+## Proxy
+
+- [`proxy` – OpenAI-compatible gateway](./proxy.md): Start a local API with load balancing, key rotation, and optional access key.
 
 ## Shortcuts
 

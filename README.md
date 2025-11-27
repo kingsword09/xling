@@ -26,8 +26,10 @@ Together, `xling` is more than just a tool; it's an intelligent partner that amp
 
 - **Unified Interface**: Launch AI CLIs, route prompts, and manage settings with one tool
 - **Prompt Router**: `xling p` fan-outs requests across providers with fallback and streaming support
+- **Model Council**: `xling council` cross-judges answers across models and synthesizes a winner
 - **Multi-Model Roundtable**: `xling discuss` runs multi-agent debates via CLI or Web UI
-- **React 19 Web UI**: `discuss --ui` serves a Vite-built React 19 + Tailwind 4 interface on port 3000
+- **OpenAI-Compatible Proxy**: `xling proxy` exposes a load-balanced, key-rotated API gateway
+- **React 19 Web UI**: `discuss --ui` / `council --ui` serve a Vite-built React 19 + Tailwind 4 interface on port 3000
 - **Quick Launcher**: Just type `xling x` to start Claude Code instantly with yolo mode
 - **Command Shortcuts**: Define custom aliases for frequently used commands with `sx`
 - **Multiple Scopes**: Support for user, project, local, and system-level configurations
@@ -71,6 +73,8 @@ place.
 - `x`: Launch Claude Code, Codex, or Gemini CLI with resume flags, yolo toggle, and passthrough args.
 - `p`: Route prompts across configured providers or delegate to codex/claude/gemini CLIs with yolo defaults.
 - `discuss`: Run a multi-model roundtable via CLI or Web UI with topic, model, and strategy controls.
+- `council`: Ask multiple models the same question, have them cross-judge, and return the winning or synthesized answer.
+- `proxy`: Start an OpenAI-compatible proxy with load balancing, API key rotation, and optional access key protection.
 - `sx`: Execute command shortcuts/aliases defined in xling config.
 - `settings:list|get|set|switch|inspect`: Inspect, edit, and switch Claude, Codex, Gemini, or xling configs across scopes.
 - `git:prc|prr|prv`: Create, checkout, and view GitHub pull requests with automatic gh/git fallbacks.
@@ -79,7 +83,7 @@ place.
 
 ### Web UI (React 19)
 
-- `discuss --ui` serves a React 19 + React DOM 19 interface built with Vite 7 and Tailwind CSS 4 from `dist/ui` (port 3000 by default).
+- `discuss --ui` and `council --ui` serve a React 19 + React DOM 19 interface built with Vite 7 and Tailwind CSS 4 from `dist/ui` (port 3000 by default).
 - Build the bundle with `bun run build` (runs `build:ui`) or `bun run build:ui` after frontend changes so the CLI can find `dist/ui`.
 - For live UI development, run `bunx vite dev --config vite.config.ts --host --port 3000` from the repo root; keep the port aligned with the discuss server default.
 
@@ -94,6 +98,11 @@ place.
 
 - [`p` – prompt router](docs/p.md): send prompts through configured providers with streaming, stdin/file input, or direct CLI delegation.
 - [`discuss` – multi-model roundtable](docs/discuss.md): spin up a CLI or Web UI debate across multiple models with turn-taking strategies.
+- [`council` – model jury](docs/council.md): collect answers, cross-judge anonymously, and synthesize the best response.
+
+#### Proxy gateway
+
+- [`proxy` – OpenAI-compatible gateway](docs/proxy.md): run a local API with load balancing, API key rotation, and optional access key.
 
 #### Settings management
 
