@@ -5,9 +5,11 @@
 
 /* eslint-disable no-console */
 
+import { watch, type FSWatcher } from "node:fs";
 import type { ProviderConfig, XlingConfig } from "@/domain/xling/config.ts";
 import { getProviderApiKeys } from "@/domain/xling/config.ts";
 import { XlingAdapter } from "@/services/settings/adapters/xling.ts";
+import { resolveHome } from "@/services/settings/fsStore.ts";
 import { classifyError } from "./errorClassifier.ts";
 import { ProxyLoadBalancer } from "./loadBalancer.ts";
 import {
@@ -65,23 +67,26 @@ export async function startProxyServer(
   options: ProxyServerOptions = {},
 ): Promise<ProxyServerContext> {
   const adapter = new XlingAdapter();
-  const config = adapter.readConfig(adapter.resolvePath("user")) as XlingConfig;
+  const configPath = adapter.resolvePath("user");
+  let currentConfig = adapter.readConfig(configPath) as XlingConfig;
 
   // Use unified providers from config root
-  if (!config.providers?.length) {
+  if (!currentConfig.providers?.length) {
     throw new Error(
       "No providers configured in ~/.claude/xling.json. Add a 'providers' array.",
     );
   }
 
-  const proxyConfig = config.proxy ?? {};
-  const host = options.host ?? proxyConfig.host ?? "127.0.0.1";
-  const port = options.port ?? proxyConfig.port ?? DEFAULT_PROXY_PORT;
-  const accessKey = options.accessKey ?? proxyConfig.accessKey;
+  const getConfig = () => currentConfig;
+
+  const initialProxyConfig = currentConfig.proxy ?? {};
+  const host = options.host ?? initialProxyConfig.host ?? "127.0.0.1";
+  const port = options.port ?? initialProxyConfig.port ?? DEFAULT_PROXY_PORT;
+  const accessKey = options.accessKey ?? initialProxyConfig.accessKey;
 
   const loadBalancer = new ProxyLoadBalancer(
-    proxyConfig.loadBalance ?? "failover",
-    proxyConfig.keyRotation?.cooldownMs ?? 60000,
+    initialProxyConfig.loadBalance ?? "failover",
+    initialProxyConfig.keyRotation?.cooldownMs ?? 60000,
   );
 
   const server = Bun.serve({
@@ -101,11 +106,12 @@ export async function startProxyServer(
 
       // Health check
       if (path === "/health" || path === "/") {
+        const cfg = getConfig();
         return Response.json(
           {
             status: "ok",
-            providers: config.providers.map((p) => p.name),
-            loadBalance: proxyConfig.loadBalance ?? "failover",
+            providers: cfg.providers.map((p) => p.name),
+            loadBalance: cfg.proxy?.loadBalance ?? "failover",
           },
           { headers: corsHeaders() },
         );
@@ -123,7 +129,7 @@ export async function startProxyServer(
 
       // Models endpoint - return available models from config
       if (path === "/v1/models" || path === "/models") {
-        const models = buildModelsResponse(config.providers);
+        const models = buildModelsResponse(getConfig().providers);
         return Response.json(models, { headers: corsHeaders() });
       }
 
@@ -161,15 +167,16 @@ export async function startProxyServer(
         if (options.logger) {
           console.log(`[proxy] Handling request: ${req.method} ${path}`);
         }
+        const cfg = getConfig();
         return handleProxyRequest(
           req,
           path,
           {
-            providers: config.providers,
-            modelMapping: proxyConfig.modelMapping,
-            defaultModel: config.defaultModel,
-            passthroughResponsesAPI: proxyConfig.passthroughResponsesAPI,
-            keyRotation: proxyConfig.keyRotation,
+            providers: cfg.providers,
+            modelMapping: cfg.proxy?.modelMapping,
+            defaultModel: cfg.defaultModel,
+            passthroughResponsesAPI: cfg.proxy?.passthroughResponsesAPI,
+            keyRotation: cfg.proxy?.keyRotation,
           },
           loadBalancer,
           options.logger ?? true,
@@ -186,9 +193,36 @@ export async function startProxyServer(
     },
   });
 
+  // Watch config file for changes
+  const resolvedConfigPath = resolveHome(configPath);
+  let watcher: FSWatcher | null = null;
+  try {
+    watcher = watch(resolvedConfigPath, (eventType) => {
+      if (eventType === "change") {
+        try {
+          const newConfig = adapter.readConfig(configPath) as XlingConfig;
+          if (newConfig.providers?.length) {
+            currentConfig = newConfig;
+            if (options.logger) {
+              console.log("[proxy] Config reloaded");
+            }
+          }
+        } catch (e) {
+          if (options.logger) {
+            console.error("[proxy] Failed to reload config:", e);
+          }
+        }
+      }
+    });
+  } catch (e) {
+    if (options.logger) {
+      console.warn("[proxy] Failed to watch config file:", e);
+    }
+  }
+
   const baseUrl = `http://${host}:${port}`;
-  const providers = config.providers.map((p) => p.name);
-  const models = config.providers.flatMap((p) =>
+  const providers = currentConfig.providers.map((p) => p.name);
+  const models = currentConfig.providers.flatMap((p) =>
     p.models.map((m) => `${p.name},${m}`),
   );
 
@@ -198,6 +232,7 @@ export async function startProxyServer(
     models,
     server,
     shutdown: async () => {
+      watcher?.close();
       await server.stop();
     },
   };
