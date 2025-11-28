@@ -88,4 +88,33 @@ describe("CodexAdapter", () => {
       cleanup();
     }
   });
+
+  test("edit creates a model provider entry when config is missing", async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "codex-test-"));
+    const configPath = path.join(dir, "config.toml");
+
+    const adapter = new TestCodexAdapter(configPath);
+
+    try {
+      await adapter.edit("user", {
+        provider: {
+          id: "demo",
+          name: "demo",
+          base_url: "https://api.demo.example/v1",
+          experimental_bearer_token: "secret",
+        },
+      });
+
+      const updated = readTOML(configPath);
+      const providers = updated.model_providers as Record<string, unknown>;
+      expect(providers.demo).toMatchObject({
+        name: "demo",
+        base_url: "https://api.demo.example/v1",
+        wire_api: "responses",
+        experimental_bearer_token: "secret",
+      });
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
 });
