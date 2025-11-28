@@ -82,6 +82,37 @@ export function formatDiff(
 }
 
 /**
+ * Unified diff for raw text (keeps original formatting, e.g., TOML)
+ */
+export function formatTextDiff(
+  currentText: string,
+  nextText: string,
+  labels: { current?: string; next?: string } = {},
+): string | null {
+  if (currentText === nextText) {
+    return null;
+  }
+
+  const currentLines = currentText.split("\n");
+  const nextLines = nextText.split("\n");
+  const parts = buildDiffParts(currentLines, nextLines);
+  const hunks = buildUnifiedHunks(parts);
+
+  const currentLabel = labels.current ?? "current";
+  const nextLabel = labels.next ?? "next";
+
+  const lines: string[] = [`--- ${currentLabel}`, `+++ ${nextLabel}`];
+  for (const hunk of hunks) {
+    lines.push(
+      `@@ -${hunk.oldStart},${hunk.oldLines} +${hunk.newStart},${hunk.newLines} @@`,
+    );
+    lines.push(...hunk.lines);
+  }
+
+  return lines.map(colorizeDiffLine).join("\n");
+}
+
+/**
  * Format a single value for display
  */
 function formatValue(value: ConfigValue): string {

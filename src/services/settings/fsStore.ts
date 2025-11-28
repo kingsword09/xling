@@ -175,6 +175,17 @@ export function fileExists(filepath: string): boolean {
 }
 
 /**
+ * Read raw file contents (utf-8)
+ */
+export function readFile(filepath: string): string {
+  const resolvedPath = resolveHome(filepath);
+  if (!fs.existsSync(resolvedPath)) {
+    throw new ConfigFileNotFoundError(resolvedPath);
+  }
+  return fs.readFileSync(resolvedPath, "utf-8");
+}
+
+/**
  * Retrieve file metadata
  */
 export function getFileInfo(filepath: string): FileInfo | null {
