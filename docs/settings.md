@@ -371,4 +371,8 @@ xling settings:get current_profile --tool codex
 
 # Switch back to production
 xling settings:switch production --tool codex
+
+# Save current auth to a named profile, then restore it later
+xling settings:auth --save personal --tool codex
+xling settings:auth --restore personal --tool codex
 ```
