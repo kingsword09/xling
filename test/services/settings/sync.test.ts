@@ -3,7 +3,10 @@ import os from "node:os";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
 
-import { syncClaudeTomlToCodex } from "@/services/settings/sync.ts";
+import {
+  syncClaudeTomlToCodex,
+  syncCodexTomlToClaude,
+} from "@/services/settings/sync.ts";
 import { ConfigFileNotFoundError } from "@/utils/errors.ts";
 
 function createTempPaths() {
@@ -128,6 +131,30 @@ describe("syncClaudeTomlToCodex", () => {
       expect(result.diff).toContain('model = "claude"');
       expect(result.diff).toContain("--- codex");
       expect(result.diff).toContain("+++ claude");
+    } finally {
+      cleanup();
+    }
+  });
+});
+
+describe("syncCodexTomlToClaude", () => {
+  test("copies codex to claude and labels diff", () => {
+    const { source, target, cleanup } = createTempPaths();
+    try {
+      // here source represents codex, target represents claude in reverse mode
+      write(source, 'model = "codex"\n');
+      write(target, 'model = "old"\n');
+
+      const result = syncCodexTomlToClaude({
+        sourcePath: source,
+        targetPath: target,
+        dryRun: true,
+      });
+
+      expect(result.diff).toContain("--- claude");
+      expect(result.diff).toContain("+++ codex");
+      expect(result.data?.source).toBe(source);
+      expect(result.data?.target).toBe(target);
     } finally {
       cleanup();
     }
