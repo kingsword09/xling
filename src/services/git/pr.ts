@@ -6,6 +6,7 @@
 import type { GitPrRequest, GitCommandResult } from "@/domain/git.ts";
 import { runCommand } from "@/utils/runner.ts";
 import { GitCommandError } from "@/utils/errors.ts";
+import { validatePrId } from "@/domain/validators.ts";
 import { detectGhCli } from "./utils.ts";
 
 /**
@@ -19,14 +20,20 @@ export async function checkoutPr(
   request: GitPrRequest,
   cwd?: string,
 ): Promise<GitCommandResult> {
-  const { id, branch = `pr/${id}`, strategy, remote = "origin" } = request;
+  // Validate PR ID format
+  validatePrId(request.id);
+
+  const rawId = request.id;
+  const numericId = extractPrNumber(rawId);
+  const branch = request.branch ?? `pr/${numericId}`;
+  const { strategy, remote = "origin" } = request;
 
   // Strategy 1: Try GitHub CLI
   if (strategy !== "git") {
     const hasGh = await detectGhCli();
     if (hasGh) {
       try {
-        const result = await runCommand("gh", ["pr", "checkout", id], {
+        const result = await runCommand("gh", ["pr", "checkout", rawId], {
           cwd,
           throwOnError: false,
         });
@@ -34,7 +41,7 @@ export async function checkoutPr(
         if (result.success) {
           return {
             success: true,
-            message: `Checked out PR #${id} using GitHub CLI`,
+            message: `Checked out PR #${rawId} using GitHub CLI`,
             details: { strategy: "gh", branch },
           };
         }
@@ -45,7 +52,7 @@ export async function checkoutPr(
   }
 
   // Strategy 2: Fallback to git fetch
-  const prRef = `pull/${id}/head:${branch}`;
+  const prRef = `pull/${numericId}/head:${branch}`;
 
   const fetchResult = await runCommand("git", ["fetch", remote, prRef], {
     cwd,
@@ -71,7 +78,12 @@ export async function checkoutPr(
 
   return {
     success: true,
-    message: `Checked out PR #${id} to branch '${branch}' using git`,
+    message: `Checked out PR #${rawId} to branch '${branch}' using git`,
     details: { strategy: "git", branch, remote },
   };
+}
+
+function extractPrNumber(id: string): string {
+  const match = id.match(/(\d+)$/);
+  return match ? match[1] : id;
 }

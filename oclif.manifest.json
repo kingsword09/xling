@@ -1,0 +1,1981 @@
+{
+  "commands": {
+    "council": {
+      "aliases": [],
+      "args": {},
+      "description": "Run a council: collect answers, cross-judge anonymously, and synthesize the best response.",
+      "examples": [
+        {
+          "description": "CLI mode with explicit models",
+          "command": "<%= config.bin %> <%= command.id %> --question \"How to cache HTTP responses?\" --models \"gpt-4o,claude-3.5-sonnet\""
+        },
+        {
+          "description": "Provide separate judge set and final model",
+          "command": "<%= config.bin %> <%= command.id %> --question \"PostgreSQL tuning\" --models \"gpt-4o,claude-3.5-sonnet\" --judges \"gemini-2.0-pro-exp,claude-3.5-sonnet\" --final-model \"gpt-4o\""
+        },
+        {
+          "description": "Launch the Web UI",
+          "command": "<%= config.bin %> <%= command.id %> --ui"
+        }
+      ],
+      "flags": {
+        "ui": {
+          "description": "Launch Web UI for council mode",
+          "name": "ui",
+          "allowNo": false,
+          "type": "boolean"
+        },
+        "question": {
+          "char": "q",
+          "description": "Question to ask every model",
+          "name": "question",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "models": {
+          "char": "m",
+          "description": "Comma-separated list of models to answer",
+          "name": "models",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "judges": {
+          "char": "j",
+          "description": "Comma-separated list of judge models (defaults to models)",
+          "name": "judges",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "final-model": {
+          "description": "Model used to write the final synthesis (defaults to first judge)",
+          "name": "final-model",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "json": {
+          "description": "Print full JSON result",
+          "name": "json",
+          "allowNo": false,
+          "type": "boolean"
+        }
+      },
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "council",
+      "pluginAlias": "xling",
+      "pluginName": "xling",
+      "pluginType": "core",
+      "strict": true,
+      "summary": "Ask multiple models the same question, have them judge peers, and pick the winner.",
+      "enableJsonFlag": false,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "commands",
+        "council",
+        "index.js"
+      ]
+    },
+    "discuss": {
+      "aliases": [],
+      "args": {},
+      "description": "Start a discussion between multiple AI models",
+      "examples": [
+        {
+          "description": "CLI mode, pick topic/models interactively",
+          "command": "<%= config.bin %> <%= command.id %>"
+        },
+        {
+          "description": "Provide topic and models up front (comma-separated)",
+          "command": "<%= config.bin %> <%= command.id %> --topic \"Rust vs Go\" --models \"gpt-4o,claude-3.5-sonnet\""
+        },
+        {
+          "description": "Round-robin turns with shorter per-turn timeout",
+          "command": "<%= config.bin %> <%= command.id %> --strategy round-robin --timeout 10"
+        },
+        {
+          "description": "Launch the web UI",
+          "command": "<%= config.bin %> <%= command.id %> --ui"
+        }
+      ],
+      "flags": {
+        "ui": {
+          "description": "Launch Web UI",
+          "name": "ui",
+          "allowNo": false,
+          "type": "boolean"
+        },
+        "topic": {
+          "char": "t",
+          "description": "Topic to discuss",
+          "name": "topic",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "models": {
+          "char": "m",
+          "description": "Comma-separated list of models to participate",
+          "name": "models",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "strategy": {
+          "char": "s",
+          "description": "Turn-taking strategy (random, round-robin)",
+          "name": "strategy",
+          "default": "random",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "options": [
+            "random",
+            "round-robin"
+          ],
+          "type": "option"
+        },
+        "timeout": {
+          "description": "Timeout per turn in seconds",
+          "name": "timeout",
+          "default": 30,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        }
+      },
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "discuss",
+      "pluginAlias": "xling",
+      "pluginName": "xling",
+      "pluginType": "core",
+      "strict": true,
+      "summary": "Run a roundtable between multiple AI models via CLI or Web UI",
+      "enableJsonFlag": false,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "commands",
+        "discuss",
+        "index.js"
+      ]
+    },
+    "git": {
+      "aliases": [],
+      "args": {},
+      "description": "\n    Git workflow tools for PR management and worktrees.\n    Supports PR checkout with gh/git fallback, browser PR viewing, and worktree operations.\n  ",
+      "examples": [
+        {
+          "description": "Create a PR and preview in Safari",
+          "command": "<%= config.bin %> <%= command.id %>:prc --web --browser safari"
+        },
+        {
+          "description": "Checkout PR 123 with gh/git fallback",
+          "command": "<%= config.bin %> <%= command.id %>:prr 123"
+        },
+        {
+          "description": "Open PR 456 in Arc",
+          "command": "<%= config.bin %> <%= command.id %>:prv 456 --browser arc"
+        },
+        {
+          "description": "List existing worktrees",
+          "command": "<%= config.bin %> <%= command.id %>:worktree --list"
+        },
+        {
+          "description": "Add a worktree off main",
+          "command": "<%= config.bin %> <%= command.id %>:wta -b feature/foo --base main"
+        },
+        {
+          "description": "Switch into a worktree",
+          "command": "cd $(<%= config.bin %> <%= command.id %>:wts -b feature/foo)"
+        }
+      ],
+      "flags": {},
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "git",
+      "pluginAlias": "xling",
+      "pluginName": "xling",
+      "pluginType": "core",
+      "strict": true,
+      "summary": "Git workflow utilities",
+      "enableJsonFlag": false,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "commands",
+        "git",
+        "index.js"
+      ]
+    },
+    "git:prc": {
+      "aliases": [],
+      "args": {},
+      "description": "\n    Create a pull request using GitHub CLI.\n    Supports automatic browser preview with customizable browser selection.\n  ",
+      "examples": [
+        {
+          "description": "Create PR interactively",
+          "command": "<%= config.bin %> <%= command.id %>"
+        },
+        {
+          "description": "Create PR with title and body",
+          "command": "<%= config.bin %> <%= command.id %> --title \"Feature X\" --body \"Implements feature X\""
+        },
+        {
+          "description": "Create PR and open in browser",
+          "command": "<%= config.bin %> <%= command.id %> --web"
+        },
+        {
+          "description": "Create PR and preview in Safari",
+          "command": "<%= config.bin %> <%= command.id %> --web --browser safari"
+        },
+        {
+          "description": "Create draft PR",
+          "command": "<%= config.bin %> <%= command.id %> --draft --title \"WIP: Feature X\""
+        },
+        {
+          "description": "Create PR with reviewers and labels",
+          "command": "<%= config.bin %> <%= command.id %> --reviewer user1 --reviewer user2 --label bug --label urgent"
+        }
+      ],
+      "flags": {
+        "title": {
+          "char": "t",
+          "description": "PR title",
+          "name": "title",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "body": {
+          "char": "b",
+          "description": "PR body/description",
+          "name": "body",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "base": {
+          "description": "Base branch (default: repository default branch)",
+          "name": "base",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "head": {
+          "description": "Head branch (default: current branch)",
+          "name": "head",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "draft": {
+          "char": "d",
+          "description": "Create as draft PR",
+          "name": "draft",
+          "allowNo": false,
+          "type": "boolean"
+        },
+        "web": {
+          "char": "w",
+          "description": "Open PR in browser after creation",
+          "name": "web",
+          "allowNo": false,
+          "type": "boolean"
+        },
+        "browser": {
+          "description": "Browser to use when --web is enabled",
+          "name": "browser",
+          "default": "chrome",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "options": [
+            "chrome",
+            "safari",
+            "firefox",
+            "arc",
+            "edge",
+            "dia"
+          ],
+          "type": "option"
+        },
+        "assignee": {
+          "char": "a",
+          "description": "Assign user(s) (can be used multiple times)",
+          "name": "assignee",
+          "hasDynamicHelp": false,
+          "multiple": true,
+          "type": "option"
+        },
+        "reviewer": {
+          "char": "r",
+          "description": "Request reviewer(s) (can be used multiple times)",
+          "name": "reviewer",
+          "hasDynamicHelp": false,
+          "multiple": true,
+          "type": "option"
+        },
+        "label": {
+          "char": "l",
+          "description": "Add label(s) (can be used multiple times)",
+          "name": "label",
+          "hasDynamicHelp": false,
+          "multiple": true,
+          "type": "option"
+        }
+      },
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "git:prc",
+      "pluginAlias": "xling",
+      "pluginName": "xling",
+      "pluginType": "core",
+      "strict": true,
+      "summary": "Create a pull request (PR Create)",
+      "enableJsonFlag": false,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "commands",
+        "git",
+        "prc.js"
+      ]
+    },
+    "git:prr": {
+      "aliases": [],
+      "args": {
+        "id": {
+          "description": "PR number or owner:repo#123 format",
+          "name": "id",
+          "required": true
+        }
+      },
+      "description": "\n    Checkout a pull request branch using GitHub CLI (gh) or git fallback.\n    Automatically detects gh availability and falls back to git fetch if needed.\n  ",
+      "examples": [
+        {
+          "description": "Checkout PR using gh or git fallback",
+          "command": "<%= config.bin %> <%= command.id %> 123"
+        },
+        {
+          "description": "Checkout PR to specific branch",
+          "command": "<%= config.bin %> <%= command.id %> 456 --branch my-pr-branch"
+        },
+        {
+          "description": "Force git fallback with custom remote",
+          "command": "<%= config.bin %> <%= command.id %> 789 --no-gh --remote upstream"
+        },
+        {
+          "description": "Checkout a PR from another repo (owner:repo#id)",
+          "command": "<%= config.bin %> <%= command.id %> octo/demo-repo#321 --branch demo-pr"
+        }
+      ],
+      "flags": {
+        "branch": {
+          "char": "b",
+          "description": "Branch name (default: pr/<id>)",
+          "name": "branch",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "remote": {
+          "char": "r",
+          "description": "Remote name",
+          "name": "remote",
+          "default": "origin",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "no-gh": {
+          "description": "Skip GitHub CLI, use git directly",
+          "name": "no-gh",
+          "allowNo": false,
+          "type": "boolean"
+        }
+      },
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "git:prr",
+      "pluginAlias": "xling",
+      "pluginName": "xling",
+      "pluginType": "core",
+      "strict": true,
+      "summary": "Checkout a PR branch (PR Read/Retrieve)",
+      "enableJsonFlag": false,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "commands",
+        "git",
+        "prr.js"
+      ]
+    },
+    "git:prv": {
+      "aliases": [],
+      "args": {
+        "id": {
+          "description": "PR number",
+          "name": "id",
+          "required": true
+        }
+      },
+      "description": "\n    Open a pull request in your web browser using GitHub CLI.\n    Supports multiple browsers: Chrome (default), Safari, Firefox, Arc, Edge, Dia.\n  ",
+      "examples": [
+        {
+          "description": "Open PR in Chrome (default)",
+          "command": "<%= config.bin %> <%= command.id %> 123"
+        },
+        {
+          "description": "Open PR in Safari",
+          "command": "<%= config.bin %> <%= command.id %> 456 --browser safari"
+        },
+        {
+          "description": "Open PR in Firefox",
+          "command": "<%= config.bin %> <%= command.id %> 789 --browser firefox"
+        },
+        {
+          "description": "Open PR in Arc",
+          "command": "<%= config.bin %> <%= command.id %> 999 --browser arc"
+        },
+        {
+          "description": "Open a PR from another repo in Edge",
+          "command": "<%= config.bin %> <%= command.id %> octo/demo-repo#42 --browser edge"
+        }
+      ],
+      "flags": {
+        "browser": {
+          "char": "b",
+          "description": "Browser to use",
+          "name": "browser",
+          "default": "chrome",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "options": [
+            "chrome",
+            "safari",
+            "firefox",
+            "arc",
+            "edge",
+            "dia"
+          ],
+          "type": "option"
+        }
+      },
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "git:prv",
+      "pluginAlias": "xling",
+      "pluginName": "xling",
+      "pluginType": "core",
+      "strict": true,
+      "summary": "Open PR in web browser (PR View)",
+      "enableJsonFlag": false,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "commands",
+        "git",
+        "prv.js"
+      ]
+    },
+    "git:worktree": {
+      "aliases": [],
+      "args": {},
+      "description": "\n    Manage git worktrees: list existing worktrees, add new ones, remove, or prune stale entries.\n    Git worktrees allow multiple working directories from a single repository.\n  ",
+      "examples": [
+        {
+          "description": "List all worktrees in friendly format",
+          "command": "<%= config.bin %> <%= command.id %> --list"
+        },
+        {
+          "description": "Add new worktree with auto-generated path",
+          "command": "<%= config.bin %> <%= command.id %> --add --branch feature/login"
+        },
+        {
+          "description": "Add worktree with custom path",
+          "command": "<%= config.bin %> <%= command.id %> -a -p ../repo-feature -b feature/login"
+        },
+        {
+          "description": "Switch to main worktree (outputs path for cd)",
+          "command": "cd $(<%= config.bin %> <%= command.id %> -s)"
+        },
+        {
+          "description": "Switch to specific worktree by branch name",
+          "command": "cd $(<%= config.bin %> <%= command.id %> -s -b feature/login)"
+        },
+        {
+          "description": "Remove worktree by branch name",
+          "command": "<%= config.bin %> <%= command.id %> -r -b main"
+        },
+        {
+          "description": "Remove worktree by directory name",
+          "command": "<%= config.bin %> <%= command.id %> -r -b xling-feature"
+        },
+        {
+          "description": "Remove worktree by path",
+          "command": "<%= config.bin %> <%= command.id %> -r -p ../repo-feature"
+        },
+        {
+          "description": "Prune stale worktrees",
+          "command": "<%= config.bin %> <%= command.id %> --prune"
+        }
+      ],
+      "flags": {
+        "list": {
+          "char": "l",
+          "description": "List worktrees (default)",
+          "name": "list",
+          "allowNo": false,
+          "type": "boolean"
+        },
+        "add": {
+          "char": "a",
+          "description": "Add new worktree (auto-generates path if not specified)",
+          "name": "add",
+          "allowNo": false,
+          "type": "boolean"
+        },
+        "switch": {
+          "char": "s",
+          "description": "Get worktree path (outputs path only, use with: cd $(xling git:worktree -s -b <branch>))",
+          "name": "switch",
+          "allowNo": false,
+          "type": "boolean"
+        },
+        "remove": {
+          "char": "r",
+          "description": "Remove worktree",
+          "name": "remove",
+          "allowNo": false,
+          "type": "boolean"
+        },
+        "prune": {
+          "description": "Prune stale worktrees",
+          "name": "prune",
+          "allowNo": false,
+          "type": "boolean"
+        },
+        "path": {
+          "char": "p",
+          "description": "Worktree path (e.g., '../repo-feature' or absolute path). Auto-generated if not specified with --add.",
+          "name": "path",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "branch": {
+          "char": "b",
+          "description": "Branch or worktree name. Defaults to main for --add and --switch. For --remove, intelligently matches branch or directory name.",
+          "name": "branch",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "force": {
+          "char": "f",
+          "description": "Force operation",
+          "name": "force",
+          "allowNo": false,
+          "type": "boolean"
+        },
+        "detach": {
+          "description": "Detach HEAD in new worktree",
+          "name": "detach",
+          "allowNo": false,
+          "type": "boolean"
+        }
+      },
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "git:worktree",
+      "pluginAlias": "xling",
+      "pluginName": "xling",
+      "pluginType": "core",
+      "strict": true,
+      "summary": "Manage git worktrees",
+      "enableJsonFlag": false,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "commands",
+        "git",
+        "worktree.js"
+      ]
+    },
+    "git:wta": {
+      "aliases": [],
+      "args": {},
+      "description": "\n    Create a new git worktree with automatic path generation.\n    Defaults to main branch if not specified.\n    Use --select to choose a branch from an interactive list.\n  ",
+      "examples": [
+        {
+          "description": "Add worktree for main branch (default)",
+          "command": "<%= config.bin %> <%= command.id %>"
+        },
+        {
+          "description": "Create a new feature branch from main in a new worktree",
+          "command": "<%= config.bin %> <%= command.id %> -b feature/foo --base main"
+        },
+        {
+          "description": "Create a detached worktree on main even if main is in use",
+          "command": "<%= config.bin %> <%= command.id %> --detach --base main"
+        },
+        {
+          "description": "Add worktree for specific branch",
+          "command": "<%= config.bin %> <%= command.id %> -b feature/login"
+        },
+        {
+          "description": "Add worktree with custom path",
+          "command": "<%= config.bin %> <%= command.id %> -b feature/login -p ../my-worktree"
+        },
+        {
+          "description": "Pick a branch interactively",
+          "command": "<%= config.bin %> <%= command.id %> --select"
+        }
+      ],
+      "flags": {
+        "branch": {
+          "char": "b",
+          "description": "Branch name (defaults to main)",
+          "name": "branch",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "path": {
+          "char": "p",
+          "description": "Custom worktree path (auto-generated if not specified)",
+          "name": "path",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "force": {
+          "char": "f",
+          "description": "Force operation",
+          "name": "force",
+          "allowNo": false,
+          "type": "boolean"
+        },
+        "base": {
+          "description": "Start point when creating a new branch (defaults to main or current HEAD)",
+          "name": "base",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "create": {
+          "description": "Create the branch if it does not exist (uses -b). Use --no-create to require existing branch.",
+          "name": "create",
+          "allowNo": true,
+          "type": "boolean"
+        },
+        "detach": {
+          "description": "Detach HEAD in new worktree",
+          "name": "detach",
+          "allowNo": false,
+          "type": "boolean"
+        },
+        "select": {
+          "description": "Use an interactive selector to choose the branch",
+          "name": "select",
+          "allowNo": false,
+          "type": "boolean"
+        }
+      },
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "git:wta",
+      "pluginAlias": "xling",
+      "pluginName": "xling",
+      "pluginType": "core",
+      "strict": true,
+      "summary": "Add a new git worktree",
+      "enableJsonFlag": false,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "commands",
+        "git",
+        "wta.js"
+      ]
+    },
+    "git:wtl": {
+      "aliases": [],
+      "args": {},
+      "description": "\n    List all git worktrees in a friendly format.\n    Shows the path and branch for each worktree.\n  ",
+      "examples": [
+        {
+          "description": "List all worktrees",
+          "command": "<%= config.bin %> <%= command.id %>"
+        },
+        {
+          "description": "List worktrees and filter for feature branches",
+          "command": "<%= config.bin %> <%= command.id %> | grep feature/"
+        },
+        {
+          "description": "List worktrees from another repo directory",
+          "command": "cd ~/projects/my-repo && <%= config.bin %> <%= command.id %>"
+        }
+      ],
+      "flags": {},
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "git:wtl",
+      "pluginAlias": "xling",
+      "pluginName": "xling",
+      "pluginType": "core",
+      "strict": true,
+      "summary": "List git worktrees",
+      "enableJsonFlag": false,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "commands",
+        "git",
+        "wtl.js"
+      ]
+    },
+    "git:wtp": {
+      "aliases": [],
+      "args": {},
+      "description": "\n    Remove stale worktree administrative files.\n    This cleans up worktrees that have been manually deleted from the filesystem.\n  ",
+      "examples": [
+        {
+          "description": "Prune stale worktrees",
+          "command": "<%= config.bin %> <%= command.id %>"
+        },
+        {
+          "description": "Clean up after manually deleting a worktree folder",
+          "command": "cd ~/repo && <%= config.bin %> <%= command.id %>"
+        },
+        {
+          "description": "Prune then list worktrees to verify",
+          "command": "<%= config.bin %> <%= command.id %> && <%= config.bin %> git:wtl"
+        }
+      ],
+      "flags": {},
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "git:wtp",
+      "pluginAlias": "xling",
+      "pluginName": "xling",
+      "pluginType": "core",
+      "strict": true,
+      "summary": "Prune stale git worktrees",
+      "enableJsonFlag": false,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "commands",
+        "git",
+        "wtp.js"
+      ]
+    },
+    "git:wtr": {
+      "aliases": [],
+      "args": {},
+      "description": "\n    Remove a git worktree by branch name, directory name, or path.\n    Intelligently matches branch or directory names.\n    Use --select to pick which worktree to remove from an interactive list.\n  ",
+      "examples": [
+        {
+          "description": "Remove worktree by branch name",
+          "command": "<%= config.bin %> <%= command.id %> -b main"
+        },
+        {
+          "description": "Remove worktree by directory name",
+          "command": "<%= config.bin %> <%= command.id %> -b xling-feature"
+        },
+        {
+          "description": "Remove worktree by path",
+          "command": "<%= config.bin %> <%= command.id %> -p ../repo-feature"
+        },
+        {
+          "description": "Force remove worktree",
+          "command": "<%= config.bin %> <%= command.id %> -b main -f"
+        },
+        {
+          "description": "Pick a worktree to remove interactively",
+          "command": "<%= config.bin %> <%= command.id %> --select"
+        }
+      ],
+      "flags": {
+        "branch": {
+          "char": "b",
+          "description": "Branch or worktree directory name",
+          "name": "branch",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "path": {
+          "char": "p",
+          "description": "Worktree path",
+          "name": "path",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "force": {
+          "char": "f",
+          "description": "Force removal",
+          "name": "force",
+          "allowNo": false,
+          "type": "boolean"
+        },
+        "select": {
+          "description": "Use an interactive selector to choose the worktree to remove",
+          "name": "select",
+          "allowNo": false,
+          "type": "boolean"
+        }
+      },
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "git:wtr",
+      "pluginAlias": "xling",
+      "pluginName": "xling",
+      "pluginType": "core",
+      "strict": true,
+      "summary": "Remove a git worktree",
+      "enableJsonFlag": false,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "commands",
+        "git",
+        "wtr.js"
+      ]
+    },
+    "git:wts": {
+      "aliases": [],
+      "args": {},
+      "description": "\n    Find a matching worktree, then start a subshell rooted there.\n    Defaults to the main branch if no branch/directory is provided.\n    Use --path-only for scripting (outputs the path for cd $(...)).\n    Use --select to pick a worktree from an interactive list.\n  ",
+      "examples": [
+        {
+          "description": "Switch to main worktree",
+          "command": "cd $(<%= config.bin %> <%= command.id %>)"
+        },
+        {
+          "description": "Switch to main worktree without subshell (path only)",
+          "command": "<%= config.bin %> <%= command.id %> --path-only"
+        },
+        {
+          "description": "Switch to specific worktree by branch name",
+          "command": "cd $(<%= config.bin %> <%= command.id %> -b feature/login)"
+        },
+        {
+          "description": "Switch by directory name",
+          "command": "cd $(<%= config.bin %> <%= command.id %> -b xling-feature)"
+        },
+        {
+          "description": "Use interactive selector to pick a worktree",
+          "command": "cd $(<%= config.bin %> <%= command.id %> --select)"
+        }
+      ],
+      "flags": {
+        "branch": {
+          "char": "b",
+          "description": "Branch or worktree directory name (defaults to main)",
+          "name": "branch",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "path-only": {
+          "description": "Only print the worktree path (useful for cd $(...))",
+          "name": "path-only",
+          "allowNo": false,
+          "type": "boolean"
+        },
+        "select": {
+          "description": "Use an interactive selector to choose the worktree",
+          "name": "select",
+          "allowNo": false,
+          "type": "boolean"
+        }
+      },
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "git:wts",
+      "pluginAlias": "xling",
+      "pluginName": "xling",
+      "pluginType": "core",
+      "strict": true,
+      "summary": "Switch to a git worktree (opens subshell by default)",
+      "enableJsonFlag": false,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "commands",
+        "git",
+        "wts.js"
+      ]
+    },
+    "p": {
+      "aliases": [],
+      "args": {
+        "prompt": {
+          "description": "The prompt text",
+          "name": "prompt",
+          "required": false
+        }
+      },
+      "description": "Execute a prompt via xling providers or hand off to codex exec / claude -p with yolo",
+      "examples": [
+        {
+          "description": "Simple prompt",
+          "command": "<%= config.bin %> <%= command.id %> \"Explain quantum computing\""
+        },
+        {
+          "description": "Specify model",
+          "command": "<%= config.bin %> <%= command.id %> --model gpt-4-turbo \"Write a poem\""
+        },
+        {
+          "description": "Read from file",
+          "command": "<%= config.bin %> <%= command.id %> -f README.md \"Summarize this\""
+        },
+        {
+          "description": "Read from stdin",
+          "command": "git diff | <%= config.bin %> <%= command.id %> --stdin \"Review this diff\""
+        },
+        {
+          "description": "JSON output",
+          "command": "<%= config.bin %> <%= command.id %> --json \"What is 2+2?\""
+        },
+        {
+          "description": "Directly run codex exec (bypass xling providers)",
+          "command": "<%= config.bin %> <%= command.id %> --tool codex \"Summarize this repo\""
+        },
+        {
+          "description": "Use Claude Code CLI with yolo by default",
+          "command": "<%= config.bin %> <%= command.id %> --tool claude \"Review this diff\""
+        },
+        {
+          "description": "Shorthand for Codex backend (matches x command flag)",
+          "command": "<%= config.bin %> <%= command.id %> -t codex \"Hello\""
+        },
+        {
+          "description": "Use Gemini CLI headless prompt",
+          "command": "<%= config.bin %> <%= command.id %> -t gemini \"Summarize this diff\""
+        }
+      ],
+      "flags": {
+        "tool": {
+          "char": "t",
+          "description": "Choose backend: xling router (default) or call codex/claude/gemini CLI directly",
+          "name": "tool",
+          "required": false,
+          "default": "xling",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "options": [
+            "xling",
+            "codex",
+            "claude",
+            "gemini"
+          ],
+          "type": "option"
+        },
+        "yolo": {
+          "description": "Use yolo flags when calling codex/claude/gemini directly (skip permission prompts)",
+          "name": "yolo",
+          "required": false,
+          "allowNo": true,
+          "type": "boolean"
+        },
+        "model": {
+          "char": "m",
+          "description": "Model to use (defaults to configured defaultModel)",
+          "name": "model",
+          "required": false,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "prompt": {
+          "char": "p",
+          "description": "Prompt text (alternative to positional arg)",
+          "name": "prompt",
+          "required": false,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "system": {
+          "char": "s",
+          "description": "System prompt",
+          "name": "system",
+          "required": false,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "file": {
+          "char": "f",
+          "description": "Read additional context from file",
+          "name": "file",
+          "required": false,
+          "hasDynamicHelp": false,
+          "multiple": true,
+          "type": "option"
+        },
+        "stdin": {
+          "description": "Read prompt from stdin",
+          "name": "stdin",
+          "required": false,
+          "allowNo": false,
+          "type": "boolean"
+        },
+        "temperature": {
+          "char": "T",
+          "description": "Temperature (0.0-2.0)",
+          "name": "temperature",
+          "required": false,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "max-tokens": {
+          "description": "Maximum tokens to generate",
+          "name": "max-tokens",
+          "required": false,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "json": {
+          "description": "Output as JSON",
+          "name": "json",
+          "required": false,
+          "allowNo": false,
+          "type": "boolean"
+        },
+        "stream": {
+          "description": "Stream output (default: true)",
+          "name": "stream",
+          "required": false,
+          "allowNo": true,
+          "type": "boolean"
+        },
+        "interactive": {
+          "char": "i",
+          "description": "Enter interactive chat mode after first response",
+          "name": "interactive",
+          "required": false,
+          "allowNo": false,
+          "type": "boolean"
+        }
+      },
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "p",
+      "pluginAlias": "xling",
+      "pluginName": "xling",
+      "pluginType": "core",
+      "strict": true,
+      "enableJsonFlag": false,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "commands",
+        "p",
+        "index.js"
+      ]
+    },
+    "proxy": {
+      "aliases": [],
+      "args": {},
+      "description": "Boot a local proxy server that forwards requests to configured upstream AI providers.\n\nFeatures:\n- OpenAI-compatible API endpoints (/v1/chat/completions, /v1/messages, etc.)\n- Multiple upstream providers with automatic failover\n- Load balancing strategies: round-robin, random, weighted, failover\n- API key rotation with automatic cooldown on errors\n- Optional access key protection\n\nConfiguration is read from ~/.claude/xling.json under the 'proxy' section.",
+      "examples": [
+        {
+          "description": "Start proxy server on default port (4320)",
+          "command": "<%= config.bin %> <%= command.id %>"
+        },
+        {
+          "description": "Start on custom port with access key protection",
+          "command": "<%= config.bin %> <%= command.id %> --port 8080 --access-key my-secret-key"
+        },
+        {
+          "description": "Bind to all interfaces for external access",
+          "command": "<%= config.bin %> <%= command.id %> --host 0.0.0.0"
+        },
+        {
+          "description": "Start with verbose logging disabled",
+          "command": "<%= config.bin %> <%= command.id %> --no-logger"
+        }
+      ],
+      "flags": {
+        "port": {
+          "char": "p",
+          "description": "Port for the proxy server",
+          "name": "port",
+          "default": 4320,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "host": {
+          "description": "Host/interface to bind",
+          "name": "host",
+          "default": "127.0.0.1",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "access-key": {
+          "char": "k",
+          "description": "Access key for proxy authentication (overrides config file)",
+          "name": "access-key",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "logger": {
+          "description": "Enable request logging",
+          "name": "logger",
+          "allowNo": true,
+          "type": "boolean"
+        }
+      },
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "proxy",
+      "pluginAlias": "xling",
+      "pluginName": "xling",
+      "pluginType": "core",
+      "strict": true,
+      "summary": "Start an OpenAI-compatible proxy server with load balancing and key rotation",
+      "enableJsonFlag": false,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "commands",
+        "proxy",
+        "index.js"
+      ]
+    },
+    "settings:auth": {
+      "aliases": [],
+      "args": {},
+      "description": "\n    Save, list, and delete auth profiles for Codex.\n    Use settings:switch to switch between auth profiles and providers.\n\n    Auth profiles allow you to save multiple Codex login credentials\n    and switch between them without having to logout and login again.\n  ",
+      "examples": [
+        {
+          "description": "List all saved auth profiles",
+          "command": "<%= config.bin %> <%= command.id %> --tool codex"
+        },
+        {
+          "description": "Save current auth as a named profile",
+          "command": "<%= config.bin %> <%= command.id %> --save personal --tool codex"
+        },
+        {
+          "description": "Overwrite an existing profile",
+          "command": "<%= config.bin %> <%= command.id %> --save personal --tool codex --force"
+        },
+        {
+          "description": "Delete an auth profile",
+          "command": "<%= config.bin %> <%= command.id %> --delete old-account --tool codex"
+        },
+        {
+          "description": "Restore a saved auth profile back to auth.json",
+          "command": "<%= config.bin %> <%= command.id %> --restore personal --tool codex"
+        }
+      ],
+      "flags": {
+        "tool": {
+          "char": "t",
+          "description": "AI CLI tool (currently only codex is supported)",
+          "name": "tool",
+          "default": "codex",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "options": [
+            "codex"
+          ],
+          "type": "option"
+        },
+        "save": {
+          "char": "s",
+          "description": "Save current auth as a named profile",
+          "name": "save",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "delete": {
+          "char": "d",
+          "description": "Delete an auth profile",
+          "name": "delete",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "restore": {
+          "char": "r",
+          "description": "Restore a saved auth profile back to auth.json",
+          "name": "restore",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "force": {
+          "char": "f",
+          "description": "Overwrite existing profile without confirmation",
+          "name": "force",
+          "allowNo": false,
+          "type": "boolean"
+        },
+        "json": {
+          "description": "Output JSON instead of text",
+          "name": "json",
+          "allowNo": false,
+          "type": "boolean"
+        }
+      },
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "settings:auth",
+      "pluginAlias": "xling",
+      "pluginName": "xling",
+      "pluginType": "core",
+      "strict": true,
+      "summary": "Manage auth profiles for Codex",
+      "enableJsonFlag": false,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "commands",
+        "settings",
+        "auth.js"
+      ]
+    },
+    "settings:get": {
+      "aliases": [],
+      "args": {
+        "name": {
+          "description": "Claude variant name (optional). Example: settings:get hxi",
+          "name": "name",
+          "required": false
+        }
+      },
+      "description": "\n    Print the entire configuration file for the selected tool/scope.\n    Use --json for structured output or --no-json for plain text.\n  ",
+      "examples": [
+        {
+          "description": "Print Claude user settings (raw file)",
+          "command": "<%= config.bin %> <%= command.id %> --tool claude --scope user"
+        },
+        {
+          "description": "Inspect a Claude variant by name",
+          "command": "<%= config.bin %> <%= command.id %> hxi --tool claude --scope user"
+        },
+        {
+          "description": "Dump Codex config as JSON for scripting",
+          "command": "<%= config.bin %> <%= command.id %> --tool codex --json"
+        },
+        {
+          "description": "View xling prompt router config (if present)",
+          "command": "<%= config.bin %> <%= command.id %> --tool xling --scope user"
+        }
+      ],
+      "flags": {
+        "tool": {
+          "char": "t",
+          "description": "AI CLI tool to manage",
+          "name": "tool",
+          "default": "claude",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "options": [
+            "claude",
+            "codex",
+            "gemini",
+            "xling"
+          ],
+          "type": "option"
+        },
+        "scope": {
+          "char": "s",
+          "description": "Configuration scope",
+          "name": "scope",
+          "default": "user",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "options": [
+            "user",
+            "project",
+            "local",
+            "system"
+          ],
+          "type": "option"
+        }
+      },
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "settings:get",
+      "pluginAlias": "xling",
+      "pluginName": "xling",
+      "pluginType": "core",
+      "strict": true,
+      "summary": "View the full configuration file",
+      "enableJsonFlag": false,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "commands",
+        "settings",
+        "get.js"
+      ]
+    },
+    "settings:inspect": {
+      "aliases": [],
+      "args": {},
+      "description": "\n    Display information about the configuration file, including:\n    - File path\n    - Existence status\n    - File size\n    - Last modified date\n    - File contents (if exists)\n  ",
+      "examples": [
+        {
+          "description": "Inspect Claude user settings with JSON output",
+          "command": "<%= config.bin %> <%= command.id %> --tool claude --scope user"
+        },
+        {
+          "description": "Inspect Codex config with human-readable output",
+          "command": "<%= config.bin %> <%= command.id %> --tool codex --no-json"
+        },
+        {
+          "description": "Check Gemini system-level config location",
+          "command": "<%= config.bin %> <%= command.id %> -t gemini -s system --no-json"
+        },
+        {
+          "description": "Confirm xling shortcut config exists",
+          "command": "<%= config.bin %> <%= command.id %> --tool xling"
+        }
+      ],
+      "flags": {
+        "tool": {
+          "char": "t",
+          "description": "AI CLI tool to manage",
+          "name": "tool",
+          "default": "claude",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "options": [
+            "claude",
+            "codex",
+            "gemini",
+            "xling"
+          ],
+          "type": "option"
+        },
+        "scope": {
+          "char": "s",
+          "description": "Configuration scope",
+          "name": "scope",
+          "default": "user",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "options": [
+            "user",
+            "project",
+            "local",
+            "system"
+          ],
+          "type": "option"
+        },
+        "json": {
+          "description": "Output JSON (default)",
+          "name": "json",
+          "allowNo": true,
+          "type": "boolean"
+        }
+      },
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "settings:inspect",
+      "pluginAlias": "xling",
+      "pluginName": "xling",
+      "pluginType": "core",
+      "strict": true,
+      "summary": "Inspect configuration file status",
+      "enableJsonFlag": false,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "commands",
+        "settings",
+        "inspect.js"
+      ]
+    },
+    "settings:list": {
+      "aliases": [],
+      "args": {},
+      "description": "\n    Display all configuration settings for the specified AI CLI tool.\n    Supports multiple scopes (user, project, local, system).\n  ",
+      "examples": [
+        {
+          "description": "List Claude user settings (YAML-style summary)",
+          "command": "<%= config.bin %> <%= command.id %> --tool claude --scope user"
+        },
+        {
+          "description": "Show Codex providers in a table",
+          "command": "<%= config.bin %> <%= command.id %> --tool codex --scope user --table"
+        },
+        {
+          "description": "Inspect Gemini project settings as JSON",
+          "command": "<%= config.bin %> <%= command.id %> -t gemini -s project --json"
+        },
+        {
+          "description": "Check xling shortcut config location",
+          "command": "<%= config.bin %> <%= command.id %> --tool xling --scope user"
+        }
+      ],
+      "flags": {
+        "tool": {
+          "char": "t",
+          "description": "AI CLI tool to manage",
+          "name": "tool",
+          "default": "claude",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "options": [
+            "claude",
+            "codex",
+            "gemini",
+            "xling"
+          ],
+          "type": "option"
+        },
+        "scope": {
+          "char": "s",
+          "description": "Configuration scope",
+          "name": "scope",
+          "default": "user",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "options": [
+            "user",
+            "project",
+            "local",
+            "system"
+          ],
+          "type": "option"
+        },
+        "json": {
+          "description": "Output JSON instead of text summary",
+          "name": "json",
+          "allowNo": false,
+          "type": "boolean"
+        },
+        "table": {
+          "description": "Render table output instead of JSON",
+          "name": "table",
+          "allowNo": false,
+          "type": "boolean"
+        }
+      },
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "settings:list",
+      "pluginAlias": "xling",
+      "pluginName": "xling",
+      "pluginType": "core",
+      "strict": true,
+      "summary": "List all settings for a tool",
+      "enableJsonFlag": false,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "commands",
+        "settings",
+        "list.js"
+      ]
+    },
+    "settings:set": {
+      "aliases": [],
+      "args": {},
+      "description": "\n    Create or open settings files for AI CLI tools in your preferred editor,\n    or interactively add Codex model providers.\n\n    For Claude: provide --name to edit settings.<name>.json (default: settings.json).\n    For Codex: answer prompts to create a [model_providers.<name>] entry.\n    For Xling: edits ~/.claude/xling.json configuration.\n  ",
+      "examples": [
+        {
+          "description": "Create or edit a Claude variant in VS Code",
+          "command": "<%= config.bin %> <%= command.id %> --tool claude --scope user --name hxi"
+        },
+        {
+          "description": "Open Claude project settings in Cursor without JSON output",
+          "command": "<%= config.bin %> <%= command.id %> --tool claude --scope project --name default --ide cursor --no-json"
+        },
+        {
+          "description": "Add a Codex provider interactively",
+          "command": "<%= config.bin %> <%= command.id %> --tool codex --scope user"
+        },
+        {
+          "description": "Edit xling shortcut config in Cursor",
+          "command": "<%= config.bin %> <%= command.id %> --tool xling --ide cursor"
+        }
+      ],
+      "flags": {
+        "tool": {
+          "char": "t",
+          "description": "AI CLI tool to manage",
+          "name": "tool",
+          "default": "claude",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "options": [
+            "claude",
+            "codex",
+            "gemini",
+            "xling"
+          ],
+          "type": "option"
+        },
+        "scope": {
+          "char": "s",
+          "description": "Configuration scope",
+          "name": "scope",
+          "default": "user",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "options": [
+            "user",
+            "project",
+            "local",
+            "system"
+          ],
+          "type": "option"
+        },
+        "name": {
+          "description": "Claude variant name or Codex provider key. Defaults to prompt input if omitted.",
+          "name": "name",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "ide": {
+          "description": "Editor command or alias (default: code for VS Code)",
+          "name": "ide",
+          "default": "code",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "json": {
+          "description": "Output JSON (default)",
+          "name": "json",
+          "allowNo": true,
+          "type": "boolean"
+        }
+      },
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "settings:set",
+      "pluginAlias": "xling",
+      "pluginName": "xling",
+      "pluginType": "core",
+      "strict": true,
+      "summary": "Open settings files or add Codex providers",
+      "enableJsonFlag": false,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "commands",
+        "settings",
+        "set.js"
+      ]
+    },
+    "settings:switch": {
+      "aliases": [],
+      "args": {
+        "profile": {
+          "description": "Profile name to switch to",
+          "name": "profile",
+          "required": false
+        }
+      },
+      "description": "\n    Switch to a different profile configuration for Codex\n    or activate a specific settings.<variant>.json for Claude.\n\n    For Codex, you can switch between:\n    - Auth profiles (saved login credentials)\n    - Model providers (API endpoints)\n    - Named profiles (from config.toml)\n  ",
+      "examples": [
+        {
+          "description": "Switch Codex to an auth profile (saved login)",
+          "command": "<%= config.bin %> <%= command.id %> personal --tool codex"
+        },
+        {
+          "description": "Switch Codex to a provider",
+          "command": "<%= config.bin %> <%= command.id %> my-provider --tool codex"
+        },
+        {
+          "description": "Interactive selection for Codex",
+          "command": "<%= config.bin %> <%= command.id %> --tool codex"
+        },
+        {
+          "description": "Activate a Claude variant (user scope)",
+          "command": "<%= config.bin %> <%= command.id %> hxi --tool claude --scope user"
+        },
+        {
+          "description": "Force-apply Claude variant and emit JSON for scripts",
+          "command": "<%= config.bin %> <%= command.id %> hxi --tool claude --scope user --force --json"
+        },
+        {
+          "description": "Keep a backup while switching Claude settings",
+          "command": "<%= config.bin %> <%= command.id %> stable --tool claude --backup"
+        }
+      ],
+      "flags": {
+        "tool": {
+          "char": "t",
+          "description": "AI CLI tool to manage",
+          "name": "tool",
+          "default": "claude",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "options": [
+            "claude",
+            "codex",
+            "gemini",
+            "xling"
+          ],
+          "type": "option"
+        },
+        "scope": {
+          "char": "s",
+          "description": "Configuration scope",
+          "name": "scope",
+          "default": "user",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "options": [
+            "user",
+            "project",
+            "local",
+            "system"
+          ],
+          "type": "option"
+        },
+        "json": {
+          "description": "Output JSON instead of interactive text",
+          "name": "json",
+          "allowNo": false,
+          "type": "boolean"
+        },
+        "force": {
+          "description": "Skip confirmation prompts (Claude only)",
+          "name": "force",
+          "allowNo": false,
+          "type": "boolean"
+        },
+        "backup": {
+          "description": "Create a .bak backup when switching (Claude only)",
+          "name": "backup",
+          "allowNo": false,
+          "type": "boolean"
+        }
+      },
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "settings:switch",
+      "pluginAlias": "xling",
+      "pluginName": "xling",
+      "pluginType": "core",
+      "strict": true,
+      "summary": "Switch Codex profiles or Claude settings variants",
+      "enableJsonFlag": false,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "commands",
+        "settings",
+        "switch.js"
+      ]
+    },
+    "settings:sync": {
+      "aliases": [],
+      "args": {},
+      "description": "\n    Copy Claude Code config.toml into Codex (default) or reverse the direction\n    with --reverse. Shows a diff first, then lets you choose overwrite,\n    backup+overwrite, or cancel (similar to settings:switch).\n    Use --force to skip prompts.\n  ",
+      "examples": [
+        {
+          "description": "Sync Claude -> Codex with optional backup",
+          "command": "<%= config.bin %> <%= command.id %>"
+        },
+        {
+          "description": "Dry-run and emit JSON (no writes)",
+          "command": "<%= config.bin %> <%= command.id %> --dry-run --json"
+        },
+        {
+          "description": "Explicitly set source/target paths",
+          "command": "<%= config.bin %> <%= command.id %> --source ~/.claude/config.toml --target ~/.codex/config.toml"
+        },
+        {
+          "description": "Reverse sync (Codex -> Claude)",
+          "command": "<%= config.bin %> <%= command.id %> --reverse"
+        }
+      ],
+      "flags": {
+        "source": {
+          "description": "Path to Claude Code config.toml",
+          "name": "source",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "target": {
+          "description": "Path to Codex config.toml",
+          "name": "target",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "backup": {
+          "description": "Create a .bak of the target before overwriting",
+          "name": "backup",
+          "allowNo": true,
+          "type": "boolean"
+        },
+        "dryRun": {
+          "description": "Show what would change without writing files",
+          "name": "dryRun",
+          "allowNo": false,
+          "type": "boolean"
+        },
+        "force": {
+          "description": "Apply without prompts (overwrites unless --backup is set)",
+          "name": "force",
+          "allowNo": false,
+          "type": "boolean"
+        },
+        "json": {
+          "description": "Output JSON instead of human-readable text",
+          "name": "json",
+          "allowNo": false,
+          "type": "boolean"
+        },
+        "reverse": {
+          "description": "Reverse sync: copy Codex config.toml into Claude Code config.toml",
+          "name": "reverse",
+          "allowNo": false,
+          "type": "boolean"
+        }
+      },
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "settings:sync",
+      "pluginAlias": "xling",
+      "pluginName": "xling",
+      "pluginType": "core",
+      "strict": true,
+      "summary": "Sync config.toml between Claude Code and Codex",
+      "enableJsonFlag": false,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "commands",
+        "settings",
+        "sync.js"
+      ]
+    },
+    "sx": {
+      "aliases": [],
+      "args": {
+        "name": {
+          "description": "Shortcut name to execute",
+          "name": "name",
+          "required": false
+        }
+      },
+      "description": "\n    Execute predefined command shortcuts configured in ~/.claude/xling.json.\n\n    Shortcuts allow you to create custom aliases for frequently used xling commands\n    with pre-configured arguments. This makes it easy to run complex commands without\n    having to remember long argument lists.\n\n    Use --list to see all available shortcuts.\n\n    Pass additional arguments after the shortcut name to append them to the\n    configured arguments.\n\n    Configuration example in ~/.claude/xling.json:\n    {\n      \"shortcuts\": {\n        \"lc\": {\n          \"command\": \"x\",\n          \"args\": [\"-t\", \"claude\", \"-c\"],\n          \"description\": \"Launch Claude and continue\"\n        },\n        \"gs\": {\n          \"command\": \"settings:list\",\n          \"args\": [\"--tool\", \"codex\"],\n          \"description\": \"List Codex settings\"\n        }\n      }\n    }\n\n    Examples:\n      $ xling sx lc                    # Run shortcut \"lc\"\n      $ xling sx --list                # List all shortcuts\n      $ xling sx lc -- --no-yolo       # Run \"lc\" with extra args\n  ",
+      "examples": [
+        {
+          "description": "List all available shortcuts",
+          "command": "<%= config.bin %> <%= command.id %> --list"
+        },
+        {
+          "description": "Execute a shortcut",
+          "command": "<%= config.bin %> <%= command.id %> lc"
+        },
+        {
+          "description": "Execute shortcut with additional arguments",
+          "command": "<%= config.bin %> <%= command.id %> lc -- --no-yolo"
+        }
+      ],
+      "flags": {
+        "list": {
+          "char": "l",
+          "description": "List all available shortcuts",
+          "name": "list",
+          "allowNo": false,
+          "type": "boolean"
+        }
+      },
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "sx",
+      "pluginAlias": "xling",
+      "pluginName": "xling",
+      "pluginType": "core",
+      "strict": false,
+      "summary": "Shortcut eXecute - run predefined command shortcuts",
+      "enableJsonFlag": false,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "commands",
+        "sx",
+        "index.js"
+      ]
+    },
+    "version": {
+      "aliases": [],
+      "args": {},
+      "description": "Displays the version from package.json.",
+      "examples": [
+        {
+          "description": "Print the installed CLI version",
+          "command": "<%= config.bin %> <%= command.id %>"
+        },
+        {
+          "description": "Shortcut using the built-in flag",
+          "command": "<%= config.bin %> --version"
+        }
+      ],
+      "flags": {},
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "version",
+      "pluginAlias": "xling",
+      "pluginName": "xling",
+      "pluginType": "core",
+      "strict": true,
+      "summary": "Show the current xling version",
+      "enableJsonFlag": false,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "commands",
+        "version",
+        "index.js"
+      ]
+    },
+    "x": {
+      "aliases": [],
+      "args": {},
+      "description": "\n    Quick launcher for Claude Code, Codex, or Gemini CLI with yolo mode enabled by default.\n\n    Just run \"xling x\" to start Claude Code instantly!\n\n    Claude Code is launched by default. Use --tool flag to launch other tools.\n\n    Yolo mode is ENABLED by default, which skips permission prompts:\n    - Claude Code: --dangerously-skip-permissions\n    - Codex: --dangerously-bypass-approvals-and-sandbox\n    - Gemini CLI: -y\n\n    Resume options:\n    - Use -c/--continue to continue the last conversation/session\n    - Use -r/--resume to show a list of conversations/sessions to resume\n\n    Pass additional arguments after -- to forward them to the tool.\n\n    Examples:\n      $ xling x                          # Start Claude Code (fastest way!)\n      $ xling x -c                       # Continue last Claude conversation\n      $ xling x -r                       # Resume a Claude conversation (list)\n      $ xling x -s hxi                   # Start Claude with hxi settings variant\n      $ xling x -t codex -c              # Continue last Codex session\n      $ xling x -t codex -s oss          # Start Codex with oss profile\n      $ xling x --tool codex             # Start Codex\n      $ xling x -t gemini                # Start Gemini CLI\n      $ xling x -t gemini -c             # Resume latest Gemini session\n      $ xling x --no-yolo                # Start Claude without yolo\n      $ xling x -- chat \"Hello\"          # Start Claude with arguments\n      $ xling x -t codex -C /path        # Start Codex in specific directory\n  ",
+      "examples": [
+        {
+          "description": "Start Claude Code instantly (default)",
+          "command": "<%= config.bin %> <%= command.id %>"
+        },
+        {
+          "description": "Continue last conversation",
+          "command": "<%= config.bin %> <%= command.id %> -c"
+        },
+        {
+          "description": "Resume a conversation from list",
+          "command": "<%= config.bin %> <%= command.id %> -r"
+        },
+        {
+          "description": "Start Claude with hxi settings variant",
+          "command": "<%= config.bin %> <%= command.id %> -s hxi"
+        },
+        {
+          "description": "Continue last Codex session",
+          "command": "<%= config.bin %> <%= command.id %> -t codex -c"
+        },
+        {
+          "description": "Start Codex with oss profile",
+          "command": "<%= config.bin %> <%= command.id %> -t codex -s oss"
+        },
+        {
+          "description": "Start Gemini CLI (auto-accept actions)",
+          "command": "<%= config.bin %> <%= command.id %> -t gemini"
+        },
+        {
+          "description": "Resume latest Gemini session",
+          "command": "<%= config.bin %> <%= command.id %> -t gemini -c"
+        },
+        {
+          "description": "Start Claude without yolo mode",
+          "command": "<%= config.bin %> <%= command.id %> --no-yolo"
+        },
+        {
+          "description": "Start Claude and pass arguments",
+          "command": "<%= config.bin %> <%= command.id %> -- chat \"Hello, how are you?\""
+        },
+        {
+          "description": "Start Codex in specific directory",
+          "command": "<%= config.bin %> <%= command.id %> -t codex -C /path/to/project"
+        }
+      ],
+      "flags": {
+        "tool": {
+          "char": "t",
+          "description": "AI CLI tool to launch",
+          "name": "tool",
+          "default": "claude",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "options": [
+            "claude",
+            "codex",
+            "gemini"
+          ],
+          "type": "option"
+        },
+        "yolo": {
+          "description": "Enable yolo mode (skip permission prompts)",
+          "name": "yolo",
+          "allowNo": true,
+          "type": "boolean"
+        },
+        "continue": {
+          "char": "c",
+          "description": "Continue last conversation/session",
+          "exclusive": [
+            "resume"
+          ],
+          "name": "continue",
+          "allowNo": false,
+          "type": "boolean"
+        },
+        "resume": {
+          "char": "r",
+          "description": "Resume from conversation/session list",
+          "exclusive": [
+            "continue"
+          ],
+          "name": "resume",
+          "allowNo": false,
+          "type": "boolean"
+        },
+        "cwd": {
+          "char": "C",
+          "description": "Working directory for the launched process",
+          "name": "cwd",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "settings": {
+          "char": "s",
+          "description": "Settings configuration (Claude: variant name or file path; Codex: profile name; Gemini: model name)",
+          "name": "settings",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        }
+      },
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "x",
+      "pluginAlias": "xling",
+      "pluginName": "xling",
+      "pluginType": "core",
+      "strict": false,
+      "summary": "eXecute AI CLI tools (defaults to Claude Code with yolo)",
+      "enableJsonFlag": false,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "commands",
+        "x",
+        "index.js"
+      ]
+    }
+  },
+  "version": "0.9.2"
+}

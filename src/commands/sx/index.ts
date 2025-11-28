@@ -9,6 +9,7 @@ import {
   ShortcutNotFoundError,
   CircularShortcutError,
 } from "@/services/shortcuts/types.ts";
+import { extractPassthroughArgs } from "@/utils/cli.ts";
 import Table from "cli-table3";
 
 export default class Sx extends Command {
@@ -132,8 +133,10 @@ export default class Sx extends Command {
       }
 
       // Extract passthrough args (everything after the shortcut name)
-      const nameIndex = argv.indexOf(args.name);
-      const passthroughArgs = nameIndex >= 0 ? argv.slice(nameIndex + 1) : [];
+      const passthroughArgs = extractPassthroughArgs(
+        argv as string[],
+        args.name,
+      );
 
       // Execute shortcut
       await runner.run(args.name, passthroughArgs as string[]);

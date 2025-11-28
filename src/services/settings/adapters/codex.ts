@@ -47,103 +47,42 @@ export class CodexAdapter extends BaseAdapter {
 
   /**
    * Override inspect to return the current active configuration
-   * - If model_provider is set: return that provider's config from model_providers
-   * - If current_profile is set: return that profile's config
-   * - If auth.json exists: indicate auth mode is active
-   * - Otherwise: return empty/default state
    */
   override async inspect(scope: Scope): Promise<InspectResult> {
     const configPath = this.validateAndResolvePath(scope);
     const resolvedPath = fsStore.resolveHome(configPath);
 
-    // Check if config.toml exists
     if (!fsStore.fileExists(configPath)) {
-      // Check if using auth mode without config
-      if (fsStore.fileExists(AUTH_FILE_PATH)) {
-        const authData = this.#readAuthData();
-        const profileName = this.#identifyAuthProfile();
-        return {
-          path: fsStore.resolveHome(AUTH_FILE_PATH),
-          exists: true,
-          content: JSON.stringify(
-            {
-              mode: "auth",
-              currentAuthProfile: profileName,
-              authFile: fsStore.resolveHome(AUTH_FILE_PATH),
-              authData: authData,
-            },
-            null,
-            2,
-          ),
-        };
-      }
-      return {
-        path: resolvedPath,
-        exists: false,
-      };
+      return this.#inspectWithoutConfig(resolvedPath);
     }
 
     const config = this.#readConfigSafe(configPath);
     const fileInfo = fsStore.getFileInfo(configPath);
 
-    // Check for current_profile (named profile mode)
     if (config.current_profile && typeof config.current_profile === "string") {
-      const profileName = config.current_profile;
-      const profiles = isConfigObject(config.profiles) ? config.profiles : {};
-      const profileConfig = profiles[profileName];
-
-      return {
-        path: resolvedPath,
-        exists: true,
-        content: JSON.stringify(
-          {
-            mode: "profile",
-            currentProfile: profileName,
-            config: isConfigObject(profileConfig) ? profileConfig : {},
-          },
-          null,
-          2,
-        ),
-        size: fileInfo?.size,
-        lastModified: fileInfo?.lastModified,
-      };
+      return this.#inspectProfileMode(config, resolvedPath, fileInfo);
     }
 
-    // Check for model_provider (provider mode)
     if (config.model_provider && typeof config.model_provider === "string") {
-      const providerName = config.model_provider;
-      const providers = isConfigObject(config.model_providers)
-        ? config.model_providers
-        : {};
-      const providerConfig = providers[providerName];
-
-      return {
-        path: resolvedPath,
-        exists: true,
-        content: JSON.stringify(
-          {
-            mode: "provider",
-            currentProvider: providerName,
-            config: isConfigObject(providerConfig) ? providerConfig : {},
-          },
-          null,
-          2,
-        ),
-        size: fileInfo?.size,
-        lastModified: fileInfo?.lastModified,
-      };
+      return this.#inspectProviderMode(config, resolvedPath, fileInfo);
     }
 
-    // Check for current_auth_profile or auth.json exists
     const currentAuthProfile =
       typeof config.current_auth_profile === "string"
         ? config.current_auth_profile
         : null;
 
     if (currentAuthProfile || fsStore.fileExists(AUTH_FILE_PATH)) {
-      const authData = this.#readAuthData();
-      const profileName = currentAuthProfile || this.#identifyAuthProfile();
+      return this.#inspectAuthMode(currentAuthProfile, resolvedPath, fileInfo);
+    }
 
+    return this.#inspectNoActiveConfig(resolvedPath, fileInfo);
+  }
+
+  #inspectWithoutConfig(resolvedPath: string): InspectResult {
+    if (fsStore.fileExists(AUTH_FILE_PATH)) {
+      const authData = this.#readAuthData();
+      const profileName = this.#identifyAuthProfile();
       return {
         path: fsStore.resolveHome(AUTH_FILE_PATH),
         exists: true,
@@ -152,18 +91,101 @@ export class CodexAdapter extends BaseAdapter {
             mode: "auth",
             currentAuthProfile: profileName,
             authFile: fsStore.resolveHome(AUTH_FILE_PATH),
-            configFile: resolvedPath,
-            authData: authData,
+            authData,
           },
           null,
           2,
         ),
-        size: fileInfo?.size,
-        lastModified: fileInfo?.lastModified,
       };
     }
+    return { path: resolvedPath, exists: false };
+  }
 
-    // No active configuration found
+  #inspectProfileMode(
+    config: ConfigObject,
+    resolvedPath: string,
+    fileInfo: { size?: number; lastModified?: Date } | null,
+  ): InspectResult {
+    const profileName = config.current_profile as string;
+    const profiles = isConfigObject(config.profiles) ? config.profiles : {};
+    const profileConfig = profiles[profileName];
+
+    return {
+      path: resolvedPath,
+      exists: true,
+      content: JSON.stringify(
+        {
+          mode: "profile",
+          currentProfile: profileName,
+          config: isConfigObject(profileConfig) ? profileConfig : {},
+        },
+        null,
+        2,
+      ),
+      size: fileInfo?.size,
+      lastModified: fileInfo?.lastModified,
+    };
+  }
+
+  #inspectProviderMode(
+    config: ConfigObject,
+    resolvedPath: string,
+    fileInfo: { size?: number; lastModified?: Date } | null,
+  ): InspectResult {
+    const providerName = config.model_provider as string;
+    const providers = isConfigObject(config.model_providers)
+      ? config.model_providers
+      : {};
+    const providerConfig = providers[providerName];
+
+    return {
+      path: resolvedPath,
+      exists: true,
+      content: JSON.stringify(
+        {
+          mode: "provider",
+          currentProvider: providerName,
+          config: isConfigObject(providerConfig) ? providerConfig : {},
+        },
+        null,
+        2,
+      ),
+      size: fileInfo?.size,
+      lastModified: fileInfo?.lastModified,
+    };
+  }
+
+  #inspectAuthMode(
+    currentAuthProfile: string | null,
+    resolvedPath: string,
+    fileInfo: { size?: number; lastModified?: Date } | null,
+  ): InspectResult {
+    const authData = this.#readAuthData();
+    const profileName = currentAuthProfile || this.#identifyAuthProfile();
+
+    return {
+      path: fsStore.resolveHome(AUTH_FILE_PATH),
+      exists: true,
+      content: JSON.stringify(
+        {
+          mode: "auth",
+          currentAuthProfile: profileName,
+          authFile: fsStore.resolveHome(AUTH_FILE_PATH),
+          configFile: resolvedPath,
+          authData,
+        },
+        null,
+        2,
+      ),
+      size: fileInfo?.size,
+      lastModified: fileInfo?.lastModified,
+    };
+  }
+
+  #inspectNoActiveConfig(
+    resolvedPath: string,
+    fileInfo: { size?: number; lastModified?: Date } | null,
+  ): InspectResult {
     return {
       path: resolvedPath,
       exists: true,

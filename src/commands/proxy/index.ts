@@ -4,6 +4,7 @@ import {
   DEFAULT_PROXY_PORT,
   startProxyServer,
 } from "@/services/proxy/server.ts";
+import { validatePort, validateHost } from "@/domain/validators.ts";
 
 export default class ProxyCommand extends Command {
   static summary =
@@ -66,9 +67,13 @@ Configuration is read from ~/.claude/xling.json under the 'proxy' section.`;
     const { flags } = await this.parse(ProxyCommand);
 
     try {
+      // Validate inputs
+      const port = validatePort(flags.port);
+      const host = validateHost(flags.host);
+
       const context = await startProxyServer({
-        host: flags.host,
-        port: flags.port,
+        host,
+        port,
         accessKey: flags["access-key"],
         logger: flags.logger,
       });

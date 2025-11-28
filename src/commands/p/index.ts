@@ -5,19 +5,27 @@
 
 import { Command, Flags, Args, Interfaces } from "@oclif/core";
 import * as fs from "node:fs";
-import * as readline from "node:readline";
-import * as tty from "node:tty";
 import { createRouter } from "@/services/prompt/router.ts";
-import type { PromptRequest, ChatMessage } from "@/services/prompt/types.ts";
+import type { PromptRequest } from "@/services/prompt/types.ts";
 import {
   ModelNotSupportedError,
   AllProvidersFailedError,
 } from "@/services/prompt/types.ts";
 import { XlingAdapter } from "@/services/settings/adapters/xling.ts";
-import { spawnProcess, checkExecutable } from "@/utils/runner.ts";
-import type { LaunchCommandSpec } from "@/domain/types.ts";
+import { buildPrompt } from "@/services/p/prompt-builder.ts";
+import {
+  type CliBackend,
+  checkBackendAvailable,
+  executeViaCli,
+  getExecutable,
+} from "@/services/p/backend-router.ts";
+import {
+  askContinueConversation,
+  enterInteractiveMode,
+  displayStream,
+} from "@/services/p/interactive-mode.ts";
 
-type PromptBackend = "xling" | "codex" | "claude" | "gemini";
+type PromptBackend = "xling" | CliBackend;
 
 export default class PCommand extends Command {
   static description =
@@ -152,7 +160,13 @@ export default class PCommand extends Command {
     const yolo = flags.yolo !== false;
 
     try {
-      const prompt = await this.#buildPrompt(args, flags);
+      const prompt = await buildPrompt({
+        positionalArg: args.prompt,
+        flagPrompt: flags.prompt,
+        files: flags.file,
+        stdin: flags.stdin,
+        warn: (msg) => this.warn(msg),
+      });
 
       if (!prompt.trim()) {
         this.error(
@@ -161,84 +175,11 @@ export default class PCommand extends Command {
       }
 
       if (backend !== "xling") {
-        this.#guardDirectMode(backend, flags);
-        await this.#executeViaCli(backend, prompt, yolo, flags);
+        await this.#handleDirectBackend(backend, prompt, yolo, flags);
         return;
       }
 
-      this.#ensureConfigExists();
-
-      const request: PromptRequest = {
-        prompt,
-        model: flags.model,
-        system: flags.system,
-        temperature: flags.temperature
-          ? parseFloat(flags.temperature)
-          : undefined,
-        maxTokens: flags["max-tokens"],
-        stream: flags.stream,
-      };
-
-      const router = await createRouter();
-
-      let firstResponse: string;
-      let usage:
-        | {
-            promptTokens: number;
-            completionTokens: number;
-            totalTokens: number;
-          }
-        | undefined;
-      let providerInfo: { provider: string; model: string } | undefined;
-
-      if (flags.stream && !flags.json) {
-        const streamResult = await router.executeStream(request);
-        firstResponse = await this.#displayStream(streamResult);
-
-        const finalResult = await streamResult.usage;
-        usage = finalResult
-          ? {
-              promptTokens: (finalResult as any).inputTokens ?? 0,
-              completionTokens: (finalResult as any).outputTokens ?? 0,
-              totalTokens: finalResult.totalTokens ?? 0,
-            }
-          : undefined;
-
-        providerInfo = {
-          provider: "streaming",
-          model: flags.model || "default",
-        };
-      } else {
-        const result = await router.execute(request);
-        firstResponse = result.content;
-        usage = result.usage;
-        providerInfo = { provider: result.provider, model: result.model };
-
-        if (flags.json) {
-          this.log(JSON.stringify(result, null, 2));
-        } else {
-          this.log(result.content);
-        }
-      }
-
-      if (!flags.json && usage && providerInfo) {
-        this.log(
-          `\n[${providerInfo.provider}/${providerInfo.model}] ` +
-            `${usage.totalTokens} tokens ` +
-            `(${usage.promptTokens} prompt + ${usage.completionTokens} completion)`,
-        );
-      }
-
-      const shouldInteract = this.#shouldEnterInteractive(flags);
-
-      let willEnterInteractive = shouldInteract;
-      if (!shouldInteract && !flags.json && process.stdout.isTTY) {
-        willEnterInteractive = await this.#askContinueConversation();
-      }
-
-      if (willEnterInteractive) {
-        await this.#enterInteractiveMode(prompt, firstResponse, flags, router);
-      }
+      await this.#handleXlingBackend(prompt, flags);
     } catch (error) {
       if (error instanceof ModelNotSupportedError) {
         this.error(error.message);
@@ -249,6 +190,116 @@ export default class PCommand extends Command {
       } else {
         this.error((error as Error).message);
       }
+    }
+  }
+
+  async #handleDirectBackend(
+    backend: CliBackend,
+    prompt: string,
+    yolo: boolean,
+    flags: Interfaces.InferredFlags<typeof PCommand.flags>,
+  ): Promise<void> {
+    this.#guardDirectMode(backend, flags);
+
+    const available = await checkBackendAvailable(backend);
+    if (!available) {
+      this.error(
+        `Tool "${getExecutable(backend)}" is not installed or not found in PATH. Please install it before using --tool ${backend}.`,
+      );
+    }
+
+    this.log(
+      `[backend: ${backend}] ${yolo ? "yolo on" : "yolo off"} — handing output to ${getExecutable(backend)}`,
+    );
+
+    await executeViaCli(backend, prompt, { yolo, model: flags.model });
+  }
+
+  async #handleXlingBackend(
+    prompt: string,
+    flags: Interfaces.InferredFlags<typeof PCommand.flags>,
+  ): Promise<void> {
+    this.#ensureConfigExists();
+
+    const request: PromptRequest = {
+      prompt,
+      model: flags.model,
+      system: flags.system,
+      temperature: flags.temperature
+        ? parseFloat(flags.temperature)
+        : undefined,
+      maxTokens: flags["max-tokens"],
+      stream: flags.stream,
+    };
+
+    const router = await createRouter();
+
+    let firstResponse: string;
+    let usage:
+      | { promptTokens: number; completionTokens: number; totalTokens: number }
+      | undefined;
+    let providerInfo: { provider: string; model: string } | undefined;
+
+    if (flags.stream && !flags.json) {
+      const streamResult = await router.executeStream(request);
+      firstResponse = await displayStream(streamResult);
+
+      const finalResult = await streamResult.usage;
+      usage = finalResult
+        ? {
+            promptTokens: (finalResult as any).inputTokens ?? 0,
+            completionTokens: (finalResult as any).outputTokens ?? 0,
+            totalTokens: finalResult.totalTokens ?? 0,
+          }
+        : undefined;
+
+      providerInfo = { provider: "streaming", model: flags.model || "default" };
+    } else {
+      const result = await router.execute(request);
+      firstResponse = result.content;
+      usage = result.usage;
+      providerInfo = { provider: result.provider, model: result.model };
+
+      if (flags.json) {
+        this.log(JSON.stringify(result, null, 2));
+      } else {
+        this.log(result.content);
+      }
+    }
+
+    if (!flags.json && usage && providerInfo) {
+      this.log(
+        `\n[${providerInfo.provider}/${providerInfo.model}] ` +
+          `${usage.totalTokens} tokens ` +
+          `(${usage.promptTokens} prompt + ${usage.completionTokens} completion)`,
+      );
+    }
+
+    const shouldInteract = flags.interactive || false;
+    let willEnterInteractive = shouldInteract;
+
+    if (!shouldInteract && !flags.json && process.stdout.isTTY) {
+      willEnterInteractive = await askContinueConversation((msg) =>
+        this.log(msg),
+      );
+    }
+
+    if (willEnterInteractive) {
+      await enterInteractiveMode(
+        {
+          initialPrompt: prompt,
+          initialResponse: firstResponse,
+          system: flags.system,
+          model: flags.model,
+          temperature: flags.temperature
+            ? parseFloat(flags.temperature)
+            : undefined,
+          maxTokens: flags["max-tokens"],
+        },
+        router,
+        (msg) => this.log(msg),
+        (msg) => this.error(msg),
+      );
     }
   }
 
@@ -279,7 +330,7 @@ export default class PCommand extends Command {
   }
 
   #guardDirectMode(
-    backend: Exclude<PromptBackend, "xling">,
+    backend: CliBackend,
     flags: Interfaces.InferredFlags<typeof PCommand.flags>,
   ): void {
     if (flags.interactive) {
@@ -290,440 +341,17 @@ export default class PCommand extends Command {
 
     const ignored: string[] = [];
 
-    if (flags.json) {
-      ignored.push("--json");
-    }
-
-    if (flags.model && backend !== "gemini") {
-      ignored.push("--model");
-    }
-
-    if (flags.system) {
-      ignored.push("--system");
-    }
-
-    if (flags.temperature !== undefined) {
-      ignored.push("--temperature");
-    }
-
-    if (flags["max-tokens"] !== undefined) {
-      ignored.push("--max-tokens");
-    }
-
-    if (flags.stream === false) {
-      ignored.push("--no-stream");
-    }
+    if (flags.json) ignored.push("--json");
+    if (flags.model && backend !== "gemini") ignored.push("--model");
+    if (flags.system) ignored.push("--system");
+    if (flags.temperature !== undefined) ignored.push("--temperature");
+    if (flags["max-tokens"] !== undefined) ignored.push("--max-tokens");
+    if (flags.stream === false) ignored.push("--no-stream");
 
     if (ignored.length > 0) {
       this.warn(
         `Ignoring ${ignored.join(", ")} when using direct CLI backend; codex/claude will apply their own defaults.`,
       );
     }
-  }
-
-  async #executeViaCli(
-    backend: Exclude<PromptBackend, "xling">,
-    prompt: string,
-    yolo: boolean,
-    flags: Interfaces.InferredFlags<typeof PCommand.flags>,
-  ): Promise<void> {
-    const executable =
-      backend === "codex"
-        ? "codex"
-        : backend === "gemini"
-          ? "gemini"
-          : "claude";
-    const available = await checkExecutable(executable);
-
-    if (!available) {
-      this.error(
-        `Tool "${executable}" is not installed or not found in PATH. Please install it before using --tool ${backend}.`,
-      );
-    }
-
-    const baseArgs: string[] =
-      backend === "codex" ? ["exec", prompt] : ["-p", prompt];
-
-    if (backend === "gemini" && flags.model) {
-      baseArgs.unshift("-m", flags.model);
-    }
-
-    const spec: LaunchCommandSpec = {
-      executable,
-      baseArgs,
-      yoloArgs:
-        backend === "codex"
-          ? yolo
-            ? ["--dangerously-bypass-approvals-and-sandbox"]
-            : undefined
-          : backend === "gemini"
-            ? yolo
-              ? ["-y"]
-              : undefined
-            : yolo
-              ? ["--dangerously-skip-permissions"]
-              : undefined,
-    };
-
-    this.log(
-      `[backend: ${backend}] ${yolo ? "yolo on" : "yolo off"} — handing output to ${executable}`,
-    );
-
-    await spawnProcess(spec);
-  }
-
-  /**
-   * Determine if should enter interactive mode
-   */
-  #shouldEnterInteractive(
-    flags: Interfaces.InferredFlags<typeof PCommand.flags>,
-  ): boolean {
-    // Explicit flag takes precedence
-    if (flags.interactive) {
-      return true;
-    }
-
-    // Auto-detect: TTY environment (can be used with --stdin after pipe completes)
-    if (process.stdout.isTTY && process.stdin.isTTY) {
-      // For now, only enable with explicit flag to avoid surprise
-      // User can use -i to explicitly enable
-      return false;
-    }
-
-    return false;
-  }
-
-  /**
-   * Ask user if they want to continue conversation
-   * Uses /dev/tty to read from terminal even when stdin is piped
-   */
-  async #askContinueConversation(): Promise<boolean> {
-    return new Promise((resolve) => {
-      let answered = false;
-
-      try {
-        // Open /dev/tty directly for both input and output
-        const ttyFd = fs.openSync("/dev/tty", "r+");
-        const ttyReadStream = new tty.ReadStream(ttyFd);
-        const ttyWriteStream = new tty.WriteStream(ttyFd);
-
-        const rl = readline.createInterface({
-          input: ttyReadStream,
-          output: ttyWriteStream,
-        });
-
-        rl.question("\nContinue conversation? (y/N): ", (answer) => {
-          answered = true;
-          const normalized = answer.trim().toLowerCase();
-          const shouldContinue = normalized === "y" || normalized === "yes";
-          if (!shouldContinue) {
-            (ttyWriteStream ?? process.stdout).write(
-              "\nOkay, not continuing the conversation.\n",
-            );
-          }
-          rl.close();
-          ttyReadStream.destroy();
-          ttyWriteStream.destroy();
-          fs.closeSync(ttyFd);
-          resolve(shouldContinue);
-        });
-
-        // Auto-decline after 10 seconds
-        setTimeout(() => {
-          if (!answered) {
-            rl.close();
-            ttyReadStream.destroy();
-            ttyWriteStream.destroy();
-            fs.closeSync(ttyFd);
-            process.stdout.write(
-              "\nNo response received. Ending conversation prompt.\n",
-            );
-            resolve(false);
-          }
-        }, 10000);
-      } catch {
-        // If /dev/tty is not available (e.g., not a TTY environment), decline
-        this.log("Skipping interactive follow-up (TTY not available).");
-        resolve(false);
-      }
-    });
-  }
-
-  /**
-   * Enter interactive REPL mode
-   * Uses /dev/tty for proper terminal behavior when stdin is piped
-   */
-  async #enterInteractiveMode(
-    initialPrompt: string,
-    initialResponse: string,
-    flags: Interfaces.InferredFlags<typeof PCommand.flags>,
-    router: Awaited<ReturnType<typeof createRouter>>,
-  ): Promise<void> {
-    // Build message history
-    const messages: ChatMessage[] = [];
-
-    // Add system message if provided
-    if (flags.system) {
-      messages.push({ role: "system", content: flags.system });
-    }
-
-    // Add initial conversation
-    messages.push({ role: "user", content: initialPrompt });
-    messages.push({ role: "assistant", content: initialResponse });
-
-    this.log(
-      "\n--- Interactive mode (type 'exit', 'quit', or press Ctrl+D to end) ---\n",
-    );
-
-    try {
-      let rl: readline.Interface;
-      let ttyFd: number | null = null;
-      let ttyReadStream: tty.ReadStream | null = null;
-      let ttyWriteStream: tty.WriteStream | null = null;
-      let wasRaw = false;
-      let inputStream: NodeJS.ReadableStream;
-
-      // Cleanup function to restore terminal state
-      const cleanup = () => {
-        // Restore raw mode state
-        if (inputStream && "setRawMode" in inputStream) {
-          try {
-            (inputStream as tty.ReadStream).setRawMode(wasRaw);
-          } catch {
-            // Ignore errors during cleanup
-          }
-        }
-
-        // Close TTY streams if opened
-        if (ttyReadStream) {
-          try {
-            ttyReadStream.destroy();
-          } catch {
-            // Ignore errors during cleanup
-          }
-        }
-        if (ttyWriteStream) {
-          try {
-            ttyWriteStream.destroy();
-          } catch {
-            // Ignore errors during cleanup
-          }
-        }
-        if (ttyFd !== null) {
-          try {
-            fs.closeSync(ttyFd);
-          } catch {
-            // Ignore errors during cleanup
-          }
-        }
-      };
-
-      if (process.stdin.isTTY) {
-        // stdin is available, use it directly
-        inputStream = process.stdin;
-
-        // Save raw mode state and enable it for proper input handling
-        wasRaw = process.stdin.isRaw || false;
-        if (!wasRaw) {
-          process.stdin.setRawMode(true);
-        }
-
-        rl = readline.createInterface({
-          input: process.stdin,
-          output: process.stdout,
-          prompt: "> ",
-        });
-      } else {
-        // stdin is piped, open /dev/tty directly
-        ttyFd = fs.openSync("/dev/tty", "r+");
-        ttyReadStream = new tty.ReadStream(ttyFd);
-        ttyWriteStream = new tty.WriteStream(ttyFd);
-        inputStream = ttyReadStream;
-
-        // Enable raw mode on the TTY stream for proper input handling
-        // This prevents terminal echo conflicts with readline
-        wasRaw = ttyReadStream.isRaw || false;
-        if (!wasRaw) {
-          ttyReadStream.setRawMode(true);
-        }
-
-        rl = readline.createInterface({
-          input: ttyReadStream,
-          output: ttyWriteStream,
-          prompt: "> ",
-        });
-      }
-
-      const outputStream = ttyWriteStream || process.stdout;
-
-      rl.prompt();
-
-      rl.on("line", (input: string) => {
-        void (async () => {
-          const trimmed = input.trim();
-
-          // Check for exit commands
-          if (["exit", "quit", "q"].includes(trimmed.toLowerCase())) {
-            rl.close();
-            return;
-          }
-
-          // Ignore empty input
-          if (!trimmed) {
-            rl.prompt();
-            return;
-          }
-
-          // Add user message
-          messages.push({ role: "user", content: trimmed });
-
-          try {
-            // Execute and stream response
-            const request: PromptRequest = {
-              messages,
-              model: flags.model,
-              temperature: flags.temperature
-                ? parseFloat(flags.temperature)
-                : undefined,
-              maxTokens: flags["max-tokens"],
-              stream: true,
-            };
-
-            const streamResult = await router.executeStream(request);
-            const responseText = await this.#displayStream(
-              streamResult,
-              outputStream,
-            );
-
-            // Add assistant response to history
-            messages.push({ role: "assistant", content: responseText });
-
-            rl.prompt();
-          } catch (error) {
-            outputStream.write(`\n[Error] ${(error as Error).message}\n\n`);
-            rl.prompt();
-          }
-        })();
-      });
-
-      rl.on("close", () => {
-        cleanup();
-        this.log("\nGoodbye!");
-        process.exit(0);
-      });
-
-      // Handle Ctrl+C gracefully
-      rl.on("SIGINT", () => {
-        outputStream.write(
-          "\n\nInterrupted. Type 'exit' to quit or continue chatting.\n",
-        );
-        rl.prompt();
-      });
-
-      // Register cleanup on process signals
-      const signalHandler = () => {
-        cleanup();
-        process.exit(0);
-      };
-      process.once("SIGTERM", signalHandler);
-      process.once("SIGINT", signalHandler);
-    } catch (error) {
-      this.error(`Cannot enter interactive mode: ${(error as Error).message}`);
-    }
-  }
-
-  /**
-   * Display streaming output and return full text
-   */
-  async #displayStream(
-    streamResult: Awaited<
-      ReturnType<Awaited<ReturnType<typeof createRouter>>["executeStream"]>
-    >,
-    outputStream: NodeJS.WritableStream = process.stdout,
-  ): Promise<string> {
-    let fullText = "";
-
-    outputStream.write("\n");
-
-    for await (const chunk of streamResult.textStream) {
-      outputStream.write(chunk);
-      fullText += chunk;
-
-      // Force flush to ensure immediate output
-      // This is especially important for TTY streams
-      if ("flush" in outputStream && typeof outputStream.flush === "function") {
-        outputStream.flush();
-      }
-    }
-
-    outputStream.write("\n");
-
-    return fullText;
-  }
-
-  /**
-   * Build prompt from various sources
-   */
-  async #buildPrompt(
-    args: Interfaces.InferredArgs<typeof PCommand.args>,
-    flags: Interfaces.InferredFlags<typeof PCommand.flags>,
-  ): Promise<string> {
-    const parts: string[] = [];
-
-    // From positional argument
-    if (args.prompt) {
-      parts.push(args.prompt);
-    }
-
-    // From --prompt flag
-    if (flags.prompt) {
-      parts.push(flags.prompt);
-    }
-
-    // From --file
-    if (flags.file && flags.file.length > 0) {
-      for (const file of flags.file) {
-        try {
-          const content = fs.readFileSync(file, "utf-8");
-          parts.push(`\n--- File: ${file} ---\n${content}`);
-        } catch (error) {
-          this.warn(`Failed to read file ${file}: ${(error as Error).message}`);
-        }
-      }
-    }
-
-    // From stdin
-    if (flags.stdin) {
-      const stdin = await this.#readStdin();
-      if (stdin) {
-        parts.push(stdin);
-      }
-    }
-
-    return parts.join("\n").trim();
-  }
-
-  /**
-   * Read from stdin
-   */
-  async #readStdin(): Promise<string> {
-    return new Promise((resolve) => {
-      const chunks: string[] = [];
-
-      process.stdin.setEncoding("utf-8");
-
-      process.stdin.on("data", (chunk: string | Buffer) => {
-        chunks.push(chunk.toString());
-      });
-
-      process.stdin.on("end", () => {
-        resolve(chunks.join(""));
-      });
-
-      // If stdin is a TTY, it means no piped input
-      if (process.stdin.isTTY) {
-        resolve("");
-      }
-    });
   }
 }

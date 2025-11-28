@@ -2,7 +2,7 @@ import { Command, Flags, Interfaces } from "@oclif/core";
 import { runCouncil } from "@/services/council/runner.ts";
 import { createRouter } from "@/services/prompt/router.ts";
 import { createDiscussServer } from "@/services/discuss/server.ts";
-import * as readline from "node:readline";
+import { promptUser } from "@/utils/cli.ts";
 import * as open from "open";
 
 export default class CouncilCommand extends Command {
@@ -64,7 +64,7 @@ export default class CouncilCommand extends Command {
       return;
     }
 
-    const question = flags.question ?? (await this.#prompt("Question: "));
+    const question = flags.question ?? (await promptUser("Question: "));
     const models = parseList(flags.models);
     if (models.length < 2) {
       this.error("Provide at least two models via --models");
@@ -126,19 +126,6 @@ export default class CouncilCommand extends Command {
         `\nFinal (${result.final.model}):\n${indent(result.final.content)}`,
       );
     }
-  }
-
-  async #prompt(question: string): Promise<string> {
-    const rl = readline.createInterface({
-      input: process.stdin,
-      output: process.stdout,
-    });
-    return new Promise((resolve) => {
-      rl.question(question, (answer) => {
-        rl.close();
-        resolve(answer.trim());
-      });
-    });
   }
 }
 
