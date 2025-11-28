@@ -644,7 +644,11 @@ function mapModel(
   }
 
   // 2. Check if model is supported by any provider
-  if (providers?.some((p) => p.models.some((m) => m === model || model.startsWith(m)))) {
+  if (
+    providers?.some((p) =>
+      p.models.some((m) => m === model || model.startsWith(m)),
+    )
+  ) {
     return model;
   }
 
