@@ -11,9 +11,10 @@ import type {
   ConfigObject,
   ConfigValue,
   EditOptions,
+  InspectResult,
 } from "@/domain/types.ts";
 import { BaseAdapter } from "./base.ts";
-import { ConfigFileNotFoundError, InvalidScopeError } from "@/utils/errors.ts";
+import { ConfigFileNotFoundError } from "@/utils/errors.ts";
 import * as fsStore from "@/services/settings/fsStore.ts";
 import { openInEditor, resolveEditorCommand } from "@/utils/editor.ts";
 
@@ -33,11 +34,7 @@ export class CodexAdapter extends BaseAdapter {
    * Custom list implementation that focuses on model_providers
    */
   override async list(scope: Scope): Promise<SettingsListData> {
-    if (!this.validateScope(scope)) {
-      throw new InvalidScopeError(scope);
-    }
-
-    const path = this.resolvePath(scope);
+    const path = this.validateAndResolvePath(scope);
     const config = this.readConfig(path);
     const providers = this.#extractProviders(config);
 
@@ -45,6 +42,143 @@ export class CodexAdapter extends BaseAdapter {
       type: "entries",
       entries: providers,
       filePath: path,
+    };
+  }
+
+  /**
+   * Override inspect to return the current active configuration
+   * - If model_provider is set: return that provider's config from model_providers
+   * - If current_profile is set: return that profile's config
+   * - If auth.json exists: indicate auth mode is active
+   * - Otherwise: return empty/default state
+   */
+  override async inspect(scope: Scope): Promise<InspectResult> {
+    const configPath = this.validateAndResolvePath(scope);
+    const resolvedPath = fsStore.resolveHome(configPath);
+
+    // Check if config.toml exists
+    if (!fsStore.fileExists(configPath)) {
+      // Check if using auth mode without config
+      if (fsStore.fileExists(AUTH_FILE_PATH)) {
+        const authData = this.#readAuthData();
+        const profileName = this.#identifyAuthProfile();
+        return {
+          path: fsStore.resolveHome(AUTH_FILE_PATH),
+          exists: true,
+          content: JSON.stringify(
+            {
+              mode: "auth",
+              currentAuthProfile: profileName,
+              authFile: fsStore.resolveHome(AUTH_FILE_PATH),
+              authData: authData,
+            },
+            null,
+            2,
+          ),
+        };
+      }
+      return {
+        path: resolvedPath,
+        exists: false,
+      };
+    }
+
+    const config = this.#readConfigSafe(configPath);
+    const fileInfo = fsStore.getFileInfo(configPath);
+
+    // Check for current_profile (named profile mode)
+    if (config.current_profile && typeof config.current_profile === "string") {
+      const profileName = config.current_profile;
+      const profiles = isConfigObject(config.profiles) ? config.profiles : {};
+      const profileConfig = profiles[profileName];
+
+      return {
+        path: resolvedPath,
+        exists: true,
+        content: JSON.stringify(
+          {
+            mode: "profile",
+            currentProfile: profileName,
+            config: isConfigObject(profileConfig) ? profileConfig : {},
+          },
+          null,
+          2,
+        ),
+        size: fileInfo?.size,
+        lastModified: fileInfo?.lastModified,
+      };
+    }
+
+    // Check for model_provider (provider mode)
+    if (config.model_provider && typeof config.model_provider === "string") {
+      const providerName = config.model_provider;
+      const providers = isConfigObject(config.model_providers)
+        ? config.model_providers
+        : {};
+      const providerConfig = providers[providerName];
+
+      return {
+        path: resolvedPath,
+        exists: true,
+        content: JSON.stringify(
+          {
+            mode: "provider",
+            currentProvider: providerName,
+            config: isConfigObject(providerConfig) ? providerConfig : {},
+          },
+          null,
+          2,
+        ),
+        size: fileInfo?.size,
+        lastModified: fileInfo?.lastModified,
+      };
+    }
+
+    // Check for current_auth_profile or auth.json exists
+    const currentAuthProfile =
+      typeof config.current_auth_profile === "string"
+        ? config.current_auth_profile
+        : null;
+
+    if (currentAuthProfile || fsStore.fileExists(AUTH_FILE_PATH)) {
+      const authData = this.#readAuthData();
+      const profileName = currentAuthProfile || this.#identifyAuthProfile();
+
+      return {
+        path: fsStore.resolveHome(AUTH_FILE_PATH),
+        exists: true,
+        content: JSON.stringify(
+          {
+            mode: "auth",
+            currentAuthProfile: profileName,
+            authFile: fsStore.resolveHome(AUTH_FILE_PATH),
+            configFile: resolvedPath,
+            authData: authData,
+          },
+          null,
+          2,
+        ),
+        size: fileInfo?.size,
+        lastModified: fileInfo?.lastModified,
+      };
+    }
+
+    // No active configuration found
+    return {
+      path: resolvedPath,
+      exists: true,
+      content: JSON.stringify(
+        {
+          mode: "none",
+          message:
+            "No active provider or auth configured. Run 'codex login' or configure a model_provider.",
+          configFile: resolvedPath,
+        },
+        null,
+        2,
+      ),
+      size: fileInfo?.size,
+      lastModified: fileInfo?.lastModified,
     };
   }
 
@@ -75,9 +209,7 @@ export class CodexAdapter extends BaseAdapter {
     profile: string,
     _options?: SwitchOptions,
   ): Promise<SettingsResult> {
-    if (!this.validateScope(scope)) {
-      throw new InvalidScopeError(scope);
-    }
+    this.validateAndResolvePath(scope);
 
     // Check if it's an auth profile first
     if (this.isAuthProfile(profile)) {
@@ -92,11 +224,7 @@ export class CodexAdapter extends BaseAdapter {
     scope: Scope,
     options: EditOptions,
   ): Promise<SettingsResult> {
-    if (!this.validateScope(scope)) {
-      throw new InvalidScopeError(scope);
-    }
-
-    const configPath = this.resolvePath(scope);
+    const configPath = this.validateAndResolvePath(scope);
 
     if (!options.provider) {
       const resolvedPath = fsStore.resolveHome(configPath);
@@ -276,6 +404,7 @@ export class CodexAdapter extends BaseAdapter {
   /**
    * Switch to an auth profile
    * Simply copies the saved profile to auth.json (overwriting any existing)
+   * Also records the profile name in config.toml for later reference
    */
   #switchToAuthProfile(name: string): SettingsResult {
     const profilePath = `${AUTH_PROFILES_DIR}/${name}.json`;
@@ -292,15 +421,16 @@ export class CodexAdapter extends BaseAdapter {
     // Copy profile to auth.json (overwrites existing)
     fsStore.copyFile(profilePath, AUTH_FILE_PATH);
 
-    // Remove model_provider from config.toml (if exists)
+    // Update config.toml: remove model_provider, add current_auth_profile
     try {
-      const config = this.readConfig(configPath);
-      if (config.model_provider) {
-        delete config.model_provider;
-        this.writeConfig(configPath, config);
-      }
+      const config = this.#readConfigSafe(configPath);
+      delete config.model_provider;
+      delete config.current_profile;
+      config.current_auth_profile = name;
+      this.writeConfig(configPath, config);
     } catch {
-      // Config file may not exist, that's ok
+      // Config file may not exist, create it with just the auth profile
+      this.writeConfig(configPath, { current_auth_profile: name });
     }
 
     return {
@@ -313,6 +443,7 @@ export class CodexAdapter extends BaseAdapter {
   /**
    * Switch to a provider
    * Deletes auth.json since we're using provider instead
+   * Also clears current_auth_profile from config.toml
    */
   #switchToProvider(scope: Scope, name: string): SettingsResult {
     const configPath = this.resolvePath(scope);
@@ -323,7 +454,10 @@ export class CodexAdapter extends BaseAdapter {
     }
 
     // Read config and check for named profile first
-    const config = this.readConfig(configPath);
+    const config = this.#readConfigSafe(configPath);
+
+    // Clear auth profile reference
+    delete config.current_auth_profile;
 
     const profilesValue = config.profiles;
     const profiles = isConfigObject(profilesValue) ? profilesValue : undefined;
@@ -336,6 +470,7 @@ export class CodexAdapter extends BaseAdapter {
         newConfig[key] = value;
       }
       newConfig.current_profile = name;
+      delete newConfig.model_provider;
 
       this.writeConfig(configPath, newConfig);
 
@@ -347,6 +482,7 @@ export class CodexAdapter extends BaseAdapter {
     }
 
     // Otherwise set model_provider
+    delete config.current_profile;
     const newConfig = { ...config, model_provider: name };
     this.writeConfig(configPath, newConfig);
 
@@ -388,6 +524,55 @@ export class CodexAdapter extends BaseAdapter {
       return providers;
     }
     return {};
+  }
+
+  /**
+   * Read auth.json data
+   * Returns the parsed content or null if file doesn't exist
+   */
+  #readAuthData(): ConfigObject | null {
+    if (!fsStore.fileExists(AUTH_FILE_PATH)) {
+      return null;
+    }
+    try {
+      return fsStore.readJSON(AUTH_FILE_PATH);
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Identify which auth profile matches the current auth.json
+   * Compares auth.json content with each profile in auth-profiles directory
+   * Returns the matching profile name, or "default" if no match found
+   */
+  #identifyAuthProfile(): string {
+    if (!fsStore.fileExists(AUTH_FILE_PATH)) {
+      return "default";
+    }
+
+    let currentAuthContent: string;
+    try {
+      currentAuthContent = fsStore.readFile(AUTH_FILE_PATH);
+    } catch {
+      return "default";
+    }
+
+    const profiles = this.listAuthProfiles();
+    for (const profileName of profiles) {
+      const profilePath = `${AUTH_PROFILES_DIR}/${profileName}.json`;
+      try {
+        const profileContent = fsStore.readFile(profilePath);
+        if (currentAuthContent === profileContent) {
+          return profileName;
+        }
+      } catch {
+        // Skip profiles that can't be read
+        continue;
+      }
+    }
+
+    return "default";
   }
 }
 

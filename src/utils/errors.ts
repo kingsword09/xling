@@ -123,3 +123,67 @@ export class GitCommandError extends XlingError {
     this.name = "GitCommandError";
   }
 }
+
+/**
+ * Error thrown when a required payload field is missing or invalid
+ */
+export class InvalidPayloadError extends XlingError {
+  constructor(message: string) {
+    super(message);
+    this.name = "InvalidPayloadError";
+  }
+}
+
+/**
+ * Error thrown when an action is not supported
+ */
+export class UnsupportedActionError extends XlingError {
+  constructor(action: string, context?: string) {
+    super(
+      context
+        ? `Unsupported action: ${action} (${context})`
+        : `Unsupported action: ${action}`,
+    );
+    this.name = "UnsupportedActionError";
+  }
+}
+
+/**
+ * Error thrown when a validation fails
+ */
+export class ValidationError extends XlingError {
+  constructor(message: string) {
+    super(message);
+    this.name = "ValidationError";
+  }
+}
+
+/**
+ * Error thrown when a PR operation fails
+ */
+export class PROperationError extends XlingError {
+  constructor(operation: string, reason: string) {
+    super(`PR ${operation} failed: ${reason}`);
+    this.name = "PROperationError";
+  }
+}
+
+/**
+ * Error thrown when a worktree operation fails
+ */
+export class WorktreeError extends XlingError {
+  constructor(message: string) {
+    super(message);
+    this.name = "WorktreeError";
+  }
+}
+
+/**
+ * Error thrown when a council/discussion operation fails
+ */
+export class CouncilError extends XlingError {
+  constructor(message: string) {
+    super(message);
+    this.name = "CouncilError";
+  }
+}

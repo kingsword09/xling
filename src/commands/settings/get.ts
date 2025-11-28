@@ -121,7 +121,7 @@ export default class SettingsGet extends Command {
     const resolvedBase = fsStore.resolveHome(basePath);
     const directory = path.dirname(resolvedBase);
     const variantPath =
-      this.#findVariantPath(directory, normalized) ??
+      fsStore.findVariantPath(directory, normalized) ??
       path.join(directory, `settings.${normalized}.json`);
 
     if (!fs.existsSync(variantPath)) {
@@ -139,17 +139,5 @@ export default class SettingsGet extends Command {
       size: stats.size,
       lastModified: stats.mtime,
     };
-  }
-
-  #findVariantPath(directory: string, name: string): string | null {
-    const candidates = [`settings.${name}.json`, `settings-${name}.json`];
-
-    for (const candidate of candidates) {
-      const fullPath = path.join(directory, candidate);
-      if (fs.existsSync(fullPath)) {
-        return fullPath;
-      }
-    }
-    return null;
   }
 }

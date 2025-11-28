@@ -13,7 +13,11 @@ import { ClaudeAdapter } from "./adapters/claude.ts";
 import { CodexAdapter } from "./adapters/codex.ts";
 import { GeminiAdapter } from "./adapters/gemini.ts";
 import { XlingAdapter } from "./adapters/xling.ts";
-import { UnsupportedToolError } from "@/utils/errors.ts";
+import {
+  UnsupportedToolError,
+  InvalidPayloadError,
+  UnsupportedActionError,
+} from "@/utils/errors.ts";
 
 /**
  * Applies SOLID principles:
@@ -48,12 +52,12 @@ export class SettingsDispatcher {
 
       case "switch-profile":
         if (!payload.profile) {
-          throw new Error("Profile is required for switch-profile action");
+          throw new InvalidPayloadError(
+            "Profile is required for switch-profile action",
+          );
         }
         if (!adapter.switchProfile) {
-          throw new Error(
-            `Tool ${payload.tool} does not support profile switching`,
-          );
+          throw new UnsupportedActionError("switch-profile", payload.tool);
         }
         return await adapter.switchProfile(
           payload.scope,
@@ -63,9 +67,7 @@ export class SettingsDispatcher {
 
       case "edit":
         if (!adapter.edit) {
-          throw new Error(
-            `Tool ${payload.tool} does not support editing via CLI`,
-          );
+          throw new UnsupportedActionError("edit", payload.tool);
         }
         return await adapter.edit(payload.scope, {
           name: payload.name,
@@ -75,9 +77,7 @@ export class SettingsDispatcher {
 
       case "inspect":
         if (!adapter.inspect) {
-          throw new Error(
-            `Tool ${payload.tool} does not support inspect action`,
-          );
+          throw new UnsupportedActionError("inspect", payload.tool);
         }
         return {
           success: true,
@@ -85,7 +85,7 @@ export class SettingsDispatcher {
         };
 
       default:
-        throw new Error("Unsupported action");
+        throw new UnsupportedActionError(payload.action);
     }
   }
 

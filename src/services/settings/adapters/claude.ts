@@ -15,10 +15,7 @@ import type {
 } from "@/domain/types.ts";
 import { BaseAdapter } from "./base.ts";
 import * as fsStore from "@/services/settings/fsStore.ts";
-import {
-  InvalidScopeError,
-  SettingsVariantNotFoundError,
-} from "@/utils/errors.ts";
+import { SettingsVariantNotFoundError } from "@/utils/errors.ts";
 import { CLAUDE_SETTINGS_TEMPLATE } from "@/services/settings/templates/claudeDefault.ts";
 import { openInEditor, resolveEditorCommand } from "@/utils/editor.ts";
 import { formatDiff } from "@/utils/format.ts";
@@ -36,11 +33,7 @@ export class ClaudeAdapter extends BaseAdapter {
    * List every settings.*.json file in the scope directory
    */
   override async list(scope: Scope): Promise<SettingsListData> {
-    if (!this.validateScope(scope)) {
-      throw new InvalidScopeError(scope);
-    }
-
-    const activePath = fsStore.resolveHome(this.resolvePath(scope));
+    const activePath = fsStore.resolveHome(this.validateAndResolvePath(scope));
     const directory = path.dirname(activePath);
     const activeFilename = path.basename(activePath);
 
@@ -97,18 +90,14 @@ export class ClaudeAdapter extends BaseAdapter {
     profile: string,
     options?: SwitchOptions,
   ): Promise<SettingsResult> {
-    if (!this.validateScope(scope)) {
-      throw new InvalidScopeError(scope);
-    }
-
+    const targetPath = fsStore.resolveHome(this.validateAndResolvePath(scope));
     const variant = profile.trim();
     if (!variant) {
       throw new Error("Variant name cannot be empty");
     }
 
-    const targetPath = fsStore.resolveHome(this.resolvePath(scope));
     const directory = path.dirname(targetPath);
-    const sourcePath = this.#findVariantPath(directory, variant, targetPath);
+    const sourcePath = fsStore.findVariantPath(directory, variant, targetPath);
 
     if (!sourcePath) {
       throw new SettingsVariantNotFoundError(variant);
@@ -168,11 +157,7 @@ export class ClaudeAdapter extends BaseAdapter {
     scope: Scope,
     options: EditOptions,
   ): Promise<SettingsResult> {
-    if (!this.validateScope(scope)) {
-      throw new InvalidScopeError(scope);
-    }
-
-    const basePath = fsStore.resolveHome(this.resolvePath(scope));
+    const basePath = fsStore.resolveHome(this.validateAndResolvePath(scope));
     const directory = path.dirname(basePath);
     const variantName = options.name?.trim();
     const resolvedEditor = resolveEditorCommand(options.ide);
@@ -183,7 +168,7 @@ export class ClaudeAdapter extends BaseAdapter {
     let label = "default";
 
     if (variantName && variantName !== "" && variantName !== "default") {
-      const existingPath = this.#findVariantPath(
+      const existingPath = fsStore.findVariantPath(
         directory,
         variantName,
         basePath,
@@ -266,40 +251,5 @@ export class ClaudeAdapter extends BaseAdapter {
       if (!a.active && b.active) return 1;
       return a.variant.localeCompare(b.variant);
     });
-  }
-
-  #findVariantPath(
-    directory: string,
-    profile: string,
-    defaultPath: string,
-  ): string | null {
-    const candidates: string[] = [];
-    const pushCandidate = (value: string) => {
-      if (!candidates.includes(value)) {
-        candidates.push(value);
-      }
-    };
-
-    if (profile === "default") {
-      pushCandidate(defaultPath);
-    }
-
-    if (profile.endsWith(".json")) {
-      pushCandidate(
-        path.isAbsolute(profile) ? profile : path.join(directory, profile),
-      );
-    } else {
-      pushCandidate(path.join(directory, `settings.${profile}.json`));
-      pushCandidate(path.join(directory, `settings-${profile}.json`));
-      pushCandidate(path.join(directory, `settings_${profile}.json`));
-    }
-
-    for (const candidate of candidates) {
-      if (fs.existsSync(candidate)) {
-        return candidate;
-      }
-    }
-
-    return null;
   }
 }

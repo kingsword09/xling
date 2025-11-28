@@ -39,9 +39,12 @@ export function ensureDir(dirPath: string): void {
 }
 
 /**
- * Read a JSON file
+ * Generic config file reader - eliminates duplication between readJSON and readTOML
  */
-export function readJSON(filepath: string): ConfigObject {
+function readConfigFile<T>(
+  filepath: string,
+  parser: (content: string) => T,
+): T {
   const resolvedPath = resolveHome(filepath);
 
   if (!fs.existsSync(resolvedPath)) {
@@ -50,18 +53,19 @@ export function readJSON(filepath: string): ConfigObject {
 
   try {
     const content = fs.readFileSync(resolvedPath, "utf-8");
-    return JSON.parse(content);
+    return parser(content);
   } catch (error) {
     throw new ConfigParseError(resolvedPath, (error as Error).message);
   }
 }
 
 /**
- * Write a JSON file
+ * Generic config file writer - eliminates duplication between writeJSON and writeTOML
  */
-export function writeJSON(
+function writeConfigFile(
   filepath: string,
   data: ConfigObject,
+  serializer: (data: ConfigObject) => string,
   backup = true,
 ): void {
   const resolvedPath = resolveHome(filepath);
@@ -78,7 +82,7 @@ export function writeJSON(
   try {
     // Atomic write: temporary file then rename
     const tempPath = `${resolvedPath}.tmp`;
-    fs.writeFileSync(tempPath, JSON.stringify(data, null, 2), "utf-8");
+    fs.writeFileSync(tempPath, serializer(data), "utf-8");
     fs.renameSync(tempPath, resolvedPath);
   } catch (error) {
     throw new FileWriteError(resolvedPath, (error as Error).message);
@@ -86,21 +90,31 @@ export function writeJSON(
 }
 
 /**
+ * Read a JSON file
+ */
+export function readJSON(filepath: string): ConfigObject {
+  return readConfigFile(filepath, JSON.parse);
+}
+
+/**
+ * Write a JSON file
+ */
+export function writeJSON(
+  filepath: string,
+  data: ConfigObject,
+  backup = true,
+): void {
+  writeConfigFile(filepath, data, (d) => JSON.stringify(d, null, 2), backup);
+}
+
+/**
  * Read a TOML file
  */
 export function readTOML(filepath: string): ConfigObject {
-  const resolvedPath = resolveHome(filepath);
-
-  if (!fs.existsSync(resolvedPath)) {
-    throw new ConfigFileNotFoundError(resolvedPath);
-  }
-
-  try {
-    const content = fs.readFileSync(resolvedPath, "utf-8");
-    return toml.parse(content) as ConfigObject;
-  } catch (error) {
-    throw new ConfigParseError(resolvedPath, (error as Error).message);
-  }
+  return readConfigFile(
+    filepath,
+    (content) => toml.parse(content) as ConfigObject,
+  );
 }
 
 /**
@@ -111,25 +125,7 @@ export function writeTOML(
   data: ConfigObject,
   backup = true,
 ): void {
-  const resolvedPath = resolveHome(filepath);
-
-  // Ensure the destination directory exists
-  ensureDir(path.dirname(resolvedPath));
-
-  // Backup the existing file if needed
-  if (backup && fs.existsSync(resolvedPath)) {
-    const backupPath = `${resolvedPath}.bak`;
-    fs.copyFileSync(resolvedPath, backupPath);
-  }
-
-  try {
-    // Atomic write
-    const tempPath = `${resolvedPath}.tmp`;
-    fs.writeFileSync(tempPath, toml.stringify(data), "utf-8");
-    fs.renameSync(tempPath, resolvedPath);
-  } catch (error) {
-    throw new FileWriteError(resolvedPath, (error as Error).message);
-  }
+  writeConfigFile(filepath, data, toml.stringify, backup);
 }
 
 /**
@@ -271,4 +267,47 @@ export function deleteFile(filepath: string): void {
   if (fs.existsSync(resolvedPath)) {
     fs.unlinkSync(resolvedPath);
   }
+}
+
+/**
+ * Find a settings variant file by name in a directory
+ * Supports multiple naming conventions: settings.{name}.json, settings-{name}.json, settings_{name}.json
+ * Also handles "default" as a special case and direct .json file paths
+ */
+export function findVariantPath(
+  directory: string,
+  profile: string,
+  defaultPath?: string,
+): string | null {
+  const candidates: string[] = [];
+  const pushCandidate = (value: string) => {
+    if (!candidates.includes(value)) {
+      candidates.push(value);
+    }
+  };
+
+  // Handle "default" as a special case
+  if (profile === "default" && defaultPath) {
+    pushCandidate(defaultPath);
+  }
+
+  // Handle direct .json file paths
+  if (profile.endsWith(".json")) {
+    pushCandidate(
+      path.isAbsolute(profile) ? profile : path.join(directory, profile),
+    );
+  } else {
+    // Try all naming conventions
+    pushCandidate(path.join(directory, `settings.${profile}.json`));
+    pushCandidate(path.join(directory, `settings-${profile}.json`));
+    pushCandidate(path.join(directory, `settings_${profile}.json`));
+  }
+
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate)) {
+      return candidate;
+    }
+  }
+
+  return null;
 }

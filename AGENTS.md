@@ -175,6 +175,25 @@ constructor() {
 2. Extend `Command`, implement `run`, and define `args`/`flags`.
 3. oclif automatically registers the command based on its path.
 
+## Error Handling
+
+All errors extend the shared `XlingError` base class in `src/utils/errors.ts`:
+
+| Error Class | Usage |
+|-------------|-------|
+| `InvalidScopeError` | Invalid scope parameter |
+| `InvalidPayloadError` | Missing or invalid payload fields |
+| `UnsupportedActionError` | Action not supported by tool |
+| `UnsupportedToolError` | Tool not registered |
+| `ConfigFileNotFoundError` | Config file missing |
+| `ConfigParseError` | Config file parse failure |
+| `ValidationError` | General validation failure |
+| `PROperationError` | PR operation failure |
+| `WorktreeError` | Worktree operation failure |
+| `CouncilError` | Council/discussion operation failure |
+
+**Best Practice**: Always use custom error classes instead of generic `Error` for better error handling and debugging.
+
 ## Additional Notes
 
 - Configuration writes are atomic (temp file + rename).
@@ -182,3 +201,4 @@ constructor() {
 - Files are backed up automatically with a `.bak` suffix.
 - All errors extend the shared `XlingError` base class.
 - Runtime validation is powered by Zod.
+- Use `validateAndResolvePath()` in adapters to combine scope validation and path resolution.
