@@ -14,7 +14,7 @@ import type {
   SwitchOptions,
   ConfigObject,
 } from "@/domain/types.ts";
-import { InvalidScopeError } from "@/utils/errors.ts";
+import { InvalidScopeError, UnsupportedActionError } from "@/utils/errors.ts";
 import * as fsStore from "@/services/settings/fsStore.ts";
 
 /**
@@ -32,14 +32,20 @@ export abstract class BaseAdapter<TConfig = ConfigObject>
   abstract validateScope(scope: Scope): boolean;
 
   /**
-   * List all configuration entries for a scope
+   * Validate scope and resolve path in one call - eliminates repetitive validation code
    */
-  async list(scope: Scope): Promise<SettingsListData> {
+  protected validateAndResolvePath(scope: Scope): string {
     if (!this.validateScope(scope)) {
       throw new InvalidScopeError(scope);
     }
+    return this.resolvePath(scope);
+  }
 
-    const path = this.resolvePath(scope);
+  /**
+   * List all configuration entries for a scope
+   */
+  async list(scope: Scope): Promise<SettingsListData> {
+    const path = this.validateAndResolvePath(scope);
     const config = this.readConfig(path);
 
     return {
@@ -57,18 +63,14 @@ export abstract class BaseAdapter<TConfig = ConfigObject>
     _profile: string,
     _options?: SwitchOptions,
   ): Promise<SettingsResult> {
-    throw new Error(`Tool ${this.toolId} does not support profile switching`);
+    throw new UnsupportedActionError("switch-profile", this.toolId);
   }
 
   /**
    * Inspect the configuration file
    */
   async inspect(scope: Scope): Promise<InspectResult> {
-    if (!this.validateScope(scope)) {
-      throw new InvalidScopeError(scope);
-    }
-
-    const path = this.resolvePath(scope);
+    const path = this.validateAndResolvePath(scope);
     const exists = fsStore.fileExists(path);
 
     if (!exists) {
@@ -93,8 +95,8 @@ export abstract class BaseAdapter<TConfig = ConfigObject>
   /**
    * Default edit implementation (throws unless overridden)
    */
-  async edit(scope: Scope, _options: EditOptions): Promise<SettingsResult> {
-    throw new Error(`Tool ${this.toolId} does not support edit for ${scope}`);
+  async edit(_scope: Scope, _options: EditOptions): Promise<SettingsResult> {
+    throw new UnsupportedActionError("edit", this.toolId);
   }
 
   /**

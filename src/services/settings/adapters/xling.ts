@@ -16,7 +16,7 @@ import type {
 } from "@/domain/types.ts";
 import { BaseAdapter } from "./base.ts";
 import * as fsStore from "@/services/settings/fsStore.ts";
-import { InvalidScopeError, ConfigParseError } from "@/utils/errors.ts";
+import { ConfigParseError } from "@/utils/errors.ts";
 import {
   type XlingConfig,
   type ProviderConfig,
@@ -39,11 +39,7 @@ export class XlingAdapter extends BaseAdapter<XlingConfig> {
    * macOS/Linux: ~/.claude/xling.json
    * Windows: %USERPROFILE%\.claude\xling.json
    */
-  resolvePath(scope: Scope): string {
-    if (!this.validateScope(scope)) {
-      throw new InvalidScopeError(scope);
-    }
-
+  resolvePath(_scope: Scope): string {
     // Use ~ which will be resolved by fsStore.resolveHome()
     // This works on all platforms
     return "~/.claude/xling.json";
@@ -152,11 +148,7 @@ export class XlingAdapter extends BaseAdapter<XlingConfig> {
     scope: Scope,
     options: EditOptions,
   ): Promise<SettingsResult> {
-    if (!this.validateScope(scope)) {
-      throw new InvalidScopeError(scope);
-    }
-
-    const configPath = this.resolvePath(scope);
+    const configPath = this.validateAndResolvePath(scope);
     const resolvedPath = fsStore.resolveHome(configPath);
     const resolvedEditor = resolveEditorCommand(options.ide);
 
@@ -183,11 +175,7 @@ export class XlingAdapter extends BaseAdapter<XlingConfig> {
    * List all providers
    */
   override async list(scope: Scope): Promise<SettingsListData> {
-    if (!this.validateScope(scope)) {
-      throw new InvalidScopeError(scope);
-    }
-
-    const configPath = this.resolvePath(scope);
+    const configPath = this.validateAndResolvePath(scope);
     const config = this.readConfig(configPath);
 
     const serializeShell = (shell?: string | PlatformShell): ConfigValue => {
@@ -308,11 +296,7 @@ export class XlingAdapter extends BaseAdapter<XlingConfig> {
   getShortcuts(
     scope: Scope,
   ): Record<string, import("@/domain/xling/config.ts").ShortcutConfig> {
-    if (!this.validateScope(scope)) {
-      throw new InvalidScopeError(scope);
-    }
-
-    const configPath = this.resolvePath(scope);
+    const configPath = this.validateAndResolvePath(scope);
     const config = this.readConfig(configPath);
     return config.shortcuts || {};
   }
