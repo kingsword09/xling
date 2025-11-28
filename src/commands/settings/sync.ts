@@ -12,20 +12,22 @@ import {
   DEFAULT_CLAUDE_CODE_TOML_PATH,
   DEFAULT_CODEX_CONFIG_PATH,
   syncClaudeTomlToCodex,
+  syncCodexTomlToClaude,
 } from "@/services/settings/sync.ts";
 
 export default class SettingsSync extends Command {
-  static summary = "Sync Claude Code config.toml into Codex config.toml";
+  static summary = "Sync config.toml between Claude Code and Codex";
 
   static description = `
-    Copy the Claude Code config.toml into Codex's configuration directory.
-    Shows a diff first, then lets you choose overwrite, backup+overwrite,
-    or cancel (similar to settings:switch). Use --force to skip prompts.
+    Copy Claude Code config.toml into Codex (default) or reverse the direction
+    with --reverse. Shows a diff first, then lets you choose overwrite,
+    backup+overwrite, or cancel (similar to settings:switch).
+    Use --force to skip prompts.
   `;
 
   static examples: Command.Example[] = [
     {
-      description: "Sync default paths with a backup",
+      description: "Sync Claude -> Codex with optional backup",
       command: "<%= config.bin %> <%= command.id %>",
     },
     {
@@ -37,16 +39,18 @@ export default class SettingsSync extends Command {
       command:
         "<%= config.bin %> <%= command.id %> --source ~/.claude/config.toml --target ~/.codex/config.toml",
     },
+    {
+      description: "Reverse sync (Codex -> Claude)",
+      command: "<%= config.bin %> <%= command.id %> --reverse",
+    },
   ];
 
   static flags: Interfaces.FlagInput = {
     source: Flags.string({
       description: "Path to Claude Code config.toml",
-      default: DEFAULT_CLAUDE_CODE_TOML_PATH,
     }),
     target: Flags.string({
       description: "Path to Codex config.toml",
-      default: DEFAULT_CODEX_CONFIG_PATH,
     }),
     backup: Flags.boolean({
       description: "Create a .bak of the target before overwriting",
@@ -65,6 +69,11 @@ export default class SettingsSync extends Command {
       description: "Output JSON instead of human-readable text",
       default: false,
     }),
+    reverse: Flags.boolean({
+      description:
+        "Reverse sync: copy Codex config.toml into Claude Code config.toml",
+      default: false,
+    }),
   };
 
   async run(): Promise<void> {
@@ -76,10 +85,20 @@ export default class SettingsSync extends Command {
       });
     }
 
+    const reverse = Boolean(flags.reverse);
+    const defaultSource = reverse
+      ? DEFAULT_CODEX_CONFIG_PATH
+      : DEFAULT_CLAUDE_CODE_TOML_PATH;
+    const defaultTarget = reverse
+      ? DEFAULT_CLAUDE_CODE_TOML_PATH
+      : DEFAULT_CODEX_CONFIG_PATH;
+
+    const syncFn = reverse ? syncCodexTomlToClaude : syncClaudeTomlToCodex;
+
     try {
-      const preview = syncClaudeTomlToCodex({
-        sourcePath: flags.source,
-        targetPath: flags.target,
+      const preview = syncFn({
+        sourcePath: flags.source ?? defaultSource,
+        targetPath: flags.target ?? defaultTarget,
         backup: false,
         dryRun: true,
       });
@@ -120,9 +139,9 @@ export default class SettingsSync extends Command {
         backup = action === "backup";
       }
 
-      const result = syncClaudeTomlToCodex({
-        sourcePath: flags.source,
-        targetPath: flags.target,
+      const result = syncFn({
+        sourcePath: flags.source ?? defaultSource,
+        targetPath: flags.target ?? defaultTarget,
         backup,
         dryRun: false,
       });

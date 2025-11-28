@@ -16,6 +16,8 @@ export interface SyncOptions {
   targetPath?: string;
   backup?: boolean;
   dryRun?: boolean;
+  currentLabel?: string;
+  nextLabel?: string;
 }
 
 export interface SyncResultData {
@@ -36,8 +38,37 @@ export interface SyncResultData {
 export function syncClaudeTomlToCodex(
   options: SyncOptions = {},
 ): SettingsResult<SyncResultData> {
-  const sourcePath = options.sourcePath ?? DEFAULT_CLAUDE_CODE_TOML_PATH;
-  const targetPath = options.targetPath ?? DEFAULT_CODEX_CONFIG_PATH;
+  return syncToml({
+    ...options,
+    defaultSource: DEFAULT_CLAUDE_CODE_TOML_PATH,
+    defaultTarget: DEFAULT_CODEX_CONFIG_PATH,
+    currentLabel: options.currentLabel ?? "codex",
+    nextLabel: options.nextLabel ?? "claude",
+  });
+}
+
+export function syncCodexTomlToClaude(
+  options: SyncOptions = {},
+): SettingsResult<SyncResultData> {
+  return syncToml({
+    ...options,
+    defaultSource: DEFAULT_CODEX_CONFIG_PATH,
+    defaultTarget: DEFAULT_CLAUDE_CODE_TOML_PATH,
+    currentLabel: options.currentLabel ?? "claude",
+    nextLabel: options.nextLabel ?? "codex",
+  });
+}
+
+type SyncTomlOptions = SyncOptions & {
+  defaultSource: string;
+  defaultTarget: string;
+  currentLabel: string;
+  nextLabel: string;
+};
+
+function syncToml(options: SyncTomlOptions): SettingsResult<SyncResultData> {
+  const sourcePath = options.sourcePath ?? options.defaultSource;
+  const targetPath = options.targetPath ?? options.defaultTarget;
   const backup = options.backup ?? true;
   const dryRun = options.dryRun ?? false;
 
@@ -63,8 +94,8 @@ export function syncClaudeTomlToCodex(
   }
 
   const diff = formatTextDiff(targetContent, sourceContent, {
-    current: "codex",
-    next: "claude",
+    current: options.currentLabel,
+    next: options.nextLabel,
   });
   const changed = Boolean(diff);
   const backupPath =
