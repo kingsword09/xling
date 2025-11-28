@@ -39,6 +39,11 @@ export default class SettingsAuth extends Command {
       command:
         "<%= config.bin %> <%= command.id %> --delete old-account --tool codex",
     },
+    {
+      description: "Restore a saved auth profile back to auth.json",
+      command:
+        "<%= config.bin %> <%= command.id %> --restore personal --tool codex",
+    },
   ];
 
   static flags: Interfaces.FlagInput = {
@@ -55,6 +60,10 @@ export default class SettingsAuth extends Command {
     delete: Flags.string({
       char: "d",
       description: "Delete an auth profile",
+    }),
+    restore: Flags.string({
+      char: "r",
+      description: "Restore a saved auth profile back to auth.json",
     }),
     force: Flags.boolean({
       char: "f",
@@ -82,12 +91,22 @@ export default class SettingsAuth extends Command {
     const json = Boolean(flags.json);
     const saveName = flags.save;
     const deleteName = flags.delete;
+    const restoreName = flags.restore;
+
+    const chosen = [saveName, deleteName, restoreName].filter(Boolean);
+    if (chosen.length > 1) {
+      this.error("Please specify only one of --save, --delete, or --restore.", {
+        exit: 1,
+      });
+    }
 
     // Determine action based on flags
     if (saveName) {
       await this.#handleSave(adapter, saveName, { force, json });
     } else if (deleteName) {
       await this.#handleDelete(adapter, deleteName, { json });
+    } else if (restoreName) {
+      await this.#handleRestore(adapter, restoreName, { json });
     } else {
       // Default: list profiles
       await this.#handleList(adapter, { json });
@@ -138,6 +157,19 @@ export default class SettingsAuth extends Command {
     flags: { json: boolean },
   ): Promise<void> {
     const result = adapter.deleteAuthProfile(name);
+    this.#printResult(result, flags.json);
+
+    if (!result.success) {
+      this.exit(1);
+    }
+  }
+
+  async #handleRestore(
+    adapter: CodexAdapter,
+    name: string,
+    flags: { json: boolean },
+  ): Promise<void> {
+    const result = await adapter.switchProfile("user", name);
     this.#printResult(result, flags.json);
 
     if (!result.success) {
