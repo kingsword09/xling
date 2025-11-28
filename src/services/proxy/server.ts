@@ -273,6 +273,7 @@ async function handleProxyRequest(
     originalModel,
     config.modelMapping,
     config.defaultModel,
+    config.providers,
   );
 
   // Convert Anthropic request to OpenAI format if needed
@@ -630,18 +631,24 @@ function mapModel(
   model: string | undefined,
   mapping?: Record<string, string>,
   defaultModel?: string,
+  providers?: ProviderConfig[],
 ): string | undefined {
   if (!model) return defaultModel;
   if (!mapping || Object.keys(mapping).length === 0) {
     return model;
   }
 
-  // 1. Exact match
+  // 1. Exact match in modelMapping
   if (mapping[model]) {
     return mapping[model];
   }
 
-  // 2. Prefix match (e.g., "claude-*" matches "claude-haiku-4-5-20251001")
+  // 2. Check if model is supported by any provider
+  if (providers?.some((p) => p.models.some((m) => m === model || model.startsWith(m)))) {
+    return model;
+  }
+
+  // 3. Prefix match (e.g., "claude-*" matches "claude-haiku-4-5-20251001")
   for (const [pattern, target] of Object.entries(mapping)) {
     if (pattern.endsWith("*")) {
       const prefix = pattern.slice(0, -1);
@@ -651,12 +658,12 @@ function mapModel(
     }
   }
 
-  // 3. Wildcard match (catch-all)
+  // 4. Wildcard match (catch-all)
   if (mapping["*"]) {
     return mapping["*"];
   }
 
-  // 4. Return default model if configured, otherwise original model
+  // 5. Return default model if configured, otherwise original model
   return defaultModel ?? model;
 }
 
