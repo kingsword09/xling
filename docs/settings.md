@@ -114,7 +114,7 @@ xling settings:set --tool codex --scope user
 xling settings:set --tool xling --scope user --ide cursor
 ```
 
-`settings:set` no longer writes individual keys for Claude/Xling/Gemini; Codex 现在提供小型交互式助手，写入新的 `[model_providers.<name>]`，包含 `name`、`base_url`、`wire_api="responses"`，以及必填的 `experimental_bearer_token`。
+`settings:set` no longer writes individual keys for Claude/Xling/Gemini; Codex now provides a small interactive wizard that writes a new `[model_providers.<name>]` section with `name`, `base_url`, `wire_api="responses"`, and the required `experimental_bearer_token`.
 
 > Note: `settings:*` commands rely only on flags such as `--tool`, `--scope`, `--name`, and `--ide`; key-level overrides like `developerShortcuts.runCommand` are intentionally unsupported.
 

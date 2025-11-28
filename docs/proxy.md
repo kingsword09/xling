@@ -86,6 +86,24 @@ paths, so client-specific base URLs also work.
   provider fail it is temporarily marked unhealthy before retrying.
 - Model aliases: use `proxy.modelMapping` to translate client-facing model
   names to provider-native ones.
+- Model lookup order: exact mapping → provider support check → pattern mapping → defaultModel.
+  If a requested model is supported by any provider, it's used directly without mapping.
+
+## Hot Reload
+
+The proxy automatically watches `~/.claude/xling.json` for changes and reloads
+configuration without restart. Hot-reloadable settings include:
+
+- `providers` (add/remove/modify providers)
+- `defaultModel`
+- `proxy.modelMapping`
+- `proxy.passthroughResponsesAPI`
+- `proxy.keyRotation`
+
+Settings that require restart:
+- `proxy.port`, `proxy.host`
+- `proxy.accessKey`
+- `proxy.loadBalance` strategy
 
 ## Client Examples
 
