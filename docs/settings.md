@@ -204,6 +204,39 @@ xling settings:inspect --tool xling
 
 ---
 
+### settings:sync
+
+Copy the Claude Code `config.toml` into the Codex configuration directory.
+
+**Usage:**
+```bash
+xling settings:sync [OPTIONS]
+```
+
+**Options:**
+- `--source <path>`: Path to Claude Code `config.toml` (default: `~/.claude/config.toml`)
+- `--target <path>`: Path to Codex `config.toml` (default: `~/.codex/config.toml`)
+- `--backup/--no-backup`: Create a `.bak` of the target before overwriting (default: `--no-backup`)
+- `--force`: Apply without prompts (overwrites unless `--backup` is set)
+- `--dry-run`: Show diff only, no writes
+- `--json`: Emit structured JSON output
+
+**Examples:**
+```bash
+# Preview diff only (no writes)
+xling settings:sync --dry-run
+
+# Sync after reviewing prompt (choose overwrite/backup/cancel)
+xling settings:sync
+
+# Use explicit paths and skip backup
+xling settings:sync --source ~/.claude/config.toml --target ~/.codex/config.toml --no-backup
+```
+
+The command prints a unified diff first. When not running with `--force` or `--dry-run`, you'll be prompted to overwrite, backup+overwrite, or cancel. If the files are already identical, it exits without changes.
+
+---
+
 ## Configuration Scopes
 
 ### Claude Code
