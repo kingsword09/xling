@@ -85,7 +85,7 @@ When a positional argument is provided, it only applies to `--tool claude`. The 
 
 ### settings:set
 
-Open Claude settings files in your IDE.
+Open settings files in your IDE or add Codex model providers.
 
 **Usage:**
 ```bash
@@ -107,14 +107,14 @@ xling settings:set --tool claude --scope user --name hxi
 # Open default settings in Cursor
 xling settings:set --tool claude --scope project --name default --ide cursor --no-json
 
-# Edit Codex config
+# Add a Codex provider interactively
 xling settings:set --tool codex --scope user
 
 # Edit xling prompt router config
 xling settings:set --tool xling --scope user --ide cursor
 ```
 
-`settings:set` no longer writes individual keys. Open the full file, make changes directly in your editor, and save.
+`settings:set` no longer writes individual keys for Claude/Xling/Gemini; Codex 现在提供小型交互式助手，写入新的 `[model_providers.<name>]`，包含 `name`、`base_url`、`wire_api="responses"`，以及必填的 `experimental_bearer_token`。
 
 > Note: `settings:*` commands rely only on flags such as `--tool`, `--scope`, `--name`, and `--ide`; key-level overrides like `developerShortcuts.runCommand` are intentionally unsupported.
 

@@ -1,3 +1,4 @@
+import * as path from "node:path";
 /**
  * Codex settings adapter
  */
@@ -9,15 +10,18 @@ import type {
   SwitchOptions,
   ConfigObject,
   ConfigValue,
+  EditOptions,
 } from "@/domain/types.ts";
 import { BaseAdapter } from "./base.ts";
-import { InvalidScopeError } from "@/utils/errors.ts";
+import { ConfigFileNotFoundError, InvalidScopeError } from "@/utils/errors.ts";
 import * as fsStore from "@/services/settings/fsStore.ts";
+import { openInEditor, resolveEditorCommand } from "@/utils/editor.ts";
 
 /** Auth profiles directory path */
 const AUTH_PROFILES_DIR = "~/.codex/auth-profiles";
 /** Auth file path */
 const AUTH_FILE_PATH = "~/.codex/auth.json";
+const DEFAULT_WIRE_API = "responses";
 
 /**
  * Resolves ~/.codex/config.toml (user scope) and supports profile switching
@@ -82,6 +86,80 @@ export class CodexAdapter extends BaseAdapter {
 
     // Otherwise treat as provider
     return this.#switchToProvider(scope, profile);
+  }
+
+  override async edit(
+    scope: Scope,
+    options: EditOptions,
+  ): Promise<SettingsResult> {
+    if (!this.validateScope(scope)) {
+      throw new InvalidScopeError(scope);
+    }
+
+    const configPath = this.resolvePath(scope);
+
+    if (!options.provider) {
+      const resolvedPath = fsStore.resolveHome(configPath);
+      fsStore.ensureDir(path.dirname(resolvedPath));
+
+      if (!fsStore.fileExists(configPath)) {
+        this.writeConfig(configPath, {});
+      }
+
+      const editor = resolveEditorCommand(options.ide);
+      await openInEditor(editor, resolvedPath);
+
+      return {
+        success: true,
+        message: `Opened Codex config in ${editor}`,
+        filePath: resolvedPath,
+      };
+    }
+
+    const providerId =
+      options.provider.id?.trim() || options.provider.name?.trim();
+    if (!providerId) {
+      throw new Error("Provider name cannot be empty");
+    }
+
+    const baseUrl = options.provider.base_url?.trim();
+    if (!baseUrl) {
+      throw new Error("Base URL is required for Codex providers");
+    }
+
+    const providerName = options.provider.name?.trim() || providerId;
+    const token = options.provider.experimental_bearer_token?.trim();
+    if (!token) {
+      throw new Error(
+        "Experimental bearer token is required for Codex providers",
+      );
+    }
+
+    const config = this.#readConfigSafe(configPath);
+    const providers: ConfigObject = isConfigObject(config.model_providers)
+      ? { ...config.model_providers }
+      : {};
+
+    providers[providerId] = {
+      name: providerName,
+      base_url: baseUrl,
+      wire_api: DEFAULT_WIRE_API,
+      experimental_bearer_token: token,
+    };
+
+    const nextConfig: ConfigObject = {
+      ...config,
+      model_providers: providers,
+    };
+
+    this.writeConfig(configPath, nextConfig);
+
+    return {
+      success: true,
+      message: `Added model_providers.${providerId}`,
+      filePath: fsStore.resolveHome(configPath),
+      data: providers[providerId],
+    };
   }
 
   // ========== Auth Profile Management ==========
@@ -291,6 +369,17 @@ export class CodexAdapter extends BaseAdapter {
    */
   protected writeConfig(path: string, data: ConfigObject): void {
     fsStore.writeTOML(path, data, false);
+  }
+
+  #readConfigSafe(path: string): ConfigObject {
+    try {
+      return this.readConfig(path);
+    } catch (error) {
+      if (error instanceof ConfigFileNotFoundError) {
+        return {};
+      }
+      throw error;
+    }
   }
 
   #extractProviders(config: ConfigObject): ConfigObject {

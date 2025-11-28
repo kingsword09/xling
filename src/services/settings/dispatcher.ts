@@ -70,6 +70,7 @@ export class SettingsDispatcher {
         return await adapter.edit(payload.scope, {
           name: payload.name,
           ide: payload.ide,
+          provider: payload.provider,
         });
 
       case "inspect":

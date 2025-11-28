@@ -20,9 +20,17 @@ export interface ConfigObject {
   [key: string]: ConfigValue;
 }
 
+export interface CodexProviderInput {
+  id: string;
+  name: string;
+  base_url: string;
+  experimental_bearer_token: string;
+}
+
 export interface EditOptions {
   name?: string;
   ide?: string;
+  provider?: CodexProviderInput;
 }
 
 export interface SwitchOptions {
@@ -62,6 +70,7 @@ export interface SettingsPayload {
   profile?: string;
   name?: string;
   ide?: string;
+  provider?: CodexProviderInput;
   format?: OutputFormat;
   switchOptions?: SwitchOptions;
 }
