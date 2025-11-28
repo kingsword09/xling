@@ -186,7 +186,7 @@ Execute a series of commands with piped output.
       },
       {
         "command": "xling",
-        "args": ["p", "--stdin", "分析代码变更并生成提交信息建议，分为中英文版本"]
+        "args": ["p", "--stdin", "Analyze code changes and generate commit message suggestions"]
       }
     ],
     "description": "Generate commit message for all changes"

@@ -1,24 +1,24 @@
 # Xling Prompt Command (`xling p`)
 
-## 概述
+## Overview
 
-`xling p` 命令提供类似 `claude -p` 的提示词交互体验，支持多 AI 提供商配置、智能模型路由和自动降级重试。
+The `xling p` command provides a prompt interaction experience similar to `claude -p`, with support for multi-provider configuration, intelligent model routing, and automatic fallback retry.
 
-## 特性
+## Features
 
-- 🔀 **多提供商支持**: 配置多个 API 提供商（OpenAI、Azure、自定义等）
-- 🎯 **智能路由**: 根据请求的模型自动选择支持的提供商
-- 🔄 **自动降级**: 失败时自动切换到备用提供商
-- ⚡ **优先级控制**: 通过 priority 字段控制提供商选择顺序
-- 🔐 **安全配置**: 配置文件自动设置 600 权限保护 API 密钥
+- **Multi-Provider Support**: Configure multiple API providers (OpenAI, Azure, custom, etc.)
+- **Intelligent Routing**: Automatically select providers that support the requested model
+- **Automatic Fallback**: Automatically switch to backup providers on failure
+- **Priority Control**: Control provider selection order via the priority field
+- **Secure Configuration**: Config file automatically set to 600 permissions to protect API keys
 
-## 配置
+## Configuration
 
-### 配置文件位置
+### Configuration File Location
 
-`~/.claude/xling.json` (与 Claude Code 配置目录相同)
+`~/.claude/xling.json` (same directory as Claude Code configuration)
 
-### 配置结构
+### Configuration Structure
 
 ```json
 {
@@ -57,80 +57,80 @@
 }
 ```
 
-### 配置字段说明
+### Configuration Fields
 
-#### Provider 配置
+#### Provider Configuration
 
-- `name`: 提供商名称（唯一标识符）
-- `baseUrl`: API 基础 URL
-- `apiKey`: API 密钥
-- `models`: 该提供商支持的模型列表
-- `priority`: 优先级（数字越小优先级越高，默认最低）
-- `timeout`: 请求超时时间（毫秒，可选）
-- `headers`: 自定义请求头（可选）
+- `name`: Provider name (unique identifier)
+- `baseUrl`: API base URL
+- `apiKey`: API key
+- `models`: List of models supported by this provider
+- `priority`: Priority (lower number = higher priority, defaults to lowest)
+- `timeout`: Request timeout in milliseconds (optional)
+- `headers`: Custom request headers (optional)
 
-#### 全局配置
+#### Global Configuration
 
-- `defaultModel`: 默认使用的模型（可选）
-- `retryPolicy`: 重试策略
-  - `maxRetries`: 最大重试次数
-  - `backoffMs`: 退避延迟（毫秒，指数增长）
+- `defaultModel`: Default model to use (optional)
+- `retryPolicy`: Retry policy
+  - `maxRetries`: Maximum number of retries
+  - `backoffMs`: Backoff delay in milliseconds (exponential growth)
 
-## 使用方法
+## Usage
 
-### 基础用法
+### Basic Usage
 
 ```bash
-# 简单提示
+# Simple prompt
 xling p "Explain quantum computing"
 
-# 指定模型
+# Specify model
 xling p --model gpt-4-turbo "Write a poem about AI"
 
-# 使用系统提示
+# Use system prompt
 xling p --system "You are a helpful coding assistant" "How to use async/await?"
 ```
 
-### 从文件读取
+### Read from Files
 
 ```bash
-# 读取文件作为上下文
+# Read file as context
 xling p -f README.md "Summarize this document"
 
-# 读取多个文件
+# Read multiple files
 xling p -f src/main.ts -f src/utils.ts "Review this code"
 ```
 
-### 从 stdin 读取
+### Read from stdin
 
 ```bash
-# Git diff 审查
+# Git diff review
 git diff | xling p --stdin "Review this diff and suggest improvements"
 
-# 代码审查
+# Code review
 cat myfile.py | xling p --stdin "Find potential bugs in this code"
 ```
 
-### 输出格式
+### Output Format
 
 ```bash
-# JSON 输出
+# JSON output
 xling p --json "What is 2+2?"
 
-# 禁用流式输出
+# Disable streaming output
 xling p --no-stream "Generate a long story"
 ```
 
-### 高级选项
+### Advanced Options
 
 ```bash
-# 温度控制
+# Temperature control
 xling p --temperature 0.7 "Creative writing task"
 
-# 最大令牌数
+# Maximum tokens
 xling p --max-tokens 500 "Brief summary please"
 
-# 组合使用
+# Combined usage
 xling p \
   --model gpt-4 \
   --system "You are a code reviewer" \
@@ -139,37 +139,37 @@ xling p \
   "Review this code for security issues"
 ```
 
-## 工作原理
+## How It Works
 
-### 智能路由
+### Intelligent Routing
 
-1. 用户指定模型（或使用 defaultModel）
-2. 系统查找支持该模型的所有提供商
-3. 按 priority 排序提供商
-4. 使用第一个提供商发送请求
+1. User specifies a model (or uses defaultModel)
+2. System finds all providers that support the model
+3. Providers are sorted by priority
+4. Request is sent using the first provider
 
-### 自动降级
+### Automatic Fallback
 
-如果请求失败：
+If a request fails:
 
-1. 检查错误是否可重试：
-   - ✅ 网络错误 (ECONNREFUSED, ETIMEDOUT)
-   - ✅ 5xx 服务器错误
-   - ✅ 429 速率限制
-   - ❌ 4xx 客户端错误（不可重试）
+1. Check if the error is retryable:
+   - ✅ Network errors (ECONNREFUSED, ETIMEDOUT)
+   - ✅ 5xx server errors
+   - ✅ 429 rate limit
+   - ❌ 4xx client errors (not retryable)
 
-2. 如果可重试且有其他提供商：
-   - 应用指数退避延迟
-   - 切换到下一个提供商
-   - 重新尝试请求
+2. If retryable and other providers are available:
+   - Apply exponential backoff delay
+   - Switch to the next provider
+   - Retry the request
 
-3. 如果所有提供商都失败：
-   - 抛出 `AllProvidersFailedError`
-   - 显示所有错误详情
+3. If all providers fail:
+   - Throw `AllProvidersFailedError`
+   - Display all error details
 
-### 示例场景
+### Example Scenario
 
-假设配置了 3 个提供商支持 `gpt-4`:
+Assuming 3 providers are configured to support `gpt-4`:
 
 ```
 openai-primary (priority: 1)
@@ -177,42 +177,42 @@ openai-backup (priority: 2)
 azure-openai (priority: 3)
 ```
 
-执行 `xling p --model gpt-4 "Hello"`:
+Executing `xling p --model gpt-4 "Hello"`:
 
-1. 尝试 `openai-primary`
-2. 如果失败（网络错误），等待 1 秒
-3. 尝试 `openai-backup`
-4. 如果失败，等待 2 秒
-5. 尝试 `azure-openai`
-6. 如果全部失败，报告所有错误
+1. Try `openai-primary`
+2. If it fails (network error), wait 1 second
+3. Try `openai-backup`
+4. If it fails, wait 2 seconds
+5. Try `azure-openai`
+6. If all fail, report all errors
 
-## 管理配置
+## Managing Configuration
 
-### 通过 settings 命令
+### Via settings Command
 
 ```bash
-# 查看配置
+# View configuration
 xling settings:list --tool xling --scope user
 
-# 检查配置详情
+# Check configuration details
 xling settings:inspect --tool xling --scope user
 ```
 
-### 手动编辑
+### Manual Editing
 
 ```bash
-# 在编辑器中打开
+# Open in editor
 vim ~/.claude/xling.json
 
-# 或使用您喜欢的编辑器
+# Or use your preferred editor
 code ~/.claude/xling.json
 ```
 
-## 常见问题
+## FAQ
 
-### Q: 如何添加新的提供商？
+### Q: How do I add a new provider?
 
-编辑 `~/.claude/xling.json`，在 `providers` 数组中添加：
+Edit `~/.claude/xling.json` and add to the `providers` array:
 
 ```json
 {
@@ -224,9 +224,9 @@ code ~/.claude/xling.json
 }
 ```
 
-### Q: 如何设置默认模型？
+### Q: How do I set a default model?
 
-在配置文件顶层添加：
+Add at the top level of the config file:
 
 ```json
 {
@@ -235,49 +235,49 @@ code ~/.claude/xling.json
 }
 ```
 
-### Q: 为什么提示"Model not supported"？
+### Q: Why am I getting "Model not supported"?
 
-检查：
-1. 模型名称是否拼写正确
-2. 至少有一个提供商的 `models` 列表包含该模型
-3. 运行 `xling settings:list --tool xling` 查看可用模型
+Check:
+1. Model name is spelled correctly
+2. At least one provider's `models` list includes the model
+3. Run `xling settings:list --tool xling` to see available models
 
-### Q: 如何调试请求失败？
+### Q: How do I debug request failures?
 
-查看日志输出，包含：
-- 尝试的提供商
-- 失败原因
-- 是否进行了重试
+Check the log output, which includes:
+- Providers attempted
+- Failure reasons
+- Whether retries were performed
 
-### Q: API 密钥安全吗？
+### Q: Are API keys secure?
 
-配置文件自动设置 600 权限（仅所有者可读写）。但仍建议：
-- 不要将配置文件提交到版本控制
-- 定期轮换 API 密钥
-- 使用专用密钥而非主账户密钥
+The config file is automatically set to 600 permissions (owner read/write only). However, it's still recommended to:
+- Not commit the config file to version control
+- Rotate API keys regularly
+- Use dedicated keys rather than main account keys
 
-## 技术细节
+## Technical Details
 
-### 使用的技术栈
+### Technology Stack
 
 - **AI SDK**: `@ai-sdk/openai-compatible` + `ai`
-- **配置管理**: 扩展现有 settings 系统
-- **CLI 框架**: Oclif
+- **Configuration Management**: Extends existing settings system
+- **CLI Framework**: Oclif
 
-### 架构
+### Architecture
 
 ```
-xling p 命令
+xling p command
     ↓
-ModelRouter (路由 + 重试)
+ModelRouter (routing + retry)
     ↓
-ProviderRegistry (模型索引)
+ProviderRegistry (model index)
     ↓
-PromptClient (AI SDK 封装)
+PromptClient (AI SDK wrapper)
     ↓
 OpenAI Compatible API
 ```
 
-## 贡献
+## Contributing
 
-欢迎贡献！如果发现问题或有改进建议，请提交 Issue 或 Pull Request。
+Contributions are welcome! If you find issues or have suggestions for improvements, please submit an Issue or Pull Request.

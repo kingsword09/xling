@@ -20,7 +20,7 @@ below expand on each workflow.
 
 ## Settings
 
-- [`settings:list|get|set|switch|inspect`](./settings.md): Inspect, edit, and switch Claude, Codex, Gemini, or xling configs across scopes.
+- [`settings:list|get|set|switch|inspect|sync|auth`](./settings.md): Inspect, edit, and switch Claude, Codex, Gemini, or xling configs across scopes.
 
 ## Git Workflows
 
