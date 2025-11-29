@@ -71,7 +71,7 @@ export default class SettingsGet extends Command {
       const data =
         tool === "claude" && args.name
           ? await this.#inspectClaudeVariant(scope, args.name)
-          : await this.#inspectViaDispatcher(tool, scope);
+          : await this.#inspectViaDispatcher(tool, scope, args.name);
 
       if (flags.json) {
         this.log(formatJson({ success: true, data }));
@@ -93,12 +93,13 @@ export default class SettingsGet extends Command {
     }
   }
 
-  async #inspectViaDispatcher(tool: ToolId, scope: Scope) {
+  async #inspectViaDispatcher(tool: ToolId, scope: Scope, name?: string) {
     const dispatcher = new SettingsDispatcher();
     const result = await dispatcher.execute({
       tool,
       scope,
       action: "inspect",
+      name,
     });
     return result.data as InspectResult;
   }

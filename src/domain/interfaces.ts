@@ -44,7 +44,7 @@ export interface SettingsAdapter {
   /**
    * Inspect the configuration file
    */
-  inspect?(scope: Scope): Promise<InspectResult>;
+  inspect?(scope: Scope, name?: string): Promise<InspectResult>;
 
   /**
    * Resolve the configuration file path

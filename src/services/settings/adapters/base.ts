@@ -69,7 +69,7 @@ export abstract class BaseAdapter<TConfig = ConfigObject>
   /**
    * Inspect the configuration file
    */
-  async inspect(scope: Scope): Promise<InspectResult> {
+  async inspect(scope: Scope, _name?: string): Promise<InspectResult> {
     const path = this.validateAndResolvePath(scope);
     const exists = fsStore.fileExists(path);
 

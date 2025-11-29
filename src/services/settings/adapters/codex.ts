@@ -48,16 +48,106 @@ export class CodexAdapter extends BaseAdapter {
   /**
    * Override inspect to return the current active configuration
    */
-  override async inspect(scope: Scope): Promise<InspectResult> {
+  override async inspect(scope: Scope, name?: string): Promise<InspectResult> {
     const configPath = this.validateAndResolvePath(scope);
     const resolvedPath = fsStore.resolveHome(configPath);
+    const configExists = fsStore.fileExists(configPath);
+    const config = configExists ? this.#readConfigSafe(configPath) : {};
+    const fileInfo = configExists ? fsStore.getFileInfo(configPath) : null;
 
-    if (!fsStore.fileExists(configPath)) {
-      return this.#inspectWithoutConfig(resolvedPath);
+    const target = name?.trim();
+
+    if (target) {
+      // 1) Explicit auth profile
+      if (this.isAuthProfile(target)) {
+        const authPath = `${AUTH_PROFILES_DIR}/${target}.json`;
+        const authData = this.#readProfileData(authPath);
+        const info = fsStore.getFileInfo(authPath);
+
+        return {
+          path: fsStore.resolveHome(authPath),
+          exists: fsStore.fileExists(authPath),
+          content: JSON.stringify(
+            {
+              mode: "auth",
+              authProfile: target,
+              authFile: fsStore.resolveHome(authPath),
+              configFile: resolvedPath,
+              authData,
+            },
+            null,
+            2,
+          ),
+          size: info?.size,
+          lastModified: info?.lastModified,
+        };
+      }
+
+      // 2) Explicit provider name
+      const providers = isConfigObject(config.model_providers)
+        ? config.model_providers
+        : {};
+      if (providers[target]) {
+        return {
+          path: resolvedPath,
+          exists: configExists,
+          content: JSON.stringify(
+            {
+              mode: "provider",
+              currentProvider: target,
+              config: providers[target] ?? {},
+            },
+            null,
+            2,
+          ),
+          size: fileInfo?.size,
+          lastModified: fileInfo?.lastModified,
+        };
+      }
+
+      // 3) Explicit named profile
+      const profiles = isConfigObject(config.profiles) ? config.profiles : {};
+      if (profiles[target]) {
+        return {
+          path: resolvedPath,
+          exists: configExists,
+          content: JSON.stringify(
+            {
+              mode: "profile",
+              currentProfile: target,
+              config: profiles[target] ?? {},
+            },
+            null,
+            2,
+          ),
+          size: fileInfo?.size,
+          lastModified: fileInfo?.lastModified,
+        };
+      }
+
+      // 4) Not found
+      return {
+        path: resolvedPath,
+        exists: configExists,
+        content: JSON.stringify(
+          {
+            mode: "not_found",
+            requested: target,
+            availableProviders: Object.keys(providers),
+            availableProfiles: Object.keys(profiles),
+            availableAuthProfiles: this.listAuthProfiles(),
+          },
+          null,
+          2,
+        ),
+        size: fileInfo?.size,
+        lastModified: fileInfo?.lastModified,
+      };
     }
 
-    const config = this.#readConfigSafe(configPath);
-    const fileInfo = fsStore.getFileInfo(configPath);
+    if (!configExists) {
+      return this.#inspectWithoutConfig(resolvedPath);
+    }
 
     if (config.current_profile && typeof config.current_profile === "string") {
       return this.#inspectProfileMode(config, resolvedPath, fileInfo);
@@ -558,6 +648,17 @@ export class CodexAdapter extends BaseAdapter {
     }
     try {
       return fsStore.readJSON(AUTH_FILE_PATH);
+    } catch {
+      return null;
+    }
+  }
+
+  #readProfileData(profilePath: string): ConfigObject | null {
+    if (!fsStore.fileExists(profilePath)) {
+      return null;
+    }
+    try {
+      return fsStore.readJSON(profilePath);
     } catch {
       return null;
     }
