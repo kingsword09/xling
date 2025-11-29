@@ -81,7 +81,7 @@ export class SettingsDispatcher {
         }
         return {
           success: true,
-          data: await adapter.inspect(payload.scope),
+          data: await adapter.inspect(payload.scope, payload.name),
         };
 
       default:
