@@ -145,7 +145,7 @@ export default class SettingsSet extends Command {
       ).trim();
 
       if (!token) {
-        this.error("Experimental bearer token 不能为空。", { exit: 1 });
+        this.error("Experimental bearer token cannot be empty.", { exit: 1 });
       }
 
       return {

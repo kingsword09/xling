@@ -5,6 +5,7 @@
 
 import { Command, Flags, Interfaces } from "@oclif/core";
 import { LaunchDispatcher } from "@/services/launch/dispatcher.ts";
+import { extractPassthroughArgs } from "@/utils/cli.ts";
 import type { ToolId } from "@/domain/types.ts";
 
 export default class X extends Command {
@@ -132,9 +133,7 @@ export default class X extends Command {
     const { flags, argv } = await this.parse(X);
 
     // Extract arguments that appear after --
-    const passthroughIndex = argv.indexOf("--");
-    const passthroughArgs =
-      passthroughIndex >= 0 ? argv.slice(passthroughIndex + 1) : [];
+    const passthroughArgs = extractPassthroughArgs(argv as string[]);
 
     try {
       const dispatcher = new LaunchDispatcher();

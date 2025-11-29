@@ -194,6 +194,61 @@ All errors extend the shared `XlingError` base class in `src/utils/errors.ts`:
 
 **Best Practice**: Always use custom error classes instead of generic `Error` for better error handling and debugging.
 
+## Code Quality Principles
+
+This codebase follows KISS, YAGNI, DRY, and SOLID principles. Here are concrete examples:
+
+### DRY (Don't Repeat Yourself)
+
+1. **Shared CLI Utilities** (`src/utils/cli.ts`)
+   - `extractPassthroughArgs()`: Reused across x, sx commands
+   - `promptUser()`: Reused across discuss, council commands
+   - `createReadlineInterface()`: Centralized readline creation
+
+2. **Adapter Pattern** (`src/services/*/adapters/`)
+   - Common interface with tool-specific implementations
+   - `BaseAdapter` provides shared logic (validation, path resolution)
+   - New tools added without modifying existing code
+
+3. **Centralized Validation** (`src/domain/validators.ts`)
+   - Zod schemas for all input validation
+   - Reusable validators: `validatePort()`, `validateHost()`, `validatePrId()`
+
+### KISS (Keep It Simple, Stupid)
+
+1. **Declarative Validation**
+   - Use Zod schemas instead of manual validation logic
+   - Simple regex patterns for format validation
+
+2. **Flat Command Structure**
+   - One file per command under `src/commands/`
+   - Clear separation: commands → dispatchers → adapters
+
+3. **Straightforward Error Handling**
+   - Custom error classes with descriptive messages
+   - No complex error recovery chains
+
+### YAGNI (You Aren't Gonna Need It)
+
+1. **No Unused Abstractions**
+   - Adapters only for tools that exist (Claude, Codex, Gemini)
+   - No "future-proofing" interfaces
+
+2. **Minimal Configuration**
+   - Only essential options exposed as flags
+   - Sensible defaults everywhere (e.g., yolo=true, port=4320)
+
+3. **No Speculative Features**
+   - Features implemented when needed, not "just in case"
+
+### SOLID in Practice
+
+- **SRP**: Each adapter handles one tool; each command has one purpose
+- **OCP**: Add new tools via adapter registration, not code modification
+- **LSP**: All adapters implement `SettingsAdapter` interface interchangeably
+- **ISP**: Separate `SettingsAdapter` and `LaunchAdapter` interfaces
+- **DIP**: Dispatchers depend on adapter interfaces, not concrete classes
+
 ## Additional Notes
 
 - Configuration writes are atomic (temp file + rename).

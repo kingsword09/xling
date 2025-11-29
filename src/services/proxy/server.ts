@@ -419,12 +419,6 @@ async function handleProxyRequest(
     isStreaming = (body as Record<string, unknown>).stream === true;
   }
 
-  if (logger && mappedModel && mappedModel !== originalModel) {
-    console.log(
-      `[${context.requestId}] Model mapped: ${originalModel} -> ${mappedModel}`,
-    );
-  }
-
   // Use mapped model for provider selection
   const requestedModel = mappedModel;
 
@@ -473,6 +467,12 @@ async function handleProxyRequest(
     context.keyIndex = keyIndex;
 
     if (logger) {
+      if (mappedModel && mappedModel !== originalModel) {
+        console.log(
+          `[${context.requestId}] Model mapped: ${originalModel ?? "unknown"} -> ${mappedModel} (provider: ${provider.name})`,
+        );
+      }
+
       console.log(
         `[${context.requestId}] -> ${provider.name} (key ${keyIndex + 1}/${providerApiKeys.length})`,
       );
