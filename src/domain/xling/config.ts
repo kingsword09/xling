@@ -83,12 +83,15 @@ export const ProviderConfigSchema: z.ZodType<ProviderConfig> = z
       // CLI providers intentionally run without API keys
       if (data.baseUrl.startsWith("cli:")) return true;
 
-      const hasSingleKey = typeof data.apiKey === "string" && data.apiKey.length > 0;
-      const hasMultipleKeys = Array.isArray(data.apiKeys) && data.apiKeys.length > 0;
+      const hasSingleKey =
+        typeof data.apiKey === "string" && data.apiKey.length > 0;
+      const hasMultipleKeys =
+        Array.isArray(data.apiKeys) && data.apiKeys.length > 0;
       return hasSingleKey || hasMultipleKeys;
     },
     {
-      message: "Either apiKey or apiKeys must be provided (except for cli:* providers)",
+      message:
+        "Either apiKey or apiKeys must be provided (except for cli:* providers)",
     },
   );
 
@@ -418,12 +421,14 @@ export function validateXlingConfig(data: unknown): XlingConfig {
       providers: normalizedProviders,
       defaultModel:
         (prompt.defaultModel as string) || (proxy?.defaultModel as string),
-      loadBalance: (config.loadBalance as LoadBalanceStrategy | undefined) ??
+      loadBalance:
+        (config.loadBalance as LoadBalanceStrategy | undefined) ??
         (proxy?.loadBalance as LoadBalanceStrategy | undefined),
-      noRetryErrors: (config.noRetryErrors as string[] | undefined) ?? undefined,
+      noRetryErrors:
+        (config.noRetryErrors as string[] | undefined) ?? undefined,
       cooldownMs:
         (config.cooldownMs as number | undefined) ??
-        ((proxy?.keyRotation as { cooldownMs?: number } | undefined)?.cooldownMs),
+        (proxy?.keyRotation as { cooldownMs?: number } | undefined)?.cooldownMs,
       proxy: proxy
         ? {
             enabled: (proxy.enabled as boolean) ?? true,

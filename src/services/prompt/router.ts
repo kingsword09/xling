@@ -169,7 +169,9 @@ export class ModelRouter {
 
       // If no usable key is available, drop this provider and continue
       if (!apiKey && !provider.baseUrl.startsWith("cli:")) {
-        const idx = remainingProviders.findIndex((p) => p.name === provider.name);
+        const idx = remainingProviders.findIndex(
+          (p) => p.name === provider.name,
+        );
         if (idx !== -1) remainingProviders.splice(idx, 1);
         continue;
       }
@@ -179,7 +181,9 @@ export class ModelRouter {
           `Trying provider: ${provider.name} (priority: ${provider.priority || "default"})`,
         );
 
-        const clientProvider: ProviderConfig = provider.baseUrl.startsWith("cli:")
+        const clientProvider: ProviderConfig = provider.baseUrl.startsWith(
+          "cli:",
+        )
           ? provider
           : { ...provider, apiKey: apiKey ?? provider.apiKey };
 
@@ -222,7 +226,9 @@ export class ModelRouter {
         providerAttempts.set(provider.name, attempts);
 
         // Remove failed provider from this round of candidates
-        const idx = remainingProviders.findIndex((p) => p.name === provider.name);
+        const idx = remainingProviders.findIndex(
+          (p) => p.name === provider.name,
+        );
         if (idx !== -1) remainingProviders.splice(idx, 1);
 
         const canRetryProvider = this.#shouldRetry(proxyError, attempts, err);
