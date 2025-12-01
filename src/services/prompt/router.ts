@@ -7,11 +7,15 @@ import type {
   ProviderConfig,
   RetryPolicy,
 } from "@/domain/xling/config.ts";
+import { getProviderApiKeys } from "@/domain/xling/config.ts";
 import { ProviderRegistry } from "./providerRegistry.ts";
 import { PromptClient } from "./client.ts";
 import type { PromptRequest, PromptResponse } from "./types.ts";
 import type { StreamTextResult } from "ai";
 import { ModelNotSupportedError, AllProvidersFailedError } from "./types.ts";
+import { ProxyLoadBalancer } from "@/services/proxy/loadBalancer.ts";
+import { classifyError } from "@/services/proxy/errorClassifier.ts";
+import type { ProviderState, ProxyError } from "@/services/proxy/types.ts";
 import { spawn } from "node:child_process";
 import * as path from "node:path";
 
@@ -42,6 +46,8 @@ const defaultLogger: Logger = {
   error: (msg, ...args) => console.error(`[Router] ${msg}`, ...args),
 };
 
+type NormalizedProvider = ProviderConfig & { apiKeys: string[] };
+
 /**
  * Model Router with intelligent provider selection and fallback
  */
@@ -50,6 +56,8 @@ export class ModelRouter {
   #clients: Map<string, PromptClient | CliPromptClient>;
   #retryPolicy: Required<RetryPolicy>;
   #logger: Logger;
+  #loadBalancer: ProxyLoadBalancer;
+  #noRetryErrors: string[];
 
   constructor(config: XlingConfig, logger?: Logger) {
     this.#registry = new ProviderRegistry(config);
@@ -59,21 +67,38 @@ export class ModelRouter {
       backoffMs: config.retryPolicy?.backoffMs ?? 1000,
     };
     this.#logger = logger || defaultLogger;
+
+    this.#noRetryErrors = config.noRetryErrors ?? [
+      "401",
+      "403",
+      "invalid_api_key",
+    ];
+
+    const strategy =
+      config.proxy?.loadBalance ?? config.loadBalance ?? "failover";
+    const cooldown =
+      config.proxy?.keyRotation?.cooldownMs ?? config.cooldownMs ?? 60000;
+    this.#loadBalancer = new ProxyLoadBalancer(strategy, cooldown);
   }
 
   /**
    * Get or create a client for a provider
    */
   #getOrCreateClient(provider: ProviderConfig): PromptClient | CliPromptClient {
-    if (!this.#clients.has(provider.name)) {
+    const cacheKey = provider.baseUrl.startsWith("cli:")
+      ? `cli:${provider.name}`
+      : `${provider.name}:${provider.apiKey ?? ""}`;
+
+    if (!this.#clients.has(cacheKey)) {
       if (provider.baseUrl.startsWith("cli:")) {
         const tool = provider.baseUrl.replace("cli:", "");
-        this.#clients.set(provider.name, new CliPromptClient(tool));
+        this.#clients.set(cacheKey, new CliPromptClient(tool));
       } else {
-        this.#clients.set(provider.name, new PromptClient(provider));
+        this.#clients.set(cacheKey, new PromptClient(provider));
       }
     }
-    return this.#clients.get(provider.name)!;
+
+    return this.#clients.get(cacheKey)!;
   }
 
   /**
@@ -115,16 +140,50 @@ export class ModelRouter {
   ): Promise<PromptResponse> {
     const errors: Array<{ provider: string; error: Error }> = [];
 
-    for (let i = 0; i < providers.length; i++) {
-      const provider = providers[i];
-      const isLastProvider = i === providers.length - 1;
+    const normalizedProviders: NormalizedProvider[] = providers
+      .filter((p) => p.enabled !== false)
+      .map((p) => {
+        const apiKeys = getProviderApiKeys(p);
+        const isCliProvider = p.baseUrl.startsWith("cli:");
+        const normalizedKeys =
+          isCliProvider && apiKeys.length === 0 ? ["cli"] : apiKeys;
+        return { ...p, apiKeys: normalizedKeys };
+      });
+
+    if (normalizedProviders.length === 0) {
+      throw new Error(`No enabled providers available for model: ${modelId}`);
+    }
+
+    const providerAttempts = new Map<string, number>();
+    const remainingProviders = [...normalizedProviders];
+
+    while (remainingProviders.length > 0) {
+      const provider =
+        this.#loadBalancer.selectProvider(remainingProviders) ??
+        remainingProviders[0];
+
+      if (!provider) break;
+
+      const state = this.#loadBalancer.getProviderState(provider.name);
+      const { apiKey, keyIndex } = this.#selectApiKey(provider, state);
+
+      // If no usable key is available, drop this provider and continue
+      if (!apiKey && !provider.baseUrl.startsWith("cli:")) {
+        const idx = remainingProviders.findIndex((p) => p.name === provider.name);
+        if (idx !== -1) remainingProviders.splice(idx, 1);
+        continue;
+      }
 
       try {
         this.#logger.debug(
           `Trying provider: ${provider.name} (priority: ${provider.priority || "default"})`,
         );
 
-        const client = this.#getOrCreateClient(provider);
+        const clientProvider: ProviderConfig = provider.baseUrl.startsWith("cli:")
+          ? provider
+          : { ...provider, apiKey: apiKey ?? provider.apiKey };
+
+        const client = this.#getOrCreateClient(clientProvider);
 
         // Set model in request
         const requestWithModel = { ...request, model: modelId };
@@ -135,34 +194,105 @@ export class ModelRouter {
           provider.timeout || 60000,
         );
 
+        this.#loadBalancer.reportSuccess(provider.name, keyIndex);
         this.#logger.info(`✓ Successfully used provider: ${provider.name}`);
         return result;
       } catch (error) {
         const err = error as Error;
-        this.#logger.warn(`✗ Provider ${provider.name} failed: ${err.message}`);
+        const statusCode =
+          (err as ErrorWithStatus).status ??
+          (err as { statusCode?: number }).statusCode;
 
+        this.#logger.warn(
+          `✗ Provider ${provider.name} failed${
+            typeof statusCode === "number" ? ` (status ${statusCode})` : ""
+          }: ${err.message}`,
+        );
+
+        const proxyError = classifyError(
+          typeof statusCode === "number" ? statusCode : 0,
+          undefined,
+          typeof statusCode === "number" ? undefined : err,
+        );
+
+        this.#loadBalancer.reportError(provider.name, keyIndex, proxyError);
         errors.push({ provider: provider.name, error: err });
 
-        // Check if we should retry with the next provider
-        const shouldRetry = this.#isRetriableError(err) && !isLastProvider;
+        const attempts = (providerAttempts.get(provider.name) ?? 0) + 1;
+        providerAttempts.set(provider.name, attempts);
 
-        if (!shouldRetry) {
-          // If it's not retriable or it's the last provider, stop here
-          if (isLastProvider && errors.length > 1) {
+        // Remove failed provider from this round of candidates
+        const idx = remainingProviders.findIndex((p) => p.name === provider.name);
+        if (idx !== -1) remainingProviders.splice(idx, 1);
+
+        const canRetryProvider = this.#shouldRetry(proxyError, attempts, err);
+
+        // Allow retries for this provider after giving others a chance
+        if (canRetryProvider) {
+          remainingProviders.push(provider);
+        }
+
+        if (!canRetryProvider && remainingProviders.length === 0) {
+          if (errors.length > 1) {
             throw new AllProvidersFailedError(modelId, errors);
           }
           throw err;
         }
 
-        // Apply exponential backoff before trying next provider
-        if (!isLastProvider) {
-          await this.#backoff(i);
+        if (remainingProviders.length > 0) {
+          await this.#backoff(errors.length - 1);
         }
       }
     }
 
-    // This shouldn't be reached, but just in case
-    throw new AllProvidersFailedError(modelId, errors);
+    if (errors.length > 1) {
+      throw new AllProvidersFailedError(modelId, errors);
+    }
+
+    if (errors.length === 1) {
+      throw errors[0].error;
+    }
+
+    throw new Error(`No providers available for model: ${modelId}`);
+  }
+
+  #selectApiKey(
+    provider: NormalizedProvider,
+    state?: ProviderState,
+  ): { apiKey: string | null; keyIndex: number } {
+    if (!state) {
+      return { apiKey: provider.apiKeys[0] ?? null, keyIndex: 0 };
+    }
+
+    const selectedKey = this.#loadBalancer.selectKey(provider, state);
+    if (!selectedKey) {
+      return { apiKey: null, keyIndex: state.currentKeyIndex ?? 0 };
+    }
+
+    const keyIndex = provider.apiKeys.indexOf(selectedKey);
+    return { apiKey: selectedKey, keyIndex: keyIndex >= 0 ? keyIndex : 0 };
+  }
+
+  #shouldRetry(error: ProxyError, attempts: number, rawError: Error): boolean {
+    if (!error.retryable) return false;
+
+    if (!this.#isRetriableError(rawError)) return false;
+
+    const lowerMessage = rawError.message.toLowerCase();
+    if (
+      this.#noRetryErrors.some((pattern) => {
+        const normalized = pattern.toLowerCase();
+        if (error.statusCode && normalized === String(error.statusCode)) {
+          return true;
+        }
+        return lowerMessage.includes(normalized);
+      })
+    ) {
+      return false;
+    }
+
+    const maxAttemptsPerProvider = this.#retryPolicy.maxRetries + 1;
+    return attempts < maxAttemptsPerProvider;
   }
 
   /**
