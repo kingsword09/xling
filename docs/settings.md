@@ -242,6 +242,45 @@ The command prints a unified diff first. When not running with `--force` or `--d
 
 ---
 
+### settings:auth
+
+Manage Codex auth profiles (save the current `auth.json` as a profile, list profiles, delete one, or restore a saved profile back into `auth.json`).
+
+**Usage:**
+```bash
+xling settings:auth [OPTIONS]
+```
+
+**Options:**
+- `-t, --tool <tool>`: AI CLI tool (codex only)
+- `-s, --save <name>`: Save the current `auth.json` as a named profile (use `--force` to overwrite)
+- `-d, --delete <name>`: Delete a saved auth profile
+- `-r, --restore <name>`: Restore a saved auth profile into `auth.json`
+- `-f, --force`: Overwrite an existing profile when used with `--save`
+- `--json`: Output JSON instead of text
+
+**Behavior:**
+- With no flags, the command lists all saved auth profiles.
+- Saving removes the existing `auth.json` after copying it to `~/.codex/auth-profiles/<name>.json`, so you can log in with another account.
+- Deleting removes the specified profile file from `~/.codex/auth-profiles/`.
+
+**Examples:**
+```bash
+# List all saved auth profiles
+xling settings:auth --tool codex
+
+# Save current auth with overwrite
+xling settings:auth --save personal --tool codex --force
+
+# Delete an auth profile
+xling settings:auth --delete old-account --tool codex
+
+# Restore a profile back to auth.json
+xling settings:auth --restore personal --tool codex
+```
+
+---
+
 ## Configuration Scopes
 
 ### Claude Code
