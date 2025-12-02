@@ -36,11 +36,32 @@ export class CodexAdapter extends BaseAdapter {
   override async list(scope: Scope): Promise<SettingsListData> {
     const path = this.validateAndResolvePath(scope);
     const config = this.readConfig(path);
+
     const providers = this.#extractProviders(config);
+    const authProfiles = this.listAuthProfiles();
+    const hasAuthFile = fsStore.fileExists(AUTH_FILE_PATH);
+    const currentAuthProfile =
+      typeof config.current_auth_profile === "string"
+        ? config.current_auth_profile
+        : hasAuthFile || authProfiles.length > 0
+          ? this.#identifyAuthProfile()
+          : null;
+    const currentProvider =
+      typeof config.model_provider === "string" ? config.model_provider : null;
+    const currentProfile =
+      typeof config.current_profile === "string"
+        ? config.current_profile
+        : null;
 
     return {
       type: "entries",
-      entries: providers,
+      entries: {
+        current_provider: currentProvider,
+        current_profile: currentProfile,
+        current_auth_profile: currentAuthProfile,
+        providers,
+        auth_profiles: authProfiles,
+      },
       filePath: path,
     };
   }

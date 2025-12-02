@@ -41,10 +41,11 @@ xling settings:list --tool xling --scope user
 `settings.json`, making it easier to inspect which variants are available before
 switching.
 
-**Codex Provider View:** When `--tool codex`, the command narrows output to the
-`model_providers` table inside `~/.codex/config.toml`, so you can review provider
-aliases, base URLs, wire API types, and env key bindings without scrolling through
-the rest of the file.
+**Codex Provider View:** When `--tool codex`, the command focuses on the
+`model_providers` table inside `~/.codex/config.toml` and also reports saved auth
+profiles from `~/.codex/auth-profiles/`, so you can review provider aliases, base
+URLs, wire API types, and which auth profiles are available (and currently active)
+without scrolling through the rest of the file.
 
 The default view is a concise YAML-style summary so you can see which config files exist at a glance. Use `--table` or `--json` when you need more detail.
 

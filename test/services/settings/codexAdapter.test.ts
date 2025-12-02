@@ -39,7 +39,7 @@ function createTempConfig(fixtureName: string): {
 }
 
 describe("CodexAdapter", () => {
-  test("list returns model providers only", async () => {
+  test("list returns providers plus auth context", async () => {
     const { path: configPath, cleanup } = createTempConfig("config.toml");
 
     try {
@@ -53,19 +53,29 @@ describe("CodexAdapter", () => {
       expect(result.type).toBe("entries");
       expect(result.filePath).toBe(configPath);
       expect(result.entries).toMatchObject({
-        primary: {
-          name: "primary",
-          base_url: "https://api.primary.example/v1",
-          wire_api: "responses",
-          env_key: "PRIMARY_API_KEY",
-        },
-        backup: {
-          name: "backup",
-          base_url: "https://api.backup.example/v1",
-          wire_api: "responses",
-          env_key: "BACKUP_API_KEY",
+        current_provider: "openai",
+        current_profile: null,
+        providers: {
+          primary: {
+            name: "primary",
+            base_url: "https://api.primary.example/v1",
+            wire_api: "responses",
+            env_key: "PRIMARY_API_KEY",
+          },
+          backup: {
+            name: "backup",
+            base_url: "https://api.backup.example/v1",
+            wire_api: "responses",
+            env_key: "BACKUP_API_KEY",
+          },
         },
       });
+
+      expect(Array.isArray((result.entries as any).auth_profiles)).toBe(true);
+      expect(
+        (result.entries as any).current_auth_profile === null ||
+          typeof (result.entries as any).current_auth_profile === "string",
+      ).toBe(true);
     } finally {
       cleanup();
     }
