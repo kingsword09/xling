@@ -1158,6 +1158,56 @@
         "index.js"
       ]
     },
+    "sx": {
+      "aliases": [],
+      "args": {
+        "name": {
+          "description": "Shortcut name to execute",
+          "name": "name",
+          "required": false
+        }
+      },
+      "description": "\n    Execute predefined command shortcuts configured in ~/.claude/xling.json.\n\n    Shortcuts allow you to create custom aliases for frequently used xling commands\n    with pre-configured arguments. This makes it easy to run complex commands without\n    having to remember long argument lists.\n\n    Use --list to see all available shortcuts.\n\n    Pass additional arguments after the shortcut name to append them to the\n    configured arguments.\n\n    Configuration example in ~/.claude/xling.json:\n    {\n      \"shortcuts\": {\n        \"lc\": {\n          \"command\": \"x\",\n          \"args\": [\"-t\", \"claude\", \"-c\"],\n          \"description\": \"Launch Claude and continue\"\n        },\n        \"gs\": {\n          \"command\": \"settings:list\",\n          \"args\": [\"--tool\", \"codex\"],\n          \"description\": \"List Codex settings\"\n        }\n      }\n    }\n\n    Examples:\n      $ xling sx lc                    # Run shortcut \"lc\"\n      $ xling sx --list                # List all shortcuts\n      $ xling sx lc -- --no-yolo       # Run \"lc\" with extra args\n  ",
+      "examples": [
+        {
+          "description": "List all available shortcuts",
+          "command": "<%= config.bin %> <%= command.id %> --list"
+        },
+        {
+          "description": "Execute a shortcut",
+          "command": "<%= config.bin %> <%= command.id %> lc"
+        },
+        {
+          "description": "Execute shortcut with additional arguments",
+          "command": "<%= config.bin %> <%= command.id %> lc -- --no-yolo"
+        }
+      ],
+      "flags": {
+        "list": {
+          "char": "l",
+          "description": "List all available shortcuts",
+          "name": "list",
+          "allowNo": false,
+          "type": "boolean"
+        }
+      },
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "sx",
+      "pluginAlias": "xling",
+      "pluginName": "xling",
+      "pluginType": "core",
+      "strict": false,
+      "summary": "Shortcut eXecute - run predefined command shortcuts",
+      "enableJsonFlag": false,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "commands",
+        "sx",
+        "index.js"
+      ]
+    },
     "settings:auth": {
       "aliases": [],
       "args": {},
@@ -1409,14 +1459,14 @@
     "settings:list": {
       "aliases": [],
       "args": {},
-      "description": "\n    Display all configuration settings for the specified AI CLI tool.\n    Supports multiple scopes (user, project, local, system).\n  ",
+      "description": "\n    Display all configuration settings for the specified AI CLI tool.\n    Supports multiple scopes (user, project, local, system).\n    For Codex, output includes model providers and saved auth profiles.\n  ",
       "examples": [
         {
           "description": "List Claude user settings (YAML-style summary)",
           "command": "<%= config.bin %> <%= command.id %> --tool claude --scope user"
         },
         {
-          "description": "Show Codex providers in a table",
+          "description": "Show Codex providers and auth profiles in a table",
           "command": "<%= config.bin %> <%= command.id %> --tool codex --scope user --table"
         },
         {
@@ -1769,56 +1819,6 @@
         "sync.js"
       ]
     },
-    "sx": {
-      "aliases": [],
-      "args": {
-        "name": {
-          "description": "Shortcut name to execute",
-          "name": "name",
-          "required": false
-        }
-      },
-      "description": "\n    Execute predefined command shortcuts configured in ~/.claude/xling.json.\n\n    Shortcuts allow you to create custom aliases for frequently used xling commands\n    with pre-configured arguments. This makes it easy to run complex commands without\n    having to remember long argument lists.\n\n    Use --list to see all available shortcuts.\n\n    Pass additional arguments after the shortcut name to append them to the\n    configured arguments.\n\n    Configuration example in ~/.claude/xling.json:\n    {\n      \"shortcuts\": {\n        \"lc\": {\n          \"command\": \"x\",\n          \"args\": [\"-t\", \"claude\", \"-c\"],\n          \"description\": \"Launch Claude and continue\"\n        },\n        \"gs\": {\n          \"command\": \"settings:list\",\n          \"args\": [\"--tool\", \"codex\"],\n          \"description\": \"List Codex settings\"\n        }\n      }\n    }\n\n    Examples:\n      $ xling sx lc                    # Run shortcut \"lc\"\n      $ xling sx --list                # List all shortcuts\n      $ xling sx lc -- --no-yolo       # Run \"lc\" with extra args\n  ",
-      "examples": [
-        {
-          "description": "List all available shortcuts",
-          "command": "<%= config.bin %> <%= command.id %> --list"
-        },
-        {
-          "description": "Execute a shortcut",
-          "command": "<%= config.bin %> <%= command.id %> lc"
-        },
-        {
-          "description": "Execute shortcut with additional arguments",
-          "command": "<%= config.bin %> <%= command.id %> lc -- --no-yolo"
-        }
-      ],
-      "flags": {
-        "list": {
-          "char": "l",
-          "description": "List all available shortcuts",
-          "name": "list",
-          "allowNo": false,
-          "type": "boolean"
-        }
-      },
-      "hasDynamicHelp": false,
-      "hiddenAliases": [],
-      "id": "sx",
-      "pluginAlias": "xling",
-      "pluginName": "xling",
-      "pluginType": "core",
-      "strict": false,
-      "summary": "Shortcut eXecute - run predefined command shortcuts",
-      "enableJsonFlag": false,
-      "isESM": true,
-      "relativePath": [
-        "dist",
-        "commands",
-        "sx",
-        "index.js"
-      ]
-    },
     "version": {
       "aliases": [],
       "args": {},
@@ -1977,5 +1977,5 @@
       ]
     }
   },
-  "version": "0.9.2"
+  "version": "0.9.3"
 }

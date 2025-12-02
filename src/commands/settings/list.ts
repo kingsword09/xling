@@ -21,6 +21,7 @@ export default class SettingsList extends Command {
   static description = `
     Display all configuration settings for the specified AI CLI tool.
     Supports multiple scopes (user, project, local, system).
+    For Codex, output includes model providers and saved auth profiles.
   `;
 
   static examples: Command.Example[] = [
@@ -29,7 +30,7 @@ export default class SettingsList extends Command {
       command: "<%= config.bin %> <%= command.id %> --tool claude --scope user",
     },
     {
-      description: "Show Codex providers in a table",
+      description: "Show Codex providers and auth profiles in a table",
       command:
         "<%= config.bin %> <%= command.id %> --tool codex --scope user --table",
     },
