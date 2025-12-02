@@ -64,9 +64,10 @@ xling settings:set --tool claude --name hxi
 xling settings:switch oss --tool codex
 xling settings:inspect --tool claude
 xling settings:sync --tool codex
-xling settings:auth save <name>
-xling settings:auth list
-xling settings:auth switch <name>
+xling settings:auth --tool codex            # list profiles
+xling settings:auth --save <name> --tool codex
+xling settings:auth --delete <name> --tool codex
+xling settings:auth --restore <name> --tool codex
 ```
 
 ## Global Flags

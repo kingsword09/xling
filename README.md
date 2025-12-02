@@ -76,7 +76,7 @@ place.
 - `council`: Ask multiple models the same question, have them cross-judge, and return the winning or synthesized answer.
 - `proxy`: Start an OpenAI-compatible proxy with load balancing, API key rotation, and optional access key protection.
 - `sx`: Execute command shortcuts/aliases defined in xling config.
-- `settings:list|get|set|switch|inspect`: Inspect, edit, and switch Claude, Codex, Gemini, or xling configs across scopes.
+- `settings:list|get|set|switch|inspect|sync|auth`: Inspect, edit, switch, sync, and manage Codex auth profiles across scopes.
 - `git:prc|prr|prv`: Create, checkout, and view GitHub pull requests with automatic gh/git fallbacks.
 - `git:wta|wtl|wtp|wtr|wts`: Manage git worktrees (add/list/prune/remove/switch) with guard rails and subshell support.
 - `version`: Print the installed xling version.
@@ -111,6 +111,8 @@ place.
 - [`settings:set`](docs/settings.md#settingsset): open the target config in your editor of choice; handles variant creation.
 - [`settings:switch`](docs/settings.md#settingsswitch): flip active profiles (Codex) or Claude variants with safety checks.
 - [`settings:inspect`](docs/settings.md#settingsinspect): deep-dive into parsed settings with validation output.
+- [`settings:sync`](docs/settings.md#settingssync): sync Codex and Claude `config.toml` files with diff/backup support.
+- [`settings:auth`](docs/settings.md#settingsauth): save, delete, restore, or list Codex auth profiles.
 
 #### Git worktree helpers
 
