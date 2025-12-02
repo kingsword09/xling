@@ -164,6 +164,177 @@
         "index.js"
       ]
     },
+    "p": {
+      "aliases": [],
+      "args": {
+        "prompt": {
+          "description": "The prompt text",
+          "name": "prompt",
+          "required": false
+        }
+      },
+      "description": "Execute a prompt via xling providers or hand off to codex exec / claude -p with yolo",
+      "examples": [
+        {
+          "description": "Simple prompt",
+          "command": "<%= config.bin %> <%= command.id %> \"Explain quantum computing\""
+        },
+        {
+          "description": "Specify model",
+          "command": "<%= config.bin %> <%= command.id %> --model gpt-4-turbo \"Write a poem\""
+        },
+        {
+          "description": "Read from file",
+          "command": "<%= config.bin %> <%= command.id %> -f README.md \"Summarize this\""
+        },
+        {
+          "description": "Read from stdin",
+          "command": "git diff | <%= config.bin %> <%= command.id %> --stdin \"Review this diff\""
+        },
+        {
+          "description": "JSON output",
+          "command": "<%= config.bin %> <%= command.id %> --json \"What is 2+2?\""
+        },
+        {
+          "description": "Directly run codex exec (bypass xling providers)",
+          "command": "<%= config.bin %> <%= command.id %> --tool codex \"Summarize this repo\""
+        },
+        {
+          "description": "Use Claude Code CLI with yolo by default",
+          "command": "<%= config.bin %> <%= command.id %> --tool claude \"Review this diff\""
+        },
+        {
+          "description": "Shorthand for Codex backend (matches x command flag)",
+          "command": "<%= config.bin %> <%= command.id %> -t codex \"Hello\""
+        },
+        {
+          "description": "Use Gemini CLI headless prompt",
+          "command": "<%= config.bin %> <%= command.id %> -t gemini \"Summarize this diff\""
+        }
+      ],
+      "flags": {
+        "tool": {
+          "char": "t",
+          "description": "Choose backend: xling router (default) or call codex/claude/gemini CLI directly",
+          "name": "tool",
+          "required": false,
+          "default": "xling",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "options": [
+            "xling",
+            "codex",
+            "claude",
+            "gemini"
+          ],
+          "type": "option"
+        },
+        "yolo": {
+          "description": "Use yolo flags when calling codex/claude/gemini directly (skip permission prompts)",
+          "name": "yolo",
+          "required": false,
+          "allowNo": true,
+          "type": "boolean"
+        },
+        "model": {
+          "char": "m",
+          "description": "Model to use (defaults to configured defaultModel)",
+          "name": "model",
+          "required": false,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "prompt": {
+          "char": "p",
+          "description": "Prompt text (alternative to positional arg)",
+          "name": "prompt",
+          "required": false,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "system": {
+          "char": "s",
+          "description": "System prompt",
+          "name": "system",
+          "required": false,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "file": {
+          "char": "f",
+          "description": "Read additional context from file",
+          "name": "file",
+          "required": false,
+          "hasDynamicHelp": false,
+          "multiple": true,
+          "type": "option"
+        },
+        "stdin": {
+          "description": "Read prompt from stdin",
+          "name": "stdin",
+          "required": false,
+          "allowNo": false,
+          "type": "boolean"
+        },
+        "temperature": {
+          "char": "T",
+          "description": "Temperature (0.0-2.0)",
+          "name": "temperature",
+          "required": false,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "max-tokens": {
+          "description": "Maximum tokens to generate",
+          "name": "max-tokens",
+          "required": false,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "json": {
+          "description": "Output as JSON",
+          "name": "json",
+          "required": false,
+          "allowNo": false,
+          "type": "boolean"
+        },
+        "stream": {
+          "description": "Stream output (default: true)",
+          "name": "stream",
+          "required": false,
+          "allowNo": true,
+          "type": "boolean"
+        },
+        "interactive": {
+          "char": "i",
+          "description": "Enter interactive chat mode after first response",
+          "name": "interactive",
+          "required": false,
+          "allowNo": false,
+          "type": "boolean"
+        }
+      },
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "p",
+      "pluginAlias": "xling",
+      "pluginName": "xling",
+      "pluginType": "core",
+      "strict": true,
+      "enableJsonFlag": false,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "commands",
+        "p",
+        "index.js"
+      ]
+    },
     "git": {
       "aliases": [],
       "args": {},
@@ -915,174 +1086,75 @@
         "wts.js"
       ]
     },
-    "p": {
+    "proxy": {
       "aliases": [],
-      "args": {
-        "prompt": {
-          "description": "The prompt text",
-          "name": "prompt",
-          "required": false
-        }
-      },
-      "description": "Execute a prompt via xling providers or hand off to codex exec / claude -p with yolo",
+      "args": {},
+      "description": "Boot a local proxy server that forwards requests to configured upstream AI providers.\n\nFeatures:\n- OpenAI-compatible API endpoints (/v1/chat/completions, /v1/messages, etc.)\n- Multiple upstream providers with automatic failover\n- Load balancing strategies: round-robin, random, weighted, failover\n- API key rotation with automatic cooldown on errors\n- Optional access key protection\n\nConfiguration is read from ~/.claude/xling.json under the 'proxy' section.",
       "examples": [
         {
-          "description": "Simple prompt",
-          "command": "<%= config.bin %> <%= command.id %> \"Explain quantum computing\""
+          "description": "Start proxy server on default port (4320)",
+          "command": "<%= config.bin %> <%= command.id %>"
         },
         {
-          "description": "Specify model",
-          "command": "<%= config.bin %> <%= command.id %> --model gpt-4-turbo \"Write a poem\""
+          "description": "Start on custom port with access key protection",
+          "command": "<%= config.bin %> <%= command.id %> --port 8080 --access-key my-secret-key"
         },
         {
-          "description": "Read from file",
-          "command": "<%= config.bin %> <%= command.id %> -f README.md \"Summarize this\""
+          "description": "Bind to all interfaces for external access",
+          "command": "<%= config.bin %> <%= command.id %> --host 0.0.0.0"
         },
         {
-          "description": "Read from stdin",
-          "command": "git diff | <%= config.bin %> <%= command.id %> --stdin \"Review this diff\""
-        },
-        {
-          "description": "JSON output",
-          "command": "<%= config.bin %> <%= command.id %> --json \"What is 2+2?\""
-        },
-        {
-          "description": "Directly run codex exec (bypass xling providers)",
-          "command": "<%= config.bin %> <%= command.id %> --tool codex \"Summarize this repo\""
-        },
-        {
-          "description": "Use Claude Code CLI with yolo by default",
-          "command": "<%= config.bin %> <%= command.id %> --tool claude \"Review this diff\""
-        },
-        {
-          "description": "Shorthand for Codex backend (matches x command flag)",
-          "command": "<%= config.bin %> <%= command.id %> -t codex \"Hello\""
-        },
-        {
-          "description": "Use Gemini CLI headless prompt",
-          "command": "<%= config.bin %> <%= command.id %> -t gemini \"Summarize this diff\""
+          "description": "Start with verbose logging disabled",
+          "command": "<%= config.bin %> <%= command.id %> --no-logger"
         }
       ],
       "flags": {
-        "tool": {
-          "char": "t",
-          "description": "Choose backend: xling router (default) or call codex/claude/gemini CLI directly",
-          "name": "tool",
-          "required": false,
-          "default": "xling",
-          "hasDynamicHelp": false,
-          "multiple": false,
-          "options": [
-            "xling",
-            "codex",
-            "claude",
-            "gemini"
-          ],
-          "type": "option"
-        },
-        "yolo": {
-          "description": "Use yolo flags when calling codex/claude/gemini directly (skip permission prompts)",
-          "name": "yolo",
-          "required": false,
-          "allowNo": true,
-          "type": "boolean"
-        },
-        "model": {
-          "char": "m",
-          "description": "Model to use (defaults to configured defaultModel)",
-          "name": "model",
-          "required": false,
-          "hasDynamicHelp": false,
-          "multiple": false,
-          "type": "option"
-        },
-        "prompt": {
+        "port": {
           "char": "p",
-          "description": "Prompt text (alternative to positional arg)",
-          "name": "prompt",
-          "required": false,
+          "description": "Port for the proxy server",
+          "name": "port",
+          "default": 4320,
           "hasDynamicHelp": false,
           "multiple": false,
           "type": "option"
         },
-        "system": {
-          "char": "s",
-          "description": "System prompt",
-          "name": "system",
-          "required": false,
+        "host": {
+          "description": "Host/interface to bind",
+          "name": "host",
+          "default": "127.0.0.1",
           "hasDynamicHelp": false,
           "multiple": false,
           "type": "option"
         },
-        "file": {
-          "char": "f",
-          "description": "Read additional context from file",
-          "name": "file",
-          "required": false,
-          "hasDynamicHelp": false,
-          "multiple": true,
-          "type": "option"
-        },
-        "stdin": {
-          "description": "Read prompt from stdin",
-          "name": "stdin",
-          "required": false,
-          "allowNo": false,
-          "type": "boolean"
-        },
-        "temperature": {
-          "char": "T",
-          "description": "Temperature (0.0-2.0)",
-          "name": "temperature",
-          "required": false,
+        "access-key": {
+          "char": "k",
+          "description": "Access key for proxy authentication (overrides config file)",
+          "name": "access-key",
           "hasDynamicHelp": false,
           "multiple": false,
           "type": "option"
         },
-        "max-tokens": {
-          "description": "Maximum tokens to generate",
-          "name": "max-tokens",
-          "required": false,
-          "hasDynamicHelp": false,
-          "multiple": false,
-          "type": "option"
-        },
-        "json": {
-          "description": "Output as JSON",
-          "name": "json",
-          "required": false,
-          "allowNo": false,
-          "type": "boolean"
-        },
-        "stream": {
-          "description": "Stream output (default: true)",
-          "name": "stream",
-          "required": false,
+        "logger": {
+          "description": "Enable request logging",
+          "name": "logger",
           "allowNo": true,
-          "type": "boolean"
-        },
-        "interactive": {
-          "char": "i",
-          "description": "Enter interactive chat mode after first response",
-          "name": "interactive",
-          "required": false,
-          "allowNo": false,
           "type": "boolean"
         }
       },
       "hasDynamicHelp": false,
       "hiddenAliases": [],
-      "id": "p",
+      "id": "proxy",
       "pluginAlias": "xling",
       "pluginName": "xling",
       "pluginType": "core",
       "strict": true,
+      "summary": "Start an OpenAI-compatible proxy server with load balancing and key rotation",
       "enableJsonFlag": false,
       "isESM": true,
       "relativePath": [
         "dist",
         "commands",
-        "p",
+        "proxy",
         "index.js"
       ]
     },
@@ -1747,6 +1819,38 @@
         "index.js"
       ]
     },
+    "version": {
+      "aliases": [],
+      "args": {},
+      "description": "Displays the version from package.json.",
+      "examples": [
+        {
+          "description": "Print the installed CLI version",
+          "command": "<%= config.bin %> <%= command.id %>"
+        },
+        {
+          "description": "Shortcut using the built-in flag",
+          "command": "<%= config.bin %> --version"
+        }
+      ],
+      "flags": {},
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "version",
+      "pluginAlias": "xling",
+      "pluginName": "xling",
+      "pluginType": "core",
+      "strict": true,
+      "summary": "Show the current xling version",
+      "enableJsonFlag": false,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "commands",
+        "version",
+        "index.js"
+      ]
+    },
     "x": {
       "aliases": [],
       "args": {},
@@ -1871,111 +1975,7 @@
         "x",
         "index.js"
       ]
-    },
-    "proxy": {
-      "aliases": [],
-      "args": {},
-      "description": "Boot a local proxy server that forwards requests to configured upstream AI providers.\n\nFeatures:\n- OpenAI-compatible API endpoints (/v1/chat/completions, /v1/messages, etc.)\n- Multiple upstream providers with automatic failover\n- Load balancing strategies: round-robin, random, weighted, failover\n- API key rotation with automatic cooldown on errors\n- Optional access key protection\n\nConfiguration is read from ~/.claude/xling.json under the 'proxy' section.",
-      "examples": [
-        {
-          "description": "Start proxy server on default port (4320)",
-          "command": "<%= config.bin %> <%= command.id %>"
-        },
-        {
-          "description": "Start on custom port with access key protection",
-          "command": "<%= config.bin %> <%= command.id %> --port 8080 --access-key my-secret-key"
-        },
-        {
-          "description": "Bind to all interfaces for external access",
-          "command": "<%= config.bin %> <%= command.id %> --host 0.0.0.0"
-        },
-        {
-          "description": "Start with verbose logging disabled",
-          "command": "<%= config.bin %> <%= command.id %> --no-logger"
-        }
-      ],
-      "flags": {
-        "port": {
-          "char": "p",
-          "description": "Port for the proxy server",
-          "name": "port",
-          "default": 4320,
-          "hasDynamicHelp": false,
-          "multiple": false,
-          "type": "option"
-        },
-        "host": {
-          "description": "Host/interface to bind",
-          "name": "host",
-          "default": "127.0.0.1",
-          "hasDynamicHelp": false,
-          "multiple": false,
-          "type": "option"
-        },
-        "access-key": {
-          "char": "k",
-          "description": "Access key for proxy authentication (overrides config file)",
-          "name": "access-key",
-          "hasDynamicHelp": false,
-          "multiple": false,
-          "type": "option"
-        },
-        "logger": {
-          "description": "Enable request logging",
-          "name": "logger",
-          "allowNo": true,
-          "type": "boolean"
-        }
-      },
-      "hasDynamicHelp": false,
-      "hiddenAliases": [],
-      "id": "proxy",
-      "pluginAlias": "xling",
-      "pluginName": "xling",
-      "pluginType": "core",
-      "strict": true,
-      "summary": "Start an OpenAI-compatible proxy server with load balancing and key rotation",
-      "enableJsonFlag": false,
-      "isESM": true,
-      "relativePath": [
-        "dist",
-        "commands",
-        "proxy",
-        "index.js"
-      ]
-    },
-    "version": {
-      "aliases": [],
-      "args": {},
-      "description": "Displays the version from package.json.",
-      "examples": [
-        {
-          "description": "Print the installed CLI version",
-          "command": "<%= config.bin %> <%= command.id %>"
-        },
-        {
-          "description": "Shortcut using the built-in flag",
-          "command": "<%= config.bin %> --version"
-        }
-      ],
-      "flags": {},
-      "hasDynamicHelp": false,
-      "hiddenAliases": [],
-      "id": "version",
-      "pluginAlias": "xling",
-      "pluginName": "xling",
-      "pluginType": "core",
-      "strict": true,
-      "summary": "Show the current xling version",
-      "enableJsonFlag": false,
-      "isESM": true,
-      "relativePath": [
-        "dist",
-        "commands",
-        "version",
-        "index.js"
-      ]
     }
   },
-  "version": "0.9.3"
+  "version": "0.9.4"
 }
