@@ -659,6 +659,23 @@ function extractModel(body: unknown): string | undefined {
 }
 
 /**
+ * Check whether a provider model is compatible with the requested model.
+ * Supports both directions so versioned aliases still match (e.g. foo-2025
+ * matches foo and foo matches foo-2025).
+ */
+function providerSupportsModel(
+  provider: ProviderConfig,
+  model: string,
+): boolean {
+  return provider.models.some(
+    (providerModel) =>
+      providerModel === model ||
+      model.startsWith(providerModel) ||
+      providerModel.startsWith(model),
+  );
+}
+
+/**
  * Map model name using modelMapping config
  * Supports exact match, prefix match (claude-* -> gpt-4o), and wildcard (*)
  */
@@ -669,26 +686,19 @@ function mapModel(
   providers?: ProviderConfig[],
 ): string | undefined {
   if (!model) return defaultModel;
+
+  // Short-circuit when no mapping is configured
   if (!mapping || Object.keys(mapping).length === 0) {
     return model;
   }
 
-  // 1. Exact match in modelMapping
+  // Resolve mapping (exact -> prefix -> wildcard) regardless of provider support
   if (mapping[model]) {
     return mapping[model];
   }
 
-  // 2. Check if model is supported by any provider
-  if (
-    providers?.some((p) =>
-      p.models.some((m) => m === model || model.startsWith(m)),
-    )
-  ) {
-    return model;
-  }
-
-  // 3. Prefix match (e.g., "claude-*" matches "claude-haiku-4-5-20251001")
   for (const [pattern, target] of Object.entries(mapping)) {
+    if (pattern === "*") continue;
     if (pattern.endsWith("*")) {
       const prefix = pattern.slice(0, -1);
       if (model.startsWith(prefix)) {
@@ -697,12 +707,18 @@ function mapModel(
     }
   }
 
-  // 4. Wildcard match (catch-all)
+  // If no mapping matched, keep the original when supported; otherwise fallback
+  const supported = providers?.some((provider) =>
+    providerSupportsModel(provider, model),
+  );
+  if (supported) {
+    return model;
+  }
+
   if (mapping["*"]) {
     return mapping["*"];
   }
 
-  // 5. Return default model if configured, otherwise original model
   return defaultModel ?? model;
 }
 
@@ -902,7 +918,7 @@ function selectProviderForModel(
   // If model specified, filter providers that support it
   if (model) {
     const supportingProviders = normalizedProviders.filter((p) =>
-      p.models.some((m) => m === model || model.startsWith(m)),
+      providerSupportsModel(p, model),
     );
     if (supportingProviders.length > 0) {
       return loadBalancer.selectProvider(supportingProviders);
@@ -996,3 +1012,6 @@ function buildModelsResponse(providers: ProviderConfig[]): {
     data: models,
   };
 }
+
+// Expose mapping helpers for testing
+export { mapModel, selectProviderForModel, providerSupportsModel };
