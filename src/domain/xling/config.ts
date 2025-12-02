@@ -22,6 +22,7 @@ export interface ProviderConfig {
   timeout?: number;
   headers?: Record<string, string>;
   weight?: number;
+  enabled?: boolean;
 }
 
 /**
@@ -72,10 +73,27 @@ export const ProviderConfigSchema: z.ZodType<ProviderConfig> = z
       .positive()
       .optional()
       .describe("Weight for weighted load balancing"),
+    enabled: z
+      .boolean()
+      .default(true)
+      .describe("Enable or disable the provider without removing it"),
   })
-  .refine((data) => data.apiKey || (data.apiKeys && data.apiKeys.length > 0), {
-    message: "Either apiKey or apiKeys must be provided",
-  });
+  .refine(
+    (data) => {
+      // CLI providers intentionally run without API keys
+      if (data.baseUrl.startsWith("cli:")) return true;
+
+      const hasSingleKey =
+        typeof data.apiKey === "string" && data.apiKey.length > 0;
+      const hasMultipleKeys =
+        Array.isArray(data.apiKeys) && data.apiKeys.length > 0;
+      return hasSingleKey || hasMultipleKeys;
+    },
+    {
+      message:
+        "Either apiKey or apiKeys must be provided (except for cli:* providers)",
+    },
+  );
 
 /**
  * Get all API keys from a provider config
@@ -308,6 +326,9 @@ export const ShortcutConfigSchema: z.ZodType<ShortcutConfig> = z
 export interface XlingConfig {
   providers: ProviderConfig[];
   defaultModel?: string;
+  loadBalance?: LoadBalanceStrategy;
+  noRetryErrors?: string[];
+  cooldownMs?: number;
   proxy?: ProxyConfig;
   retryPolicy?: RetryPolicy;
   shortcuts?: Record<string, ShortcutConfig>;
@@ -325,6 +346,27 @@ export const XlingConfigSchema: z.ZodType<XlingConfig> = z.object({
       { message: "Provider names must be unique" },
     ),
   defaultModel: z.string().optional(),
+  loadBalance: LoadBalanceStrategySchema.optional()
+    .default("failover")
+    .describe(
+      "Global load balancing strategy (overridden by proxy.loadBalance when set)",
+    ),
+  noRetryErrors: z
+    .array(z.string())
+    .optional()
+    .default(["401", "403", "invalid_api_key"])
+    .describe(
+      "Error patterns or status codes that should not trigger retry/fallback",
+    ),
+  cooldownMs: z
+    .number()
+    .int()
+    .positive()
+    .optional()
+    .default(60000)
+    .describe(
+      "Global cooldown for failed providers in milliseconds (proxy.keyRotation.cooldownMs overrides)",
+    ),
   proxy: ProxyConfigSchema.optional(),
   retryPolicy: RetryPolicySchema.optional(),
   shortcuts: z.record(z.string(), ShortcutConfigSchema).optional(),
@@ -379,6 +421,14 @@ export function validateXlingConfig(data: unknown): XlingConfig {
       providers: normalizedProviders,
       defaultModel:
         (prompt.defaultModel as string) || (proxy?.defaultModel as string),
+      loadBalance:
+        (config.loadBalance as LoadBalanceStrategy | undefined) ??
+        (proxy?.loadBalance as LoadBalanceStrategy | undefined),
+      noRetryErrors:
+        (config.noRetryErrors as string[] | undefined) ?? undefined,
+      cooldownMs:
+        (config.cooldownMs as number | undefined) ??
+        (proxy?.keyRotation as { cooldownMs?: number } | undefined)?.cooldownMs,
       proxy: proxy
         ? {
             enabled: (proxy.enabled as boolean) ?? true,
