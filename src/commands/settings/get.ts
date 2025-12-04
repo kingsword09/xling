@@ -13,11 +13,11 @@ import { ClaudeAdapter } from "@/services/settings/adapters/claude.ts";
 import type { ToolId, Scope, InspectResult } from "@/domain/types.ts";
 
 export default class SettingsGet extends Command {
-  static summary = "View the full configuration file";
+  static summary = "View configuration file contents";
 
   static description = `
     Print the entire configuration file for the selected tool/scope.
-    Use --json for structured output or --no-json for plain text.
+    Output format depends on the file type (JSON, TOML, etc.).
   `;
 
   static examples: Command.Example[] = [

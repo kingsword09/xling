@@ -6,11 +6,19 @@ import { promptUser } from "@/utils/cli.ts";
 import * as open from "open";
 
 export default class CouncilCommand extends Command {
-  static summary =
-    "Ask multiple models the same question, have them judge peers, and pick the winner.";
+  static summary = "Multi-model council with peer judging and synthesis";
 
-  static description =
-    "Run a council: collect answers, cross-judge anonymously, and synthesize the best response.";
+  static description = `
+    Run a council: ask multiple models the same question, have them judge
+    each other's answers anonymously, and synthesize the best response.
+
+    Process:
+    1. All models answer the question independently
+    2. Each model judges other models' answers (anonymized)
+    3. A final model synthesizes the best response based on scores
+
+    Models are configured via ~/.claude/xling.json providers.
+  `;
 
   static examples: Command.Example[] = [
     {

@@ -21,7 +21,7 @@ type SwitchCommandFlags = Interfaces.InferredFlags<
   (typeof SettingsSwitch)["flags"]
 >;
 export default class SettingsSwitch extends Command {
-  static summary = "Switch Codex profiles or Claude settings variants";
+  static summary = "Switch between profiles or settings variants";
 
   static description = `
     Switch to a different profile configuration for Codex

@@ -1,7 +1,7 @@
 {
   "name": "xling",
   "version": "0.9.6",
-  "description": "Unified CLI for managing AI tool settings",
+  "description": "Unified CLI for AI tools: settings management, API proxy with load balancing, multi-model discussions",
   "homepage": "https://github.com/kingsword09/xling/tree/main#readme",
   "bugs": {
     "url": "https://github.com/kingsword09/xling/issues"
@@ -52,7 +52,15 @@
     "bin": "xling",
     "dirname": "xling",
     "commands": "./dist/commands",
-    "topicSeparator": ":"
+    "topicSeparator": ":",
+    "topics": {
+      "settings": {
+        "description": "Manage AI tool settings (Claude, Codex, Gemini, xling)"
+      },
+      "git": {
+        "description": "Git workflow utilities (PR management, worktrees)"
+      }
+    }
   },
   "publishConfig": {
     "access": "public"

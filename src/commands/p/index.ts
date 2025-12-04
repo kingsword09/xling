@@ -28,8 +28,17 @@ import {
 type PromptBackend = "xling" | CliBackend;
 
 export default class PCommand extends Command {
-  static description =
-    "Execute a prompt via xling providers or hand off to codex exec / claude -p with yolo";
+  static summary = "Execute prompts via xling router or AI CLI tools";
+
+  static description = `
+    Send prompts to AI models using xling's built-in router (default) or
+    delegate to CLI tools like codex exec, claude -p, or gemini.
+
+    The xling router uses configured providers in ~/.claude/xling.json
+    with automatic failover and model routing.
+
+    Use --tool to bypass the router and call CLI tools directly.
+  `;
 
   static examples: Command.Example[] = [
     {

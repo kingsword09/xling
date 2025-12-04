@@ -9,7 +9,7 @@ import { formatJson } from "@/utils/format.ts";
 import type { SettingsResult } from "@/domain/types.ts";
 
 export default class SettingsAuth extends Command {
-  static summary = "Manage auth profiles for Codex";
+  static summary = "Manage saved auth profiles";
 
   static description = `
     Save, list, and delete auth profiles for Codex.

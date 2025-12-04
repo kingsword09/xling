@@ -16,7 +16,7 @@ import type {
 } from "@/domain/types.ts";
 
 export default class SettingsSet extends Command {
-  static summary = "Open settings files or add Codex providers";
+  static summary = "Edit settings or add model providers";
 
   static description = `
     Create or open settings files for AI CLI tools in your preferred editor,

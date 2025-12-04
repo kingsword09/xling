@@ -13,10 +13,13 @@ export default class ProxyCommand extends Command {
   static description = `Boot a local proxy server that forwards requests to configured upstream AI providers.
 
 Features:
-- OpenAI-compatible API endpoints (/v1/chat/completions, /v1/messages, etc.)
+- OpenAI Chat Completions API (/v1/chat/completions)
+- Anthropic Messages API (/v1/messages) with automatic format conversion
+- OpenAI Responses API (/responses) for Codex CLI compatibility
 - Multiple upstream providers with automatic failover
 - Load balancing strategies: round-robin, random, weighted, failover
 - API key rotation with automatic cooldown on errors
+- Model mapping and aliasing
 - Optional access key protection
 
 Configuration is read from ~/.claude/xling.json under the 'proxy' section.`;
