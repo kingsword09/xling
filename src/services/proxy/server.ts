@@ -167,16 +167,19 @@ export async function startProxyServer(
         if (options.logger) {
           console.log(`[proxy] Handling request: ${req.method} ${path}`);
         }
-        const cfg = getConfig();
+        // Pass getConfig function so retry can get latest config
         return handleProxyRequest(
           req,
           path,
-          {
-            providers: cfg.providers,
-            modelMapping: cfg.proxy?.modelMapping,
-            defaultModel: cfg.defaultModel,
-            passthroughResponsesAPI: cfg.proxy?.passthroughResponsesAPI,
-            keyRotation: cfg.proxy?.keyRotation,
+          () => {
+            const cfg = getConfig();
+            return {
+              providers: cfg.providers,
+              modelMapping: cfg.proxy?.modelMapping,
+              defaultModel: cfg.defaultModel,
+              passthroughResponsesAPI: cfg.proxy?.passthroughResponsesAPI,
+              keyRotation: cfg.proxy?.keyRotation,
+            };
           },
           loadBalancer,
           options.logger ?? true,
@@ -256,7 +259,7 @@ interface ProxyRequestConfig {
 async function handleProxyRequest(
   req: Request,
   path: string,
-  config: ProxyRequestConfig,
+  getConfig: () => ProxyRequestConfig,
   loadBalancer: ProxyLoadBalancer,
   logger: boolean,
 ): Promise<Response> {
@@ -295,6 +298,9 @@ async function handleProxyRequest(
     }
   }
 
+  // Get initial config
+  let config = getConfig();
+
   // Detect request format
   const needsAnthropicConversion = isAnthropicRequest(body);
   const needsResponsesAPIConversion = isResponsesAPIRequest(body);
@@ -302,9 +308,11 @@ async function handleProxyRequest(
   let isStreaming = false;
   let responseFormat: "anthropic" | "responses" | "openai" = "openai";
 
-  // Extract and map model from request
+  // Extract original model from request (this doesn't change)
   const originalModel = extractModel(body);
-  const mappedModel = mapModel(
+
+  // Map model using current config (will be re-mapped on retry if config changes)
+  let mappedModel = mapModel(
     originalModel,
     config.modelMapping,
     config.defaultModel,
@@ -420,7 +428,7 @@ async function handleProxyRequest(
   }
 
   // Use mapped model for provider selection
-  const requestedModel = mappedModel;
+  let requestedModel = mappedModel;
 
   // Try providers with retry
   const maxRetries =
@@ -428,6 +436,27 @@ async function handleProxyRequest(
   let lastError: Response | null = null;
 
   while (context.retryCount < maxRetries) {
+    // On retry, re-fetch config to pick up any hot-reloaded changes
+    if (context.retryCount > 0) {
+      const newConfig = getConfig();
+      // Re-map model if config changed
+      const newMappedModel = mapModel(
+        originalModel,
+        newConfig.modelMapping,
+        newConfig.defaultModel,
+        newConfig.providers,
+      );
+      if (newMappedModel !== mappedModel) {
+        mappedModel = newMappedModel;
+        requestedModel = newMappedModel;
+        // Update the body with new mapped model
+        if (processedBody && typeof processedBody === "object") {
+          (processedBody as Record<string, unknown>).model = newMappedModel;
+        }
+      }
+      config = newConfig;
+    }
+
     // Select provider
     const provider = selectProviderForModel(
       config.providers,

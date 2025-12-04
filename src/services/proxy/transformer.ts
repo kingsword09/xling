@@ -526,6 +526,7 @@ interface ToolCallAccumulator {
   id: string;
   name: string;
   arguments: string;
+  emitted: boolean; // Track if this tool call has been emitted
 }
 
 /**
@@ -545,6 +546,9 @@ export function createStreamTransformer(
   let currentBlockIndex = 0;
   const toolCallAccumulators: Map<number, ToolCallAccumulator> = new Map();
   let hasTextContent = false;
+  let messageDeltaSent = false; // Track if message_delta has been sent
+  let messageStopSent = false; // Track if message_stop has been sent
+  let contentBlocksStopped = false; // Track if content blocks have been stopped
 
   return new TransformStream({
     transform(chunk, controller) {
@@ -557,21 +561,42 @@ export function createStreamTransformer(
         const data = line.slice(6).trim();
 
         if (data === "[DONE]") {
-          // Emit any accumulated tool calls before finishing
-          emitAccumulatedToolCalls(
-            controller,
-            encoder,
-            toolCallAccumulators,
-            currentBlockIndex,
-          );
+          // Emit any accumulated tool calls that haven't been emitted yet
+          if (!contentBlocksStopped) {
+            emitAccumulatedToolCalls(
+              controller,
+              encoder,
+              toolCallAccumulators,
+              currentBlockIndex,
+            );
+            contentBlocksStopped = true;
+          }
 
-          // Send message_stop event
-          const stopEvent = { type: "message_stop" };
-          controller.enqueue(
-            encoder.encode(
-              `event: message_stop\ndata: ${JSON.stringify(stopEvent)}\n\n`,
-            ),
-          );
+          // Send message_delta if not sent yet
+          if (!messageDeltaSent) {
+            const messageDeltaEvent = {
+              type: "message_delta",
+              delta: { stop_reason: "end_turn", stop_sequence: null },
+              usage: { output_tokens: outputTokens },
+            };
+            controller.enqueue(
+              encoder.encode(
+                `event: message_delta\ndata: ${JSON.stringify(messageDeltaEvent)}\n\n`,
+              ),
+            );
+            messageDeltaSent = true;
+          }
+
+          // Send message_stop event if not sent yet
+          if (!messageStopSent) {
+            const stopEvent = { type: "message_stop" };
+            controller.enqueue(
+              encoder.encode(
+                `event: message_stop\ndata: ${JSON.stringify(stopEvent)}\n\n`,
+              ),
+            );
+            messageStopSent = true;
+          }
           continue;
         }
 
@@ -664,6 +689,7 @@ export function createStreamTransformer(
                   id: "",
                   name: "",
                   arguments: "",
+                  emitted: false,
                 });
               }
 
@@ -692,39 +718,57 @@ export function createStreamTransformer(
                 ),
               );
               currentBlockIndex++;
+              sentTextBlockStart = false;
             }
 
-            // Emit accumulated tool calls
-            if (
-              finishReason === "tool_calls" ||
-              toolCallAccumulators.size > 0
-            ) {
-              emitAccumulatedToolCalls(
-                controller,
-                encoder,
-                toolCallAccumulators,
-                currentBlockIndex,
+            // Emit accumulated tool calls (only if not already done)
+            if (!contentBlocksStopped) {
+              if (
+                finishReason === "tool_calls" ||
+                toolCallAccumulators.size > 0
+              ) {
+                emitAccumulatedToolCalls(
+                  controller,
+                  encoder,
+                  toolCallAccumulators,
+                  currentBlockIndex,
+                );
+              }
+              contentBlocksStopped = true;
+            }
+
+            // Send message_delta with stop_reason (only if not already sent)
+            if (!messageDeltaSent) {
+              let stopReason: string = "end_turn";
+              if (finishReason === "length") {
+                stopReason = "max_tokens";
+              } else if (finishReason === "tool_calls") {
+                stopReason = "tool_use";
+              }
+
+              const messageDeltaEvent = {
+                type: "message_delta",
+                delta: { stop_reason: stopReason, stop_sequence: null },
+                usage: { output_tokens: outputTokens },
+              };
+              controller.enqueue(
+                encoder.encode(
+                  `event: message_delta\ndata: ${JSON.stringify(messageDeltaEvent)}\n\n`,
+                ),
               );
+              messageDeltaSent = true;
             }
 
-            // Send message_delta with stop_reason
-            let stopReason: string = "end_turn";
-            if (finishReason === "length") {
-              stopReason = "max_tokens";
-            } else if (finishReason === "tool_calls") {
-              stopReason = "tool_use";
+            // Send message_stop immediately after finish_reason
+            if (!messageStopSent) {
+              const stopEvent = { type: "message_stop" };
+              controller.enqueue(
+                encoder.encode(
+                  `event: message_stop\ndata: ${JSON.stringify(stopEvent)}\n\n`,
+                ),
+              );
+              messageStopSent = true;
             }
-
-            const messageDeltaEvent = {
-              type: "message_delta",
-              delta: { stop_reason: stopReason, stop_sequence: null },
-              usage: { output_tokens: outputTokens },
-            };
-            controller.enqueue(
-              encoder.encode(
-                `event: message_delta\ndata: ${JSON.stringify(messageDeltaEvent)}\n\n`,
-              ),
-            );
           }
         } catch {
           // Ignore parse errors
@@ -750,7 +794,8 @@ function emitAccumulatedToolCalls(
   let index = startIndex;
 
   for (const [, acc] of accumulators) {
-    if (!acc.id || !acc.name) continue;
+    // Skip if already emitted or missing required fields
+    if (acc.emitted || !acc.id || !acc.name) continue;
 
     let input: unknown = {};
     try {
@@ -799,10 +844,10 @@ function emitAccumulatedToolCalls(
       ),
     );
 
+    // Mark as emitted
+    acc.emitted = true;
     index++;
   }
-
-  accumulators.clear();
 }
 
 // ============================================================================
@@ -922,7 +967,9 @@ interface ResponsesAPIResponse {
 }
 
 interface ResponsesAPIOutputItem {
+  id?: string;
   type: "message";
+  status?: "completed" | "in_progress";
   role: "assistant";
   content: ResponsesAPIOutputContent[];
 }
@@ -1124,7 +1171,9 @@ export function responsesAPIToOpenAIRequest(
 type ResponsesOutputItem = ResponsesAPIOutputItem | ResponsesFunctionCallItem;
 
 interface ResponsesFunctionCallItem {
+  id?: string;
   type: "function_call";
+  status?: "completed" | "in_progress";
   call_id: string;
   name: string;
   arguments: string;
@@ -1147,10 +1196,12 @@ export function openAIToResponsesAPIResponse(
   if (choice?.message?.tool_calls && choice.message.tool_calls.length > 0) {
     for (const toolCall of choice.message.tool_calls) {
       output.push({
+        id: `fc_${toolCall.id}`,
         type: "function_call",
+        status: "completed",
         call_id: toolCall.id,
         name: toolCall.function.name,
-        arguments: toolCall.function.arguments,
+        arguments: toolCall.function.arguments || "{}",
       });
     }
   }
@@ -1165,7 +1216,9 @@ export function openAIToResponsesAPIResponse(
     ];
 
     output.push({
+      id: `msg_${(res.id as string) || `resp_${Date.now()}`}_0`,
       type: "message",
+      status: "completed",
       role: "assistant",
       content: outputContent,
     });
@@ -1289,6 +1342,7 @@ interface StreamToolCallAccumulator {
   arguments: string;
   outputIndex: number; // Track the output index for this tool call
   sentAdded: boolean; // Track if we've sent the output_item.added event
+  sentDone: boolean; // Track if we've sent the output_item.done event
 }
 
 /**
@@ -1310,6 +1364,7 @@ export function createResponsesAPIStreamTransformer(
   const toolCallAccumulators: Map<number, StreamToolCallAccumulator> =
     new Map();
   let outputIndex = 0;
+  let sentCompleted = false; // Track if response.completed was already sent
 
   return new TransformStream({
     transform(chunk, controller) {
@@ -1322,6 +1377,50 @@ export function createResponsesAPIStreamTransformer(
         const data = line.slice(6).trim();
 
         if (data === "[DONE]") {
+          // Skip if response.completed was already sent on finish_reason
+          if (sentCompleted) {
+            continue;
+          }
+
+          // Send any pending done events for tool calls that weren't finalized
+          for (const [, acc] of toolCallAccumulators) {
+            if (acc.sentAdded && acc.outputIndex >= 0 && !acc.sentDone) {
+              acc.sentDone = true;
+
+              // Send response.function_call_arguments.done
+              const argsDoneEvent = {
+                type: "response.function_call_arguments.done",
+                output_index: acc.outputIndex,
+                item_id: `fc_${acc.id}`,
+                arguments: acc.arguments || "{}",
+              };
+              controller.enqueue(
+                encoder.encode(
+                  `event: response.function_call_arguments.done\ndata: ${JSON.stringify(argsDoneEvent)}\n\n`,
+                ),
+              );
+
+              // Send response.output_item.done
+              const itemDoneEvent = {
+                type: "response.output_item.done",
+                output_index: acc.outputIndex,
+                item: {
+                  id: `fc_${acc.id}`,
+                  type: "function_call",
+                  status: "completed",
+                  call_id: acc.id,
+                  name: acc.name,
+                  arguments: acc.arguments || "{}",
+                },
+              };
+              controller.enqueue(
+                encoder.encode(
+                  `event: response.output_item.done\ndata: ${JSON.stringify(itemDoneEvent)}\n\n`,
+                ),
+              );
+            }
+          }
+
           // Build final output array
           const finalOutput: unknown[] = [];
 
@@ -1329,10 +1428,12 @@ export function createResponsesAPIStreamTransformer(
           for (const [, acc] of toolCallAccumulators) {
             if (acc.sentAdded && acc.id && acc.name) {
               finalOutput.push({
+                id: `fc_${acc.id}`,
                 type: "function_call",
+                status: "completed",
                 call_id: acc.id,
                 name: acc.name,
-                arguments: acc.arguments,
+                arguments: acc.arguments || "{}",
               });
             }
           }
@@ -1347,6 +1448,7 @@ export function createResponsesAPIStreamTransformer(
           }
 
           // Send response.completed event
+          sentCompleted = true;
           const completedEvent = {
             type: "response.completed",
             response: {
@@ -1374,15 +1476,18 @@ export function createResponsesAPIStreamTransformer(
         try {
           const streamChunk = JSON.parse(data) as OpenAIStreamChunk;
 
-          // Send response.created on first chunk
+          // Send response.created and response.in_progress on first chunk
           if (!sentCreated) {
             sentCreated = true;
+            const createdAt = Math.floor(Date.now() / 1000);
+
+            // response.created
             const createdEvent = {
               type: "response.created",
               response: {
                 id: responseId,
                 object: "response",
-                created_at: Math.floor(Date.now() / 1000),
+                created_at: createdAt,
                 model: originalModel,
                 output: [],
                 status: "in_progress",
@@ -1391,6 +1496,22 @@ export function createResponsesAPIStreamTransformer(
             controller.enqueue(
               encoder.encode(
                 `event: response.created\ndata: ${JSON.stringify(createdEvent)}\n\n`,
+              ),
+            );
+
+            // response.in_progress
+            const inProgressEvent = {
+              type: "response.in_progress",
+              response: {
+                id: responseId,
+                object: "response",
+                created_at: createdAt,
+                status: "in_progress",
+              },
+            };
+            controller.enqueue(
+              encoder.encode(
+                `event: response.in_progress\ndata: ${JSON.stringify(inProgressEvent)}\n\n`,
               ),
             );
           }
@@ -1426,6 +1547,7 @@ export function createResponsesAPIStreamTransformer(
                   arguments: "",
                   outputIndex: -1, // Will be set when we send output_item.added
                   sentAdded: false,
+                  sentDone: false,
                 });
               }
 
@@ -1543,17 +1665,35 @@ export function createResponsesAPIStreamTransformer(
 
           // Check for finish
           if (streamChunk.choices[0]?.finish_reason) {
-            // Send done events for tool calls
+            // Send done events for tool calls (in order: arguments.done -> output_item.done)
             for (const [, acc] of toolCallAccumulators) {
-              if (acc.sentAdded && acc.outputIndex >= 0) {
+              if (acc.sentAdded && acc.outputIndex >= 0 && !acc.sentDone) {
+                acc.sentDone = true;
+
+                // First send response.function_call_arguments.done
+                const argsDoneEvent = {
+                  type: "response.function_call_arguments.done",
+                  output_index: acc.outputIndex,
+                  item_id: `fc_${acc.id}`,
+                  arguments: acc.arguments || "{}",
+                };
+                controller.enqueue(
+                  encoder.encode(
+                    `event: response.function_call_arguments.done\ndata: ${JSON.stringify(argsDoneEvent)}\n\n`,
+                  ),
+                );
+
+                // Then send response.output_item.done
                 const itemDoneEvent = {
                   type: "response.output_item.done",
                   output_index: acc.outputIndex,
                   item: {
+                    id: `fc_${acc.id}`,
                     type: "function_call",
+                    status: "completed",
                     call_id: acc.id,
                     name: acc.name,
-                    arguments: acc.arguments,
+                    arguments: acc.arguments || "{}",
                   },
                 };
                 controller.enqueue(
@@ -1594,7 +1734,9 @@ export function createResponsesAPIStreamTransformer(
                 type: "response.output_item.done",
                 output_index: outputIndex,
                 item: {
+                  id: `msg_${responseId}_0`,
                   type: "message",
+                  status: "completed",
                   role: "assistant",
                   content: [{ type: "output_text", text: textBuffer }],
                 },
@@ -1608,16 +1750,19 @@ export function createResponsesAPIStreamTransformer(
 
             // Send response.completed immediately after finish_reason
             // Don't wait for [DONE] as some providers may not send it or delay it
+            sentCompleted = true;
             const finalOutput: unknown[] = [];
 
             // Add tool calls first (only those that were properly sent)
             for (const [, acc] of toolCallAccumulators) {
               if (acc.sentAdded && acc.id && acc.name) {
                 finalOutput.push({
+                  id: `fc_${acc.id}`,
                   type: "function_call",
+                  status: "completed",
                   call_id: acc.id,
                   name: acc.name,
-                  arguments: acc.arguments,
+                  arguments: acc.arguments || "{}",
                 });
               }
             }
@@ -1625,7 +1770,9 @@ export function createResponsesAPIStreamTransformer(
             // Add message if there's text content
             if (textBuffer) {
               finalOutput.push({
+                id: `msg_${responseId}_0`,
                 type: "message",
+                status: "completed",
                 role: "assistant",
                 content: [{ type: "output_text", text: textBuffer }],
               });
