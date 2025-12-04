@@ -137,7 +137,8 @@ export async function startProxyServer(
       // Anthropic clients typically send keys via `x-api-key`, not Authorization.
       if (accessKey) {
         const authHeader = req.headers.get("authorization");
-        const apiKeyHeader = req.headers.get("x-api-key") ?? req.headers.get("X-Api-Key");
+        const apiKeyHeader =
+          req.headers.get("x-api-key") ?? req.headers.get("X-Api-Key");
         const providedKey =
           authHeader?.replace(/^Bearer\s+/i, "") || apiKeyHeader || undefined;
 
@@ -970,7 +971,8 @@ function corsHeaders(): Record<string, string> {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
     // Allow Anthropic-style X-API-Key in addition to standard Authorization.
-    "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Request-ID, X-API-Key",
+    "Access-Control-Allow-Headers":
+      "Content-Type, Authorization, X-Request-ID, X-API-Key",
     "Access-Control-Max-Age": "86400",
   };
 }
