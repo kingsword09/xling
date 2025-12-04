@@ -3,7 +3,7 @@
     "council": {
       "aliases": [],
       "args": {},
-      "description": "Run a council: collect answers, cross-judge anonymously, and synthesize the best response.",
+      "description": "\n    Run a council: ask multiple models the same question, have them judge\n    each other's answers anonymously, and synthesize the best response.\n\n    Process:\n    1. All models answer the question independently\n    2. Each model judges other models' answers (anonymized)\n    3. A final model synthesizes the best response based on scores\n\n    Models are configured via ~/.claude/xling.json providers.\n  ",
       "examples": [
         {
           "description": "CLI mode with explicit models",
@@ -70,7 +70,7 @@
       "pluginName": "xling",
       "pluginType": "core",
       "strict": true,
-      "summary": "Ask multiple models the same question, have them judge peers, and pick the winner.",
+      "summary": "Multi-model council with peer judging and synthesis",
       "enableJsonFlag": false,
       "isESM": true,
       "relativePath": [
@@ -83,7 +83,7 @@
     "discuss": {
       "aliases": [],
       "args": {},
-      "description": "Start a discussion between multiple AI models",
+      "description": "\n    Start a discussion between multiple AI models.\n\n    In CLI mode, models take turns responding to each other's messages.\n    In Web UI mode, a browser-based interface provides real-time visualization.\n\n    Models are configured via ~/.claude/xling.json providers.\n  ",
       "examples": [
         {
           "description": "CLI mode, pick topic/models interactively",
@@ -173,7 +173,7 @@
           "required": false
         }
       },
-      "description": "Execute a prompt via xling providers or hand off to codex exec / claude -p with yolo",
+      "description": "\n    Send prompts to AI models using xling's built-in router (default) or\n    delegate to CLI tools like codex exec, claude -p, or gemini.\n\n    The xling router uses configured providers in ~/.claude/xling.json\n    with automatic failover and model routing.\n\n    Use --tool to bypass the router and call CLI tools directly.\n  ",
       "examples": [
         {
           "description": "Simple prompt",
@@ -326,6 +326,7 @@
       "pluginName": "xling",
       "pluginType": "core",
       "strict": true,
+      "summary": "Execute prompts via xling router or AI CLI tools",
       "enableJsonFlag": false,
       "isESM": true,
       "relativePath": [
@@ -1089,7 +1090,7 @@
     "proxy": {
       "aliases": [],
       "args": {},
-      "description": "Boot a local proxy server that forwards requests to configured upstream AI providers.\n\nFeatures:\n- OpenAI-compatible API endpoints (/v1/chat/completions, /v1/messages, etc.)\n- Multiple upstream providers with automatic failover\n- Load balancing strategies: round-robin, random, weighted, failover\n- API key rotation with automatic cooldown on errors\n- Optional access key protection\n\nConfiguration is read from ~/.claude/xling.json under the 'proxy' section.",
+      "description": "Boot a local proxy server that forwards requests to configured upstream AI providers.\n\nFeatures:\n- OpenAI Chat Completions API (/v1/chat/completions)\n- Anthropic Messages API (/v1/messages) with automatic format conversion\n- OpenAI Responses API (/responses) for Codex CLI compatibility\n- Multiple upstream providers with automatic failover\n- Load balancing strategies: round-robin, random, weighted, failover\n- API key rotation with automatic cooldown on errors\n- Model mapping and aliasing\n- Optional access key protection\n\nConfiguration is read from ~/.claude/xling.json under the 'proxy' section.",
       "examples": [
         {
           "description": "Start proxy server on default port (4320)",
@@ -1155,6 +1156,56 @@
         "dist",
         "commands",
         "proxy",
+        "index.js"
+      ]
+    },
+    "sx": {
+      "aliases": [],
+      "args": {
+        "name": {
+          "description": "Shortcut name to execute",
+          "name": "name",
+          "required": false
+        }
+      },
+      "description": "\n    Execute predefined command shortcuts configured in ~/.claude/xling.json.\n\n    Shortcuts allow you to create custom aliases for frequently used xling commands\n    with pre-configured arguments. This makes it easy to run complex commands without\n    having to remember long argument lists.\n\n    Use --list to see all available shortcuts.\n\n    Pass additional arguments after the shortcut name to append them to the\n    configured arguments.\n\n    Configuration example in ~/.claude/xling.json:\n    {\n      \"shortcuts\": {\n        \"lc\": {\n          \"command\": \"x\",\n          \"args\": [\"-t\", \"claude\", \"-c\"],\n          \"description\": \"Launch Claude and continue\"\n        },\n        \"gs\": {\n          \"command\": \"settings:list\",\n          \"args\": [\"--tool\", \"codex\"],\n          \"description\": \"List Codex settings\"\n        }\n      }\n    }\n\n    Examples:\n      $ xling sx lc                    # Run shortcut \"lc\"\n      $ xling sx --list                # List all shortcuts\n      $ xling sx lc -- --no-yolo       # Run \"lc\" with extra args\n  ",
+      "examples": [
+        {
+          "description": "List all available shortcuts",
+          "command": "<%= config.bin %> <%= command.id %> --list"
+        },
+        {
+          "description": "Execute a shortcut",
+          "command": "<%= config.bin %> <%= command.id %> lc"
+        },
+        {
+          "description": "Execute shortcut with additional arguments",
+          "command": "<%= config.bin %> <%= command.id %> lc -- --no-yolo"
+        }
+      ],
+      "flags": {
+        "list": {
+          "char": "l",
+          "description": "List all available shortcuts",
+          "name": "list",
+          "allowNo": false,
+          "type": "boolean"
+        }
+      },
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "sx",
+      "pluginAlias": "xling",
+      "pluginName": "xling",
+      "pluginType": "core",
+      "strict": false,
+      "summary": "Shortcut eXecute - run predefined command shortcuts",
+      "enableJsonFlag": false,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "commands",
+        "sx",
         "index.js"
       ]
     },
@@ -1242,7 +1293,7 @@
       "pluginName": "xling",
       "pluginType": "core",
       "strict": true,
-      "summary": "Manage auth profiles for Codex",
+      "summary": "Manage saved auth profiles",
       "enableJsonFlag": false,
       "isESM": true,
       "relativePath": [
@@ -1261,7 +1312,7 @@
           "required": false
         }
       },
-      "description": "\n    Print the entire configuration file for the selected tool/scope.\n    Use --json for structured output or --no-json for plain text.\n  ",
+      "description": "\n    Print the entire configuration file for the selected tool/scope.\n    Output format depends on the file type (JSON, TOML, etc.).\n  ",
       "examples": [
         {
           "description": "Print Claude user settings (raw file)",
@@ -1319,7 +1370,7 @@
       "pluginName": "xling",
       "pluginType": "core",
       "strict": true,
-      "summary": "View the full configuration file",
+      "summary": "View configuration file contents",
       "enableJsonFlag": false,
       "isESM": true,
       "relativePath": [
@@ -1327,6 +1378,54 @@
         "commands",
         "settings",
         "get.js"
+      ]
+    },
+    "settings": {
+      "aliases": [],
+      "args": {},
+      "description": "\n    Unified settings management for multiple AI CLI tools.\n\n    Supported tools:\n    - Claude Code: Manage user, project, and local settings\n    - Codex: Manage model providers, auth profiles, and settings\n    - Gemini CLI: Manage user, project, and system settings\n    - xling: Manage shortcuts and proxy configuration\n\n    Use subcommands to list, view, edit, switch, and sync configurations.\n  ",
+      "examples": [
+        {
+          "description": "List Claude user settings",
+          "command": "<%= config.bin %> <%= command.id %>:list --tool claude"
+        },
+        {
+          "description": "List Codex providers and auth profiles",
+          "command": "<%= config.bin %> <%= command.id %>:list --tool codex"
+        },
+        {
+          "description": "View full Gemini configuration",
+          "command": "<%= config.bin %> <%= command.id %>:get --tool gemini"
+        },
+        {
+          "description": "Switch Codex profile",
+          "command": "<%= config.bin %> <%= command.id %>:switch oss --tool codex"
+        },
+        {
+          "description": "Edit Claude settings",
+          "command": "<%= config.bin %> <%= command.id %>:set --tool claude"
+        },
+        {
+          "description": "Sync config between Claude and Codex",
+          "command": "<%= config.bin %> <%= command.id %>:sync"
+        }
+      ],
+      "flags": {},
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "settings",
+      "pluginAlias": "xling",
+      "pluginName": "xling",
+      "pluginType": "core",
+      "strict": true,
+      "summary": "Manage AI tool settings (Claude, Codex, Gemini, xling)",
+      "enableJsonFlag": false,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "commands",
+        "settings",
+        "index.js"
       ]
     },
     "settings:inspect": {
@@ -1571,7 +1670,7 @@
       "pluginName": "xling",
       "pluginType": "core",
       "strict": true,
-      "summary": "Open settings files or add Codex providers",
+      "summary": "Edit settings or add model providers",
       "enableJsonFlag": false,
       "isESM": true,
       "relativePath": [
@@ -1674,7 +1773,7 @@
       "pluginName": "xling",
       "pluginType": "core",
       "strict": true,
-      "summary": "Switch Codex profiles or Claude settings variants",
+      "summary": "Switch between profiles or settings variants",
       "enableJsonFlag": false,
       "isESM": true,
       "relativePath": [
@@ -1767,88 +1866,6 @@
         "commands",
         "settings",
         "sync.js"
-      ]
-    },
-    "version": {
-      "aliases": [],
-      "args": {},
-      "description": "Displays the version from package.json.",
-      "examples": [
-        {
-          "description": "Print the installed CLI version",
-          "command": "<%= config.bin %> <%= command.id %>"
-        },
-        {
-          "description": "Shortcut using the built-in flag",
-          "command": "<%= config.bin %> --version"
-        }
-      ],
-      "flags": {},
-      "hasDynamicHelp": false,
-      "hiddenAliases": [],
-      "id": "version",
-      "pluginAlias": "xling",
-      "pluginName": "xling",
-      "pluginType": "core",
-      "strict": true,
-      "summary": "Show the current xling version",
-      "enableJsonFlag": false,
-      "isESM": true,
-      "relativePath": [
-        "dist",
-        "commands",
-        "version",
-        "index.js"
-      ]
-    },
-    "sx": {
-      "aliases": [],
-      "args": {
-        "name": {
-          "description": "Shortcut name to execute",
-          "name": "name",
-          "required": false
-        }
-      },
-      "description": "\n    Execute predefined command shortcuts configured in ~/.claude/xling.json.\n\n    Shortcuts allow you to create custom aliases for frequently used xling commands\n    with pre-configured arguments. This makes it easy to run complex commands without\n    having to remember long argument lists.\n\n    Use --list to see all available shortcuts.\n\n    Pass additional arguments after the shortcut name to append them to the\n    configured arguments.\n\n    Configuration example in ~/.claude/xling.json:\n    {\n      \"shortcuts\": {\n        \"lc\": {\n          \"command\": \"x\",\n          \"args\": [\"-t\", \"claude\", \"-c\"],\n          \"description\": \"Launch Claude and continue\"\n        },\n        \"gs\": {\n          \"command\": \"settings:list\",\n          \"args\": [\"--tool\", \"codex\"],\n          \"description\": \"List Codex settings\"\n        }\n      }\n    }\n\n    Examples:\n      $ xling sx lc                    # Run shortcut \"lc\"\n      $ xling sx --list                # List all shortcuts\n      $ xling sx lc -- --no-yolo       # Run \"lc\" with extra args\n  ",
-      "examples": [
-        {
-          "description": "List all available shortcuts",
-          "command": "<%= config.bin %> <%= command.id %> --list"
-        },
-        {
-          "description": "Execute a shortcut",
-          "command": "<%= config.bin %> <%= command.id %> lc"
-        },
-        {
-          "description": "Execute shortcut with additional arguments",
-          "command": "<%= config.bin %> <%= command.id %> lc -- --no-yolo"
-        }
-      ],
-      "flags": {
-        "list": {
-          "char": "l",
-          "description": "List all available shortcuts",
-          "name": "list",
-          "allowNo": false,
-          "type": "boolean"
-        }
-      },
-      "hasDynamicHelp": false,
-      "hiddenAliases": [],
-      "id": "sx",
-      "pluginAlias": "xling",
-      "pluginName": "xling",
-      "pluginType": "core",
-      "strict": false,
-      "summary": "Shortcut eXecute - run predefined command shortcuts",
-      "enableJsonFlag": false,
-      "isESM": true,
-      "relativePath": [
-        "dist",
-        "commands",
-        "sx",
-        "index.js"
       ]
     },
     "x": {
@@ -1973,6 +1990,38 @@
         "dist",
         "commands",
         "x",
+        "index.js"
+      ]
+    },
+    "version": {
+      "aliases": [],
+      "args": {},
+      "description": "Displays the version from package.json.",
+      "examples": [
+        {
+          "description": "Print the installed CLI version",
+          "command": "<%= config.bin %> <%= command.id %>"
+        },
+        {
+          "description": "Shortcut using the built-in flag",
+          "command": "<%= config.bin %> --version"
+        }
+      ],
+      "flags": {},
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "version",
+      "pluginAlias": "xling",
+      "pluginName": "xling",
+      "pluginType": "core",
+      "strict": true,
+      "summary": "Show the current xling version",
+      "enableJsonFlag": false,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "commands",
+        "version",
         "index.js"
       ]
     }

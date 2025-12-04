@@ -11,7 +11,14 @@ export default class DiscussCommand extends Command {
   static summary =
     "Run a roundtable between multiple AI models via CLI or Web UI";
 
-  static description = "Start a discussion between multiple AI models";
+  static description = `
+    Start a discussion between multiple AI models.
+
+    In CLI mode, models take turns responding to each other's messages.
+    In Web UI mode, a browser-based interface provides real-time visualization.
+
+    Models are configured via ~/.claude/xling.json providers.
+  `;
 
   static examples: Command.Example[] = [
     {
