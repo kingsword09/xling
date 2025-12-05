@@ -134,9 +134,13 @@ export async function startProxyServer(
       }
 
       // Access key validation
+      // Anthropic clients typically send keys via `x-api-key`, not Authorization.
       if (accessKey) {
         const authHeader = req.headers.get("authorization");
-        const providedKey = authHeader?.replace(/^Bearer\s+/i, "");
+        const apiKeyHeader =
+          req.headers.get("x-api-key") ?? req.headers.get("X-Api-Key");
+        const providedKey =
+          authHeader?.replace(/^Bearer\s+/i, "") || apiKeyHeader || undefined;
 
         if (providedKey !== accessKey) {
           if (options.logger) {
@@ -144,9 +148,10 @@ export async function startProxyServer(
               `[auth] Access key validation failed for path: ${path}`,
             );
             console.log(`[auth] Expected: ${accessKey.slice(0, 4)}...`);
-            console.log(
-              `[auth] Received: ${providedKey ? providedKey.slice(0, 4) + "..." : "(none)"}`,
-            );
+            const receivedLabel = providedKey
+              ? providedKey.slice(0, 4) + "..."
+              : "(none)";
+            console.log(`[auth] Received: ${receivedLabel}`);
           }
           return Response.json(
             { error: { message: "Invalid access key", type: "auth_error" } },
@@ -965,7 +970,9 @@ function corsHeaders(): Record<string, string> {
   return {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Request-ID",
+    // Allow Anthropic-style X-API-Key in addition to standard Authorization.
+    "Access-Control-Allow-Headers":
+      "Content-Type, Authorization, X-Request-ID, X-API-Key",
     "Access-Control-Max-Age": "86400",
   };
 }
