@@ -64,6 +64,11 @@ Configuration is read from ~/.claude/xling.json under the 'proxy' section.`;
       default: true,
       allowNo: true,
     }),
+    verbose: Flags.boolean({
+      char: "v",
+      description: "Enable verbose logging (full request/response bodies)",
+      default: false,
+    }),
   };
 
   async run(): Promise<void> {
@@ -79,6 +84,7 @@ Configuration is read from ~/.claude/xling.json under the 'proxy' section.`;
         port,
         accessKey: flags["access-key"],
         logger: flags.logger,
+        verbose: flags.verbose,
       });
 
       this.#printStartup(context, flags["access-key"]);

@@ -23,6 +23,8 @@ export interface ProviderConfig {
   headers?: Record<string, string>;
   weight?: number;
   enabled?: boolean;
+  /** Tool format expected by this provider: "openai" (default) or "anthropic" */
+  toolFormat?: "openai" | "anthropic";
 }
 
 /**
@@ -77,6 +79,12 @@ export const ProviderConfigSchema: z.ZodType<ProviderConfig> = z
       .boolean()
       .default(true)
       .describe("Enable or disable the provider without removing it"),
+    toolFormat: z
+      .enum(["openai", "anthropic"])
+      .optional()
+      .describe(
+        "Tool format expected by this provider: openai (default) or anthropic",
+      ),
   })
   .refine(
     (data) => {

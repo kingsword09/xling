@@ -97,6 +97,7 @@ export interface ProxyServerOptions {
   port?: number;
   accessKey?: string;
   logger?: boolean;
+  verbose?: boolean;
 }
 
 /**

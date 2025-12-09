@@ -530,6 +530,109 @@ interface ToolCallAccumulator {
 }
 
 /**
+ * Parse tool call tags from text and extract tool calls
+ * Supports multiple formats:
+ * 1. <tool_call>{"name": "...", "arguments": {...}}</tool_call>
+ * 2. <function_calls><invoke name="..."><parameter name="...">...</parameter></invoke></function_calls>
+ */
+function parseToolCallTags(text: string): {
+  toolCalls: Array<{ name: string; arguments: unknown; id: string }>;
+  remainingText: string;
+} {
+  const toolCalls: Array<{ name: string; arguments: unknown; id: string }> = [];
+  let cleanText = text;
+
+  // Format 1: <tool_call>{"name": "...", "arguments": {...}}</tool_call>
+  const toolCallRegex = /<tool_call>\s*([\s\S]*?)\s*<\/tool_call>/g;
+  let match;
+  while ((match = toolCallRegex.exec(text)) !== null) {
+    try {
+      const json = JSON.parse(match[1].trim());
+      toolCalls.push({
+        name: json.name,
+        arguments: json.arguments || {},
+        id: `toolu_${Date.now()}_${toolCalls.length}`,
+      });
+    } catch {
+      // Ignore parse errors
+    }
+  }
+  cleanText = cleanText.replace(toolCallRegex, "");
+
+  // Format 2: <function_calls>...<invoke name="...">...</invoke>...</function_calls>
+  const functionCallsRegex = /<function_calls>([\s\S]*?)<\/function_calls>/g;
+  while ((match = functionCallsRegex.exec(text)) !== null) {
+    const invokeRegex = /<invoke\s+name="([^"]+)">([\s\S]*?)<\/invoke>/g;
+    let invokeMatch;
+    while ((invokeMatch = invokeRegex.exec(match[1])) !== null) {
+      const name = invokeMatch[1];
+      const paramsContent = invokeMatch[2];
+      const args: Record<string, unknown> = {};
+      const paramRegex = /<parameter\s+name="([^"]+)">([\s\S]*?)<\/parameter>/g;
+      let paramMatch;
+      while ((paramMatch = paramRegex.exec(paramsContent)) !== null) {
+        const paramName = paramMatch[1];
+        let paramValue: unknown = paramMatch[2].trim();
+        // Try to parse as JSON
+        try {
+          paramValue = JSON.parse(paramValue as string);
+        } catch {
+          /* keep as string */
+        }
+        args[paramName] = paramValue;
+      }
+      toolCalls.push({
+        name,
+        arguments: args,
+        id: `toolu_${Date.now()}_${toolCalls.length}`,
+      });
+    }
+  }
+  cleanText = cleanText.replace(functionCallsRegex, "");
+
+  // Format 3: Unclosed <function_calls>...<invoke name="...">...</invoke>... (streaming partial)
+  // This handles cases where the closing tag hasn't arrived yet
+  if (
+    cleanText.includes("<function_calls>") &&
+    !cleanText.includes("</function_calls>")
+  ) {
+    const partialRegex = /<function_calls>([\s\S]*)/;
+    const partialMatch = partialRegex.exec(cleanText);
+    if (partialMatch) {
+      const invokeRegex = /<invoke\s+name="([^"]+)">([\s\S]*?)<\/invoke>/g;
+      let invokeMatch;
+      while ((invokeMatch = invokeRegex.exec(partialMatch[1])) !== null) {
+        const name = invokeMatch[1];
+        const paramsContent = invokeMatch[2];
+        const args: Record<string, unknown> = {};
+        const paramRegex =
+          /<parameter\s+name="([^"]+)">([\s\S]*?)<\/parameter>/g;
+        let paramMatch;
+        while ((paramMatch = paramRegex.exec(paramsContent)) !== null) {
+          const paramName = paramMatch[1];
+          let paramValue: unknown = paramMatch[2].trim();
+          try {
+            paramValue = JSON.parse(paramValue as string);
+          } catch {
+            /* keep as string */
+          }
+          args[paramName] = paramValue;
+        }
+        toolCalls.push({
+          name,
+          arguments: args,
+          id: `toolu_${Date.now()}_${toolCalls.length}`,
+        });
+      }
+      // Remove the partial function_calls block from clean text
+      cleanText = cleanText.replace(/<function_calls>[\s\S]*/, "");
+    }
+  }
+
+  return { toolCalls, remainingText: cleanText.trim() };
+}
+
+/**
  * Transform OpenAI SSE stream to Anthropic SSE stream
  */
 export function createStreamTransformer(
@@ -549,6 +652,68 @@ export function createStreamTransformer(
   let messageDeltaSent = false; // Track if message_delta has been sent
   let messageStopSent = false; // Track if message_stop has been sent
   let contentBlocksStopped = false; // Track if content blocks have been stopped
+  let accumulatedText = ""; // Accumulate text to detect <tool_call> tags
+  let pendingTextBuffer = ""; // Buffer for text that might be part of a tool call tag
+
+  // Helper function to filter tool call tags from text and return safe text to emit
+  const filterToolCallTags = (
+    text: string,
+  ): { safeText: string; pendingText: string } => {
+    // Check for potential start of tool call tags
+    const tagStarts = ["<tool_call>", "<function_calls>"];
+    const tagEnds = ["</tool_call>", "</function_calls>"];
+
+    let safeText = "";
+    let remaining = text;
+
+    while (remaining.length > 0) {
+      // Check if we're inside a tag
+      let foundTagStart = -1;
+      let tagType = -1;
+      for (let i = 0; i < tagStarts.length; i++) {
+        const idx = remaining.indexOf(tagStarts[i]);
+        if (idx !== -1 && (foundTagStart === -1 || idx < foundTagStart)) {
+          foundTagStart = idx;
+          tagType = i;
+        }
+      }
+
+      if (foundTagStart === -1) {
+        // No tag start found, check for partial tag starts
+        for (const tagStart of tagStarts) {
+          for (let len = 1; len < tagStart.length; len++) {
+            const partial = tagStart.substring(0, len);
+            if (remaining.endsWith(partial)) {
+              // Potential partial tag at end, keep it pending
+              safeText += remaining.substring(0, remaining.length - len);
+              return { safeText, pendingText: partial };
+            }
+          }
+        }
+        // No partial tag, all text is safe
+        safeText += remaining;
+        return { safeText, pendingText: "" };
+      }
+
+      // Found a tag start, emit text before it
+      safeText += remaining.substring(0, foundTagStart);
+      remaining = remaining.substring(foundTagStart);
+
+      // Look for the corresponding end tag
+      const endTag = tagEnds[tagType];
+      const endIdx = remaining.indexOf(endTag);
+
+      if (endIdx === -1) {
+        // End tag not found yet, keep everything from tag start as pending
+        return { safeText, pendingText: remaining };
+      }
+
+      // Found complete tag, skip it entirely
+      remaining = remaining.substring(endIdx + endTag.length);
+    }
+
+    return { safeText, pendingText: "" };
+  };
 
   return new TransformStream({
     transform(chunk, controller) {
@@ -561,6 +726,57 @@ export function createStreamTransformer(
         const data = line.slice(6).trim();
 
         if (data === "[DONE]") {
+          // Parse <tool_call> tags from accumulated text
+          const { toolCalls: parsedToolCalls } =
+            parseToolCallTags(accumulatedText);
+
+          // Close text block if open
+          if (sentTextBlockStart) {
+            const blockStopEvent = {
+              type: "content_block_stop",
+              index: currentBlockIndex,
+            };
+            controller.enqueue(
+              encoder.encode(
+                `event: content_block_stop\ndata: ${JSON.stringify(blockStopEvent)}\n\n`,
+              ),
+            );
+            currentBlockIndex++;
+            sentTextBlockStart = false;
+          }
+
+          // Emit parsed tool calls from text as tool_use blocks
+          for (const tc of parsedToolCalls) {
+            // Send content_block_start with full input
+            const blockStartEvent = {
+              type: "content_block_start",
+              index: currentBlockIndex,
+              content_block: {
+                type: "tool_use",
+                id: tc.id,
+                name: tc.name,
+                input: tc.arguments,
+              },
+            };
+            controller.enqueue(
+              encoder.encode(
+                `event: content_block_start\ndata: ${JSON.stringify(blockStartEvent)}\n\n`,
+              ),
+            );
+
+            // Send content_block_stop
+            const blockStopEvent = {
+              type: "content_block_stop",
+              index: currentBlockIndex,
+            };
+            controller.enqueue(
+              encoder.encode(
+                `event: content_block_stop\ndata: ${JSON.stringify(blockStopEvent)}\n\n`,
+              ),
+            );
+            currentBlockIndex++;
+          }
+
           // Emit any accumulated tool calls that haven't been emitted yet
           if (!contentBlocksStopped) {
             emitAccumulatedToolCalls(
@@ -572,11 +788,15 @@ export function createStreamTransformer(
             contentBlocksStopped = true;
           }
 
-          // Send message_delta if not sent yet
+          // Send message_delta with stop_reason
           if (!messageDeltaSent) {
+            const stopReason =
+              parsedToolCalls.length > 0 || toolCallAccumulators.size > 0
+                ? "tool_use"
+                : "end_turn";
             const messageDeltaEvent = {
               type: "message_delta",
-              delta: { stop_reason: "end_turn", stop_sequence: null },
+              delta: { stop_reason: stopReason, stop_sequence: null },
               usage: { output_tokens: outputTokens },
             };
             controller.enqueue(
@@ -587,7 +807,7 @@ export function createStreamTransformer(
             messageDeltaSent = true;
           }
 
-          // Send message_stop event if not sent yet
+          // Send message_stop event
           if (!messageStopSent) {
             const stopEvent = { type: "message_stop" };
             controller.enqueue(
@@ -634,34 +854,43 @@ export function createStreamTransformer(
           // Handle text content
           if (delta?.content) {
             hasTextContent = true;
+            accumulatedText += delta.content;
 
-            // Send text block start if not sent
-            if (!sentTextBlockStart) {
-              sentTextBlockStart = true;
-              const blockStartEvent = {
-                type: "content_block_start",
+            // Filter tool call tags from the text before emitting
+            const combinedText = pendingTextBuffer + delta.content;
+            const { safeText, pendingText } = filterToolCallTags(combinedText);
+            pendingTextBuffer = pendingText;
+
+            // Only emit if there's safe text to send
+            if (safeText.length > 0) {
+              // Send text block start if not sent
+              if (!sentTextBlockStart) {
+                sentTextBlockStart = true;
+                const blockStartEvent = {
+                  type: "content_block_start",
+                  index: currentBlockIndex,
+                  content_block: { type: "text", text: "" },
+                };
+                controller.enqueue(
+                  encoder.encode(
+                    `event: content_block_start\ndata: ${JSON.stringify(blockStartEvent)}\n\n`,
+                  ),
+                );
+              }
+
+              outputTokens += Math.ceil(safeText.length / 4);
+
+              const deltaEvent = {
+                type: "content_block_delta",
                 index: currentBlockIndex,
-                content_block: { type: "text", text: "" },
+                delta: { type: "text_delta", text: safeText },
               };
               controller.enqueue(
                 encoder.encode(
-                  `event: content_block_start\ndata: ${JSON.stringify(blockStartEvent)}\n\n`,
+                  `event: content_block_delta\ndata: ${JSON.stringify(deltaEvent)}\n\n`,
                 ),
               );
             }
-
-            outputTokens += Math.ceil(delta.content.length / 4);
-
-            const deltaEvent = {
-              type: "content_block_delta",
-              index: currentBlockIndex,
-              delta: { type: "text_delta", text: delta.content },
-            };
-            controller.enqueue(
-              encoder.encode(
-                `event: content_block_delta\ndata: ${JSON.stringify(deltaEvent)}\n\n`,
-              ),
-            );
           }
 
           // Handle tool calls
@@ -1365,6 +1594,58 @@ export function createResponsesAPIStreamTransformer(
     new Map();
   let outputIndex = 0;
   let sentCompleted = false; // Track if response.completed was already sent
+  let pendingTextBuffer = ""; // Buffer for text that might be part of a tool call tag
+
+  // Helper function to filter tool call tags from text and return safe text to emit
+  const filterToolCallTags = (
+    text: string,
+  ): { safeText: string; pendingText: string } => {
+    const tagStarts = ["<tool_call>", "<function_calls>"];
+    const tagEnds = ["</tool_call>", "</function_calls>"];
+
+    let safeText = "";
+    let remaining = text;
+
+    while (remaining.length > 0) {
+      let foundTagStart = -1;
+      let tagType = -1;
+      for (let i = 0; i < tagStarts.length; i++) {
+        const idx = remaining.indexOf(tagStarts[i]);
+        if (idx !== -1 && (foundTagStart === -1 || idx < foundTagStart)) {
+          foundTagStart = idx;
+          tagType = i;
+        }
+      }
+
+      if (foundTagStart === -1) {
+        for (const tagStart of tagStarts) {
+          for (let len = 1; len < tagStart.length; len++) {
+            const partial = tagStart.substring(0, len);
+            if (remaining.endsWith(partial)) {
+              safeText += remaining.substring(0, remaining.length - len);
+              return { safeText, pendingText: partial };
+            }
+          }
+        }
+        safeText += remaining;
+        return { safeText, pendingText: "" };
+      }
+
+      safeText += remaining.substring(0, foundTagStart);
+      remaining = remaining.substring(foundTagStart);
+
+      const endTag = tagEnds[tagType];
+      const endIdx = remaining.indexOf(endTag);
+
+      if (endIdx === -1) {
+        return { safeText, pendingText: remaining };
+      }
+
+      remaining = remaining.substring(endIdx + endTag.length);
+    }
+
+    return { safeText, pendingText: "" };
+  };
 
   return new TransformStream({
     transform(chunk, controller) {
@@ -1615,52 +1896,60 @@ export function createResponsesAPIStreamTransformer(
 
           // Handle text content
           if (delta?.content) {
-            // Send message item added if not sent yet
-            if (!sentMessageItem) {
-              sentMessageItem = true;
-              const itemAddedEvent = {
-                type: "response.output_item.added",
-                output_index: outputIndex,
-                item: {
-                  type: "message",
-                  role: "assistant",
-                  content: [],
-                },
-              };
-              controller.enqueue(
-                encoder.encode(
-                  `event: response.output_item.added\ndata: ${JSON.stringify(itemAddedEvent)}\n\n`,
-                ),
-              );
+            // Filter tool call tags from the text before emitting
+            const combinedText = pendingTextBuffer + delta.content;
+            const { safeText, pendingText } = filterToolCallTags(combinedText);
+            pendingTextBuffer = pendingText;
 
-              // Send response.content_part.added
-              const contentAddedEvent = {
-                type: "response.content_part.added",
+            // Only emit if there's safe text to send
+            if (safeText.length > 0) {
+              // Send message item added if not sent yet
+              if (!sentMessageItem) {
+                sentMessageItem = true;
+                const itemAddedEvent = {
+                  type: "response.output_item.added",
+                  output_index: outputIndex,
+                  item: {
+                    type: "message",
+                    role: "assistant",
+                    content: [],
+                  },
+                };
+                controller.enqueue(
+                  encoder.encode(
+                    `event: response.output_item.added\ndata: ${JSON.stringify(itemAddedEvent)}\n\n`,
+                  ),
+                );
+
+                // Send response.content_part.added
+                const contentAddedEvent = {
+                  type: "response.content_part.added",
+                  output_index: outputIndex,
+                  content_index: 0,
+                  part: { type: "output_text", text: "" },
+                };
+                controller.enqueue(
+                  encoder.encode(
+                    `event: response.content_part.added\ndata: ${JSON.stringify(contentAddedEvent)}\n\n`,
+                  ),
+                );
+              }
+
+              textBuffer += safeText;
+              outputTokens += Math.ceil(safeText.length / 4);
+
+              const textDeltaEvent = {
+                type: "response.output_text.delta",
                 output_index: outputIndex,
                 content_index: 0,
-                part: { type: "output_text", text: "" },
+                delta: safeText,
               };
               controller.enqueue(
                 encoder.encode(
-                  `event: response.content_part.added\ndata: ${JSON.stringify(contentAddedEvent)}\n\n`,
+                  `event: response.output_text.delta\ndata: ${JSON.stringify(textDeltaEvent)}\n\n`,
                 ),
               );
             }
-
-            textBuffer += delta.content;
-            outputTokens += Math.ceil(delta.content.length / 4);
-
-            const textDeltaEvent = {
-              type: "response.output_text.delta",
-              output_index: outputIndex,
-              content_index: 0,
-              delta: delta.content,
-            };
-            controller.enqueue(
-              encoder.encode(
-                `event: response.output_text.delta\ndata: ${JSON.stringify(textDeltaEvent)}\n\n`,
-              ),
-            );
           }
 
           // Check for finish
