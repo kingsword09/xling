@@ -100,7 +100,8 @@ function formatPrimitive(value: unknown): string {
   if (value === null) return "null";
   if (value === undefined) return "undefined";
   if (typeof value === "string") return value;
-  if (typeof value === "number" && Number.isFinite(value)) return value.toString();
+  if (typeof value === "number" && Number.isFinite(value))
+    return value.toString();
   if (typeof value === "boolean") return value ? "true" : "false";
   if (typeof value === "object") {
     try {
