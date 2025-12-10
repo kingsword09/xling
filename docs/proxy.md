@@ -20,6 +20,7 @@ xling proxy [FLAGS]
 | `--host <string>` | Host/interface (default: `127.0.0.1`). |
 | `-k, --access-key <token>` | Optional bearer token required for all requests (overrides config). |
 | `--[no-]logger` | Enable request logging (default: on). |
+| `--ui` | Serve a DevTools-style proxy UI on the same host/port (`/proxy`). |
 
 ## Quick Start
 
@@ -60,6 +61,7 @@ xling proxy [FLAGS]
 ```bash
 xling proxy                  # localhost:4320
 xling proxy -p 8080 -k demo  # custom port + access key
+xling proxy --ui             # enable live Network UI + analysis
 ```
 
 3) Point clients at the base URL printed on startup.
@@ -73,9 +75,18 @@ xling proxy -p 8080 -k demo  # custom port + access key
 - `/v1/models` or `/models` — advertise configured models (`provider,model`)
 - `/health` — readiness probe
 - `/stats` — load balancer statistics (per-provider/key health)
+- `/proxy` — Web UI (Network console, AI-assisted analysis, HAR export) when `--ui` is enabled
 
 Requests prefixed with `/claude/` or `/openai/` are normalized to the same
 paths, so client-specific base URLs also work.
+
+## UI mode (`--ui`)
+
+- Opens a Network console at `http://<host>:<port>/proxy` on the same listener.
+- Shows client → proxy and proxy → upstream legs with status, timing, model, provider, and body previews (redacted + truncated).
+- Live updates via SSE; history kept in a bounded in-memory buffer (default 200).
+- AI Assist: select a row and click **Explain** to get a redacted summary via your configured models.
+- Export filtered rows as HAR/JSON (redacted headers, truncated bodies). Access key is required for UI APIs; the UI sets an `xling_access` cookie when loaded.
 
 ## Load Balancing & Key Rotation
 
