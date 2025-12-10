@@ -43,17 +43,13 @@ jobs:
         if: steps.check_release.outputs.is_release != 'true'
         run: bun install
 
-      - name: Lint
+      - name: Lint (includes type checking)
         if: steps.check_release.outputs.is_release != 'true'
         run: bun run lint
 
       - name: Format check
         if: steps.check_release.outputs.is_release != 'true'
         run: bun run format:check
-
-      - name: Typecheck
-        if: steps.check_release.outputs.is_release != 'true'
-        run: bun run typecheck
 
       - name: Test
         if: steps.check_release.outputs.is_release != 'true'

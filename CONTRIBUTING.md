@@ -34,11 +34,10 @@ bun run build
 We use oxlint and oxfmt for code quality:
 
 ```bash
-bun run lint          # Run linter
+bun run lint          # Lint + type check (oxlint --type-aware --type-check)
 bun run lint:fix      # Auto-fix lint issues
 bun run format        # Format code
 bun run format:check  # Check formatting
-bun run typecheck     # Type checking
 ```
 
 ### Testing
