@@ -5,6 +5,7 @@ import {
   startProxyServer,
 } from "@/services/proxy/server.ts";
 import { validatePort, validateHost } from "@/domain/validators.ts";
+import * as open from "open";
 
 export default class ProxyCommand extends Command {
   static summary =
@@ -21,6 +22,7 @@ Features:
 - API key rotation with automatic cooldown on errors
 - Model mapping and aliasing
 - Optional access key protection
+- Optional DevTools-style UI on the same port (pass --ui)
 
 Configuration is read from ~/.claude/xling.json under the 'proxy' section.`;
 
@@ -41,6 +43,10 @@ Configuration is read from ~/.claude/xling.json under the 'proxy' section.`;
     {
       description: "Start with verbose logging disabled",
       command: "<%= config.bin %> <%= command.id %> --no-logger",
+    },
+    {
+      description: "Start proxy with DevTools-style UI on the same port",
+      command: "<%= config.bin %> <%= command.id %> --ui",
     },
   ];
 
@@ -69,6 +75,10 @@ Configuration is read from ~/.claude/xling.json under the 'proxy' section.`;
       description: "Enable verbose logging (full request/response bodies)",
       default: false,
     }),
+    ui: Flags.boolean({
+      description: "Serve DevTools-style proxy UI on the same host/port",
+      default: false,
+    }),
   };
 
   async run(): Promise<void> {
@@ -85,9 +95,23 @@ Configuration is read from ~/.claude/xling.json under the 'proxy' section.`;
         accessKey: flags["access-key"],
         logger: flags.logger,
         verbose: flags.verbose,
+        ui: flags.ui,
       });
 
-      this.#printStartup(context, flags["access-key"]);
+      this.#printStartup(context, flags["access-key"], flags.ui);
+
+      if (flags.ui) {
+        const uiUrl = `${context.baseUrl}/proxy`;
+        this.log(`\nOpening UI at ${uiUrl} ...`);
+        try {
+          // @ts-ignore open types
+          await open.default(uiUrl);
+        } catch (err) {
+          this.warn(
+            `Failed to auto-open browser: ${(err as Error).message}. Open ${uiUrl} manually.`,
+          );
+        }
+      }
 
       this.log("\nPress Ctrl+C to stop the proxy server.");
 
@@ -103,6 +127,7 @@ Configuration is read from ~/.claude/xling.json under the 'proxy' section.`;
   #printStartup(
     context: { baseUrl: string; providers: string[]; models: string[] },
     accessKey?: string,
+    ui?: boolean,
   ): void {
     this.log(`Proxy server running at ${context.baseUrl}`);
     this.log(`Providers: ${context.providers.join(", ")}`);
@@ -134,6 +159,9 @@ Configuration is read from ~/.claude/xling.json under the 'proxy' section.`;
     );
     this.log(`  ${context.baseUrl}/health               - Health check`);
     this.log(`  ${context.baseUrl}/stats                - Provider statistics`);
+    if (ui) {
+      this.log(`  ${context.baseUrl}/proxy               - Proxy UI`);
+    }
 
     this.log("\nUsage with Claude Code:");
     this.log(

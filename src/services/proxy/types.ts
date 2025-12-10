@@ -98,6 +98,10 @@ export interface ProxyServerOptions {
   accessKey?: string;
   logger?: boolean;
   verbose?: boolean;
+  ui?: boolean;
+  captureBodies?: boolean;
+  maxRecords?: number;
+  maxBodyBytes?: number;
 }
 
 /**

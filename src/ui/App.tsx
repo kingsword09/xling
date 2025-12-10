@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { I18nProvider, useI18n, Locale } from "@/ui/i18n";
 import { exportAllSessionsFromApi } from "@/ui/lib/export";
+import { ProxyConsole } from "@/ui/proxy/ProxyConsole";
 
 interface Session {
   id: string;
@@ -28,48 +29,82 @@ function AppContent() {
   const [isNewSessionOpen, setIsNewSessionOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [theme, setTheme] = useState<"light" | "dark">("light");
-  const [viewMode, setViewMode] = useState<"discuss" | "council">("discuss");
+  const initialView: "discuss" | "council" | "proxy" =
+    typeof window !== "undefined" &&
+    window.location.pathname.startsWith("/proxy")
+      ? "proxy"
+      : "discuss";
+  const [viewMode, setViewMode] = useState<"discuss" | "council" | "proxy">(
+    initialView,
+  );
   const { t, locale, setLocale } = useI18n();
 
   const fetchSessions = async () => {
-    const res = await fetch("/api/sessions");
-    const data = await res.json();
-    setSessions(data.sessions);
-
-    // Auto-select first session if none selected
-    if (!currentSessionId && data.sessions.length > 0) {
-      setCurrentSessionId(data.sessions[0].id);
+    try {
+      const res = await fetch("/api/sessions");
+      if (!res.ok) {
+        console.warn("Failed to load sessions", res.status);
+        setSessions([]);
+        setCurrentSessionId(null);
+        return;
+      }
+      const data = await res.json().catch(() => ({ sessions: [] }));
+      const list = Array.isArray(data.sessions) ? data.sessions : [];
+      setSessions(list);
+      if (!currentSessionId && list.length > 0) {
+        setCurrentSessionId(list[0].id);
+      }
+    } catch (err) {
+      console.error("Failed to load sessions", err);
+      setSessions([]);
+      setCurrentSessionId(null);
     }
   };
 
   useEffect(() => {
+    if (viewMode === "proxy") return;
     void fetchSessions();
 
     // Poll for session list updates? Or use stream?
     // For simplicity, just fetch on mount.
     // In a real app, we'd listen to "session-created" events.
-  }, []);
+  }, [viewMode]);
 
   const handleCreateSession = async (data: {
     name: string;
     topic: string;
     models: string[];
   }) => {
-    const res = await fetch("/api/sessions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
-    });
-    const newSession = await res.json();
-    await fetchSessions();
-    setCurrentSessionId(newSession.session.id);
+    try {
+      const res = await fetch("/api/sessions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) {
+        console.error("Failed to create session", res.status);
+        return;
+      }
+      const newSession = await res.json();
+      await fetchSessions();
+      if (newSession?.session?.id) {
+        setCurrentSessionId(newSession.session.id);
+      }
+    } catch (err) {
+      console.error("Failed to create session", err);
+    }
   };
 
   const handleDeleteSession = async (id: string) => {
-    await fetch(`/api/sessions/${id}`, { method: "DELETE" });
-    await fetchSessions();
-    if (currentSessionId === id) {
-      setCurrentSessionId(null);
+    try {
+      await fetch(`/api/sessions/${id}`, { method: "DELETE" });
+    } catch (err) {
+      console.error("Failed to delete session", err);
+    } finally {
+      await fetchSessions();
+      if (currentSessionId === id) {
+        setCurrentSessionId(null);
+      }
     }
   };
 
@@ -166,16 +201,18 @@ function AppContent() {
               <FolderOutput className="h-4 w-4" />
               <span className="sr-only">{t("exportAll")}</span>
             </Button>
-            <Button
-              size="icon"
-              variant="ghost"
-              className="rounded-full border-2 border-[color:var(--neo-border)] bg-[color:var(--neo-surface)] text-foreground shadow-neo-sm hover:bg-[color:var(--neo-surface-strong)]"
-              title={t("language")}
-              onClick={toggleLocale}
-            >
-              <Languages className="h-4 w-4" />
-              <span className="sr-only">{t("language")}</span>
-            </Button>
+            {viewMode !== "proxy" ? (
+              <Button
+                size="icon"
+                variant="ghost"
+                className="rounded-full border-2 border-[color:var(--neo-border)] bg-[color:var(--neo-surface)] text-foreground shadow-neo-sm hover:bg-[color:var(--neo-surface-strong)]"
+                title={t("language")}
+                onClick={toggleLocale}
+              >
+                <Languages className="h-4 w-4" />
+                <span className="sr-only">{t("language")}</span>
+              </Button>
+            ) : null}
             <Button
               size="icon"
               variant="ghost"
@@ -242,12 +279,28 @@ function AppContent() {
             >
               Council
             </Button>
+            <Button
+              size="sm"
+              variant={viewMode === "proxy" ? "default" : "ghost"}
+              onClick={() => setViewMode("proxy")}
+              className={`rounded-full px-4 ${
+                viewMode === "proxy"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-foreground"
+              }`}
+            >
+              Proxy
+            </Button>
           </div>
         </div>
 
         <div className="flex-1 h-full rounded-2xl border-2 border-[color:var(--neo-border)] neo-surface-strong shadow-neo-lg overflow-hidden flex flex-col relative">
           <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_35%_20%,var(--neo-overlay),transparent_55%)]" />
-          {viewMode === "council" ? (
+          {viewMode === "proxy" ? (
+            <div className="flex-1 overflow-auto p-4">
+              <ProxyConsole />
+            </div>
+          ) : viewMode === "council" ? (
             <div className="flex-1 overflow-auto p-4">
               <CouncilPanel />
             </div>

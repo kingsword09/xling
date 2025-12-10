@@ -102,7 +102,7 @@ place.
 
 #### Proxy gateway
 
-- [`proxy` – OpenAI-compatible gateway](docs/proxy.md): run a local API with load balancing, API key rotation, and optional access key.
+- [`proxy` – OpenAI-compatible gateway](docs/proxy.md): run a local API with load balancing, API key rotation, optional access key, and a DevTools-style UI via `--ui`.
 
 #### Settings management
 
