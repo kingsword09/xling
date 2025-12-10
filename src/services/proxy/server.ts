@@ -674,7 +674,11 @@ function convertToolsToAnthropicFormat(body: unknown): unknown {
   const stringifyMessageContent = (value: unknown): string => {
     if (typeof value === "string") return value;
     if (value === undefined || value === null) return "";
-    if (typeof value === "number" || typeof value === "boolean" || typeof value === "bigint") {
+    if (
+      typeof value === "number" ||
+      typeof value === "boolean" ||
+      typeof value === "bigint"
+    ) {
       return String(value);
     }
     if (typeof value === "object") {
@@ -719,7 +723,9 @@ function convertToolsToAnthropicFormat(body: unknown): unknown {
         const toolCallId =
           typeof m.tool_call_id === "string"
             ? m.tool_call_id
-            : typeof m.tool_call_id === "number" || typeof m.tool_call_id === "boolean" || typeof m.tool_call_id === "bigint"
+            : typeof m.tool_call_id === "number" ||
+                typeof m.tool_call_id === "boolean" ||
+                typeof m.tool_call_id === "bigint"
               ? String(m.tool_call_id)
               : "";
         const toolContent = stringifyMessageContent(m.content);
