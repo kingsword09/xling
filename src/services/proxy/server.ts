@@ -61,6 +61,30 @@ function toLogString(value: unknown): string {
 }
 
 /**
+ * Verbose logging helper - logs full request/response bodies when enabled
+ */
+function verboseLog(
+  enabled: boolean | undefined,
+  requestId: string,
+  label: string,
+  data: unknown,
+): void {
+  if (!enabled) return;
+  const str = JSON.stringify(data);
+  const maxLen = 10000;
+  const truncated =
+    str.length > maxLen
+      ? {
+          _truncated: true,
+          _length: str.length,
+          _preview: str.slice(0, maxLen),
+        }
+      : data;
+  console.log(`[${requestId}] [VERBOSE] ${label}:`);
+  console.log(JSON.stringify(truncated, null, 2));
+}
+
+/**
  * Start the proxy server
  */
 export async function startProxyServer(
@@ -188,6 +212,7 @@ export async function startProxyServer(
           },
           loadBalancer,
           options.logger ?? true,
+          options.verbose,
         );
       }
 
@@ -267,6 +292,7 @@ async function handleProxyRequest(
   getConfig: () => ProxyRequestConfig,
   loadBalancer: ProxyLoadBalancer,
   logger: boolean,
+  verbose?: boolean,
 ): Promise<Response> {
   const context: ProxyRequestContext = {
     requestId: createRequestId(),
@@ -306,12 +332,22 @@ async function handleProxyRequest(
   // Get initial config
   let config = getConfig();
 
+  // Verbose log: raw request body
+  verboseLog(verbose, context.requestId, "raw_request", body);
+
   // Detect request format
   const needsAnthropicConversion = isAnthropicRequest(body);
   const needsResponsesAPIConversion = isResponsesAPIRequest(body);
   let processedBody = body;
   let isStreaming = false;
   let responseFormat: "anthropic" | "responses" | "openai" = "openai";
+
+  // Verbose log: format detection
+  verboseLog(verbose, context.requestId, "format_detection", {
+    isAnthropicRequest: needsAnthropicConversion,
+    isResponsesAPIRequest: needsResponsesAPIConversion,
+    path: normalizedPath,
+  });
 
   // Extract original model from request (this doesn't change)
   const originalModel = extractModel(body);
@@ -343,6 +379,12 @@ async function handleProxyRequest(
         `[${context.requestId}] Converting Anthropic -> OpenAI format (path: ${normalizedPath})`,
       );
     }
+    verboseLog(
+      verbose,
+      context.requestId,
+      "anthropic_to_openai",
+      processedBody,
+    );
   } else if (needsResponsesAPIConversion && body && typeof body === "object") {
     const responsesBody = body as Record<string, unknown>;
     responsesBody.model = mappedModel || originalModel;
@@ -419,6 +461,12 @@ async function handleProxyRequest(
           console.log(`[${context.requestId}] No tools after conversion`);
         }
       }
+      verboseLog(
+        verbose,
+        context.requestId,
+        "responses_to_openai",
+        processedBody,
+      );
     }
   } else if (
     body &&
@@ -615,6 +663,99 @@ async function handleProxyRequest(
 }
 
 /**
+ * Convert OpenAI tools format to Anthropic tools format
+ * OpenAI: { type: "function", function: { name, description, parameters } }
+ * Anthropic (custom): { type: "custom", custom: { name, description, input_schema } }
+ */
+function convertToolsToAnthropicFormat(body: unknown): unknown {
+  if (!body || typeof body !== "object") return body;
+  const obj = body as Record<string, unknown>;
+
+  const stringifyMessageContent = (value: unknown): string => {
+    if (typeof value === "string") return value;
+    if (value === undefined || value === null) return "";
+    if (
+      typeof value === "number" ||
+      typeof value === "boolean" ||
+      typeof value === "bigint"
+    ) {
+      return String(value);
+    }
+    if (typeof value === "object") {
+      try {
+        return JSON.stringify(value);
+      } catch {
+        return "[unserializable]";
+      }
+    }
+    if (typeof value === "symbol") return value.description ?? "";
+    if (typeof value === "function") return "[function]";
+    return "";
+  };
+
+  // Convert tools format
+  if (obj.tools && Array.isArray(obj.tools)) {
+    obj.tools = obj.tools.map((tool: unknown) => {
+      if (!tool || typeof tool !== "object") return tool;
+      const t = tool as Record<string, unknown>;
+      if (t.type === "function" && t.function) {
+        const fn = t.function as Record<string, unknown>;
+        return {
+          type: "custom",
+          custom: {
+            name: fn.name,
+            description: fn.description,
+            input_schema: fn.parameters || { type: "object", properties: {} },
+          },
+        };
+      }
+      return tool;
+    });
+  }
+
+  // Convert tool role messages to user messages with tool result text
+  if (obj.messages && Array.isArray(obj.messages)) {
+    const newMessages: unknown[] = [];
+    for (const msg of obj.messages) {
+      const m = msg as Record<string, unknown>;
+      if (m.role === "tool") {
+        // Convert tool result to user message
+        const toolCallId =
+          typeof m.tool_call_id === "string"
+            ? m.tool_call_id
+            : typeof m.tool_call_id === "number" ||
+                typeof m.tool_call_id === "boolean" ||
+                typeof m.tool_call_id === "bigint"
+              ? String(m.tool_call_id)
+              : "";
+        const toolContent = stringifyMessageContent(m.content);
+        newMessages.push({
+          role: "user",
+          content: `<tool_result tool_use_id="${toolCallId}">\n${toolContent}\n</tool_result>`,
+        });
+      } else if (m.role === "assistant" && m.tool_calls) {
+        // Convert assistant tool_calls to text format
+        const toolCalls = m.tool_calls as Array<{
+          id: string;
+          function: { name: string; arguments: string };
+        }>;
+        let content = stringifyMessageContent(m.content);
+        if (content) content += "\n";
+        for (const tc of toolCalls) {
+          content += `<tool_call>\n{"name": "${tc.function.name}", "arguments": ${tc.function.arguments}}\n</tool_call>\n`;
+        }
+        newMessages.push({ role: "assistant", content: content.trim() });
+      } else {
+        newMessages.push(msg);
+      }
+    }
+    obj.messages = newMessages;
+  }
+
+  return obj;
+}
+
+/**
  * Forward request to upstream provider
  */
 async function forwardRequest(
@@ -654,13 +795,23 @@ async function forwardRequest(
     }
   }
 
+  // Convert tools format if provider expects Anthropic format
+  let finalBody = body;
+  if (provider.toolFormat === "anthropic" && body) {
+    finalBody = convertToolsToAnthropicFormat(body);
+  }
+
   const fetchOptions: RequestInit = {
     method: originalReq.method,
     headers,
   };
 
-  if (body && originalReq.method !== "GET" && originalReq.method !== "HEAD") {
-    fetchOptions.body = JSON.stringify(body);
+  if (
+    finalBody &&
+    originalReq.method !== "GET" &&
+    originalReq.method !== "HEAD"
+  ) {
+    fetchOptions.body = JSON.stringify(finalBody);
   }
 
   // Add timeout if configured
