@@ -3,7 +3,7 @@
 - **Runtime**: Bun (>= 1.3.2). Run every development, build, and test script via `bun`.
 - **Language**: Business logic lives in TypeScript. If a JavaScript helper is required, document the rationale.
 - **Build System**: tsdown (powered by rolldown) compiles and bundles the CLI.
-- **Linting**: oxlint provides fast, Rust-based lint checks.
+- **Linting**: oxlint provides fast, Rust-based lint and type checks (`--type-aware --type-check` enables full TypeScript type checking, replacing `tsc --noEmit`).
 - **Formatting**: oxfmt enforces the shared Prettier-compatible style.
 - **Testing**: Vitest (invoked through `bun test`) covers unit and integration flows.
 - **CLI Framework**: oclif powers subcommands, flag validation, and auto-generated help.
@@ -100,11 +100,10 @@ bun run dev               # tsdown --watch
 ./dist/run.js proxy --host 0.0.0.0            # Bind to all interfaces
 
 # Quality
-bun run lint              # oxlint
+bun run lint              # oxlint (includes type checking via --type-aware --type-check)
 bun run lint:fix          # oxlint auto-fix
 bun run format            # oxfmt
 bun run format:check      # verify formatting
-bun run typecheck         # tsc --noEmit
 
 # Tests
 bun test
