@@ -11,10 +11,11 @@ import type { ProxyConfig, XlingConfig } from "./config.ts";
  * Users should replace the empty apiKey with their actual key.
  *
  * Unified configuration:
- * - providers: Shared by both proxy and prompt services
+ * - providers: Global provider list (used by p, discuss, council commands)
  * - defaultModel: Default model for all services
- * - modelMapping: Map client model names to actual models
- * - proxy: Proxy-specific settings (port, accessKey, loadBalance)
+ * - proxy: Proxy-specific settings
+ *   - providers: Optional override for proxy (when set, proxy uses only these)
+ *   - port, accessKey, loadBalance, modelMapping, keyRotation
  * - retryPolicy: Retry settings for prompt service
  * - shortcuts: Command shortcuts
  */
@@ -60,9 +61,11 @@ export const DEFAULT_XLING_CONFIG: XlingConfig = {
 
 /**
  * Default proxy configuration template
- * Note: Proxy now uses the unified providers from XlingConfig
+ * Note: By default, proxy uses global providers from XlingConfig.
+ * Set proxy.providers to override with a dedicated provider list.
  */
 export const DEFAULT_PROXY_CONFIG: ProxyConfig = {
+  // providers: [], // Uncomment and add providers to override global providers for proxy only
   enabled: true,
   // accessKey: "your-secret-access-key", // Uncomment to enable access protection
   loadBalance: "failover",
@@ -74,10 +77,20 @@ export const DEFAULT_PROXY_CONFIG: ProxyConfig = {
 };
 
 /**
- * Example proxy configuration
- * Note: Proxy now uses the unified providers from XlingConfig
+ * Example proxy configuration with dedicated providers
+ * When proxy.providers is set, proxy uses only these providers,
+ * while other commands (p, discuss, council) continue using global providers.
  */
 export const EXAMPLE_PROXY_CONFIG: ProxyConfig = {
+  providers: [
+    {
+      name: "proxy-openai",
+      baseUrl: "https://api.openai.com/v1",
+      apiKey: "sk-proxy-specific-key",
+      models: ["gpt-4o", "gpt-4o-mini"],
+      priority: 1,
+    },
+  ],
   enabled: true,
   accessKey: "your-secret-access-key",
   loadBalance: "failover",
@@ -92,11 +105,13 @@ export const EXAMPLE_PROXY_CONFIG: ProxyConfig = {
  * Example configuration with multiple providers
  * This serves as documentation for users
  *
- * Unified configuration structure:
- * - providers: Shared by both proxy and prompt services
+ * Configuration structure:
+ * - providers: Global provider list used by p, discuss, council commands
  *   - Use apiKey for single key, apiKeys for multiple keys (rotation)
  * - defaultModel: Default model for all services
- * - proxy: Proxy-specific settings (including modelMapping)
+ * - proxy: Proxy-specific settings
+ *   - providers: Optional override (when set, proxy uses only these providers)
+ *   - modelMapping, loadBalance, keyRotation, etc.
  * - retryPolicy: Retry settings for prompt service
  */
 export const EXAMPLE_MULTI_PROVIDER_CONFIG: XlingConfig = {
@@ -140,6 +155,15 @@ export const EXAMPLE_MULTI_PROVIDER_CONFIG: XlingConfig = {
   ],
   defaultModel: "gpt-4o",
   proxy: {
+    // Uncomment to use dedicated providers for proxy only:
+    // providers: [
+    //   {
+    //     name: "proxy-azure",
+    //     baseUrl: "https://your-resource.openai.azure.com/openai/deployments",
+    //     apiKey: "azure-proxy-key",
+    //     models: ["gpt-4"],
+    //   },
+    // ],
     enabled: true,
     port: 4320,
     // accessKey: "your-secret-access-key", // Uncomment to enable access protection

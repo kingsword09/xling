@@ -62,6 +62,8 @@ xling settings:list --tool claude --scope user
 xling settings:get --tool codex
 xling settings:set --tool claude --name hxi
 xling settings:switch oss --tool codex
+xling settings:switch --tool xling          # Interactive model selection
+xling settings:switch claude-sonnet-4-20250514 --tool xling
 xling settings:inspect --tool claude
 xling settings:sync --tool codex
 xling settings:auth --tool codex            # list profiles

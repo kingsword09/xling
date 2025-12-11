@@ -123,21 +123,23 @@ xling settings:set --tool xling --scope user --ide cursor
 
 ### settings:switch
 
-Switch to a different configuration profile (Codex) or activate a
-`settings.<variant>.json` file for Claude.
+Switch to a different configuration profile (Codex), activate a
+`settings.<variant>.json` file for Claude, or switch the default model for Xling.
 
 **Usage:**
 ```bash
-xling settings:switch <profile> [OPTIONS]
+xling settings:switch [profile] [OPTIONS]
 ```
 
 **Arguments:**
-- `profile`: Profile name to switch to
+- `profile`: Profile/model name to switch to (optional - interactive selection if omitted)
 
 **Options:**
-- `-t, --tool <tool>`: AI CLI tool to manage (claude|codex|gemini|xling) [default: codex]
+- `-t, --tool <tool>`: AI CLI tool to manage (claude|codex|gemini|xling) [default: claude]
 - `-s, --scope <scope>`: Configuration scope (user|project|local|system) [default: user]
-- `--json/--no-json`: JSON output is default; use `--no-json` for plain text
+- `--json`: Output JSON instead of interactive text
+- `--force`: Skip confirmation prompts (Claude only)
+- `--backup`: Create a .bak backup when switching (Claude only)
 
 **Examples:**
 ```bash
@@ -155,15 +157,42 @@ xling settings:switch hxi --tool claude --scope user --force --json
 
 # Keep a backup while switching Claude settings
 xling settings:switch stable --tool claude --scope user --backup
+
+# Interactive model selection for Xling
+xling settings:switch --tool xling
+
+# Switch Xling default model directly
+xling settings:switch claude-sonnet-4-20250514 --tool xling
 ```
 
+**Interactive Selection:**
+
+When no profile argument is provided, the command shows an interactive selection menu:
+
+```
+$ xling settings:switch --tool xling
+
+Select a profile to switch to:
+  1) [anthropic] claude-sonnet-4-20250514
+  2) [anthropic] claude-3-5-haiku-20241022
+  3) [openai] gpt-4o (current)
+  4) [openai] gpt-4o-mini
+  5) [deepseek] deepseek-chat
+Enter number or name: 1
+
+Set default model to "claude-sonnet-4-20250514"
+  File: /Users/xxx/.claude/xling.json
+```
+
+You can enter either the number or the model name directly.
+
 **Notes:**
-- Codex profiles must be defined in `~/.codex/config.toml` under the
-  `[profiles.<name>]` section.
-- Claude switching copies the requested `settings.<variant>.json` (or
+- **Codex:** Profiles must be defined in `~/.codex/config.toml` under the
+  `[profiles.<name>]` section, or available as auth profiles in `~/.codex/auth-profiles/`.
+- **Claude:** Copies the requested `settings.<variant>.json` (or
   `settings-<variant>.json`) over the active `settings.json` for the selected
-  scope.
-- Claude switching prints a unified diff and prompts for `overwrite / backup / cancel`. Use `--force` for non-interactive runs and add `--backup` to keep a `.bak`.
+  scope. Prints a unified diff and prompts for `overwrite / backup / cancel`. Use `--force` for non-interactive runs and add `--backup` to keep a `.bak`.
+- **Xling:** Updates the `defaultModel` field in `~/.claude/xling.json` directly without creating backup files. The model list is derived from all configured providers.
 
 ---
 
