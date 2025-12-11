@@ -136,6 +136,8 @@ export const LoadBalanceStrategySchema: z.ZodType<LoadBalanceStrategy> = z.enum(
 // ============================================================================
 
 export interface ProxyConfig {
+  /** Override global providers for proxy (when set, proxy uses only these providers) */
+  providers?: ProviderConfig[];
   enabled?: boolean;
   port?: number;
   host?: string;
@@ -152,6 +154,23 @@ export interface ProxyConfig {
 }
 
 export const ProxyConfigSchema: z.ZodType<ProxyConfig> = z.object({
+  providers: z
+    .array(ProviderConfigSchema)
+    .min(
+      1,
+      "If proxy.providers is specified, at least one provider is required",
+    )
+    .refine(
+      (providers) => {
+        const names = providers.map((p) => p.name);
+        return names.length === new Set(names).size;
+      },
+      { message: "Proxy provider names must be unique" },
+    )
+    .optional()
+    .describe(
+      "Override global providers for proxy (when set, proxy uses only these)",
+    ),
   enabled: z.boolean().default(true).describe("Enable proxy server"),
   port: z
     .number()

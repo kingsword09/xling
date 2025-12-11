@@ -77,21 +77,11 @@ export class XlingAdapter extends BaseAdapter<XlingConfig> {
    * Unix: chmod 600
    * Windows: ACL to restrict access to current user only
    */
-  protected override writeConfig(
-    configPath: string,
-    data: XlingConfig,
-    backup = true,
-  ): void {
+  protected override writeConfig(configPath: string, data: XlingConfig): void {
     const resolvedPath = fsStore.resolveHome(configPath);
 
     // Ensure directory exists
     fsStore.ensureDir(path.dirname(resolvedPath));
-
-    // Backup if needed
-    if (backup && fs.existsSync(resolvedPath)) {
-      const backupPath = `${resolvedPath}.bak`;
-      fs.copyFileSync(resolvedPath, backupPath);
-    }
 
     try {
       // Atomic write
@@ -158,7 +148,7 @@ export class XlingAdapter extends BaseAdapter<XlingConfig> {
 
     // Create config file with default template if it doesn't exist
     if (!fs.existsSync(resolvedPath)) {
-      this.writeConfig(configPath, DEFAULT_XLING_CONFIG, false);
+      this.writeConfig(configPath, DEFAULT_XLING_CONFIG);
     }
 
     // Open in editor
@@ -418,6 +408,48 @@ export class XlingAdapter extends BaseAdapter<XlingConfig> {
       message: `Set default model to "${model}"`,
       filePath: fsStore.resolveHome(configPath),
     };
+  }
+
+  /**
+   * Switch profile (set default model)
+   */
+  override async switchProfile(
+    scope: Scope,
+    profile: string,
+  ): Promise<SettingsResult> {
+    return await this.setDefaultModel(scope, profile);
+  }
+
+  /**
+   * Get all models from all providers for interactive selection
+   */
+  getAllModels(
+    scope: Scope,
+  ): Array<{ label: string; model: string; provider: string }> {
+    const configPath = this.validateAndResolvePath(scope);
+    const config = this.readConfig(configPath);
+
+    const models: Array<{ label: string; model: string; provider: string }> =
+      [];
+    for (const provider of config.providers) {
+      for (const model of provider.models) {
+        models.push({
+          label: `[${provider.name}] ${model}`,
+          model,
+          provider: provider.name,
+        });
+      }
+    }
+    return models;
+  }
+
+  /**
+   * Get current default model
+   */
+  getDefaultModel(scope: Scope): string | undefined {
+    const configPath = this.validateAndResolvePath(scope);
+    const config = this.readConfig(configPath);
+    return config.defaultModel;
   }
 
   /**

@@ -102,10 +102,14 @@ export async function startProxyServer(
   const configPath = adapter.resolvePath("user");
   let currentConfig = adapter.readConfig(configPath) as XlingConfig;
 
-  // Use unified providers from config root
-  if (!currentConfig.providers?.length) {
+  // Use proxy-specific providers if defined, otherwise fall back to global providers
+  const getProxyProviders = (config: XlingConfig) =>
+    config.proxy?.providers ?? config.providers;
+
+  const initialProviders = getProxyProviders(currentConfig);
+  if (!initialProviders?.length) {
     throw new Error(
-      "No providers configured in ~/.claude/xling.json. Add a 'providers' array.",
+      "No providers configured for proxy. Add providers to 'proxy.providers' or global 'providers' in ~/.claude/xling.json.",
     );
   }
 
@@ -150,10 +154,12 @@ export async function startProxyServer(
       // Health check
       if (path === "/health" || path === "/") {
         const cfg = getConfig();
+        const proxyProviders = getProxyProviders(cfg);
         return Response.json(
           {
             status: "ok",
-            providers: cfg.providers.map((p) => p.name),
+            providers: proxyProviders.map((p) => p.name),
+            providersSource: cfg.proxy?.providers ? "proxy" : "global",
             loadBalance: cfg.proxy?.loadBalance ?? "failover",
           },
           { headers: corsHeaders() },
@@ -274,7 +280,7 @@ export async function startProxyServer(
 
       // Models endpoint - return available models from config
       if (path === "/v1/models" || path === "/models") {
-        const models = buildModelsResponse(getConfig().providers);
+        const models = buildModelsResponse(getProxyProviders(getConfig()));
         return Response.json(models, { headers: corsHeaders() });
       }
 
@@ -312,7 +318,7 @@ export async function startProxyServer(
           () => {
             const cfg = getConfig();
             return {
-              providers: cfg.providers,
+              providers: getProxyProviders(cfg),
               modelMapping: cfg.proxy?.modelMapping,
               defaultModel: cfg.defaultModel,
               passthroughResponsesAPI: cfg.proxy?.passthroughResponsesAPI,
@@ -346,10 +352,12 @@ export async function startProxyServer(
       if (eventType === "change") {
         try {
           const newConfig = adapter.readConfig(configPath) as XlingConfig;
-          if (newConfig.providers?.length) {
+          const newProviders = getProxyProviders(newConfig);
+          if (newProviders?.length) {
             currentConfig = newConfig;
             if (options.logger) {
-              console.log("[proxy] Config reloaded");
+              const source = newConfig.proxy?.providers ? "proxy" : "global";
+              console.log(`[proxy] Config reloaded (providers from ${source})`);
             }
           }
         } catch (e) {
@@ -366,8 +374,9 @@ export async function startProxyServer(
   }
 
   const baseUrl = `http://${host}:${port}`;
-  const providers = currentConfig.providers.map((p) => p.name);
-  const models = currentConfig.providers.flatMap((p) =>
+  const activeProviders = getProxyProviders(currentConfig);
+  const providers = activeProviders.map((p) => p.name);
+  const models = activeProviders.flatMap((p) =>
     p.models.map((m) => `${p.name},${m}`),
   );
 

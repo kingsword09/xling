@@ -1,6 +1,6 @@
 /**
  * settings:switch command
- * Switch profiles for Codex or variants for Claude
+ * Switch profiles for Codex, variants for Claude, or default model for Xling
  */
 
 import { Args, Command, Flags, Interfaces } from "@oclif/core";
@@ -8,6 +8,7 @@ import readline from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
 import { SettingsDispatcher } from "@/services/settings/dispatcher.ts";
 import { CodexAdapter } from "@/services/settings/adapters/codex.ts";
+import { XlingAdapter } from "@/services/settings/adapters/xling.ts";
 import { formatJson } from "@/utils/format.ts";
 import type {
   ToolId,
@@ -24,13 +25,17 @@ export default class SettingsSwitch extends Command {
   static summary = "Switch between profiles or settings variants";
 
   static description = `
-    Switch to a different profile configuration for Codex
-    or activate a specific settings.<variant>.json for Claude.
+    Switch to a different profile configuration for Codex,
+    activate a specific settings.<variant>.json for Claude,
+    or switch the default model for Xling prompt router.
 
     For Codex, you can switch between:
     - Auth profiles (saved login credentials)
     - Model providers (API endpoints)
     - Named profiles (from config.toml)
+
+    For Xling, you can switch between any model from configured providers.
+    Run without arguments for interactive selection.
   `;
 
   static examples: Command.Example[] = [
@@ -60,6 +65,15 @@ export default class SettingsSwitch extends Command {
       description: "Keep a backup while switching Claude settings",
       command:
         "<%= config.bin %> <%= command.id %> stable --tool claude --backup",
+    },
+    {
+      description: "Interactive model selection for Xling",
+      command: "<%= config.bin %> <%= command.id %> --tool xling",
+    },
+    {
+      description: "Switch Xling default model directly",
+      command:
+        "<%= config.bin %> <%= command.id %> claude-sonnet-4-20250514 --tool xling",
     },
   ];
 
@@ -196,6 +210,8 @@ export default class SettingsSwitch extends Command {
       choices = await this.#listClaudeVariants(dispatcher, scope);
     } else if (tool === "codex") {
       choices = await this.#listCodexProfiles(scope);
+    } else if (tool === "xling") {
+      choices = await this.#listXlingModels(scope);
     } else {
       this.error(`Interactive selection is not supported for tool: ${tool}`, {
         exit: 1,
@@ -223,22 +239,30 @@ export default class SettingsSwitch extends Command {
         const index = Number.parseInt(answer, 10);
         if (Number.isInteger(index) && index >= 1 && index <= choices.length) {
           const selected = choices[index - 1];
-          // For Codex, extract the actual profile name from display format
-          return tool === "codex"
-            ? this.#extractCodexProfileName(selected)
-            : selected;
+          // Extract the actual name from display format
+          if (tool === "codex") {
+            return this.#extractCodexProfileName(selected);
+          }
+          if (tool === "xling") {
+            return this.#extractXlingModelName(selected);
+          }
+          return selected;
         }
 
         const exactMatch = choices.find(
           (name) => name.toLowerCase() === answer,
         );
         if (exactMatch) {
-          return tool === "codex"
-            ? this.#extractCodexProfileName(exactMatch)
-            : exactMatch;
+          if (tool === "codex") {
+            return this.#extractCodexProfileName(exactMatch);
+          }
+          if (tool === "xling") {
+            return this.#extractXlingModelName(exactMatch);
+          }
+          return exactMatch;
         }
 
-        // Also try matching just the profile name (without prefix)
+        // Also try matching just the profile/model name (without prefix)
         if (tool === "codex") {
           const nameMatch = choices.find((choice) => {
             const extracted = this.#extractCodexProfileName(choice);
@@ -246,6 +270,16 @@ export default class SettingsSwitch extends Command {
           });
           if (nameMatch) {
             return this.#extractCodexProfileName(nameMatch);
+          }
+        }
+
+        if (tool === "xling") {
+          const nameMatch = choices.find((choice) => {
+            const extracted = this.#extractXlingModelName(choice);
+            return extracted.toLowerCase() === answer;
+          });
+          if (nameMatch) {
+            return this.#extractXlingModelName(nameMatch);
           }
         }
 
@@ -300,12 +334,46 @@ export default class SettingsSwitch extends Command {
   }
 
   /**
+   * List all available models from xling providers
+   */
+  async #listXlingModels(scope: Scope): Promise<string[]> {
+    const adapter = new XlingAdapter();
+    const models = adapter.getAllModels(scope);
+
+    if (models.length === 0) {
+      this.error(
+        "No models found. Please configure providers in ~/.claude/xling.json first.\n" +
+          "Run: xling settings:set --tool xling",
+        { exit: 1 },
+      );
+    }
+
+    const currentDefault = adapter.getDefaultModel(scope);
+
+    return models.map((m) =>
+      m.model === currentDefault ? `${m.label} (current)` : m.label,
+    );
+  }
+
+  /**
    * Extract the actual profile name from the display format
    * e.g., "[auth] personal" -> "personal"
    */
   #extractCodexProfileName(displayName: string): string {
     const match = displayName.match(/^\[(auth|provider)\]\s+(.+)$/);
     return match ? match[2] : displayName;
+  }
+
+  /**
+   * Extract model name from xling display format
+   * e.g., "[anthropic] claude-sonnet-4 (current)" -> "claude-sonnet-4"
+   */
+  #extractXlingModelName(displayName: string): string {
+    // Remove (current) suffix if present
+    const cleaned = displayName.replace(/ \(current\)$/, "");
+    // Extract model from "[provider] model" format
+    const match = cleaned.match(/^\[.+?\]\s+(.+)$/);
+    return match ? match[1] : cleaned;
   }
 
   async #promptClaudeAction(): Promise<"overwrite" | "backup" | "cancel"> {
