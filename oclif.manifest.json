@@ -336,177 +336,6 @@
         "index.js"
       ]
     },
-    "proxy": {
-      "aliases": [],
-      "args": {},
-      "description": "Boot a local proxy server that forwards requests to configured upstream AI providers.\n\nFeatures:\n- OpenAI Chat Completions API (/v1/chat/completions)\n- Anthropic Messages API (/v1/messages) with automatic format conversion\n- OpenAI Responses API (/responses) for Codex CLI compatibility\n- Multiple upstream providers with automatic failover\n- Load balancing strategies: round-robin, random, weighted, failover\n- API key rotation with automatic cooldown on errors\n- Model mapping and aliasing\n- Optional access key protection\n- Optional DevTools-style UI on the same port (pass --ui)\n\nConfiguration is read from ~/.claude/xling.json under the 'proxy' section.",
-      "examples": [
-        {
-          "description": "Start proxy server on default port (4320)",
-          "command": "<%= config.bin %> <%= command.id %>"
-        },
-        {
-          "description": "Start on custom port with access key protection",
-          "command": "<%= config.bin %> <%= command.id %> --port 8080 --access-key my-secret-key"
-        },
-        {
-          "description": "Bind to all interfaces for external access",
-          "command": "<%= config.bin %> <%= command.id %> --host 0.0.0.0"
-        },
-        {
-          "description": "Start with verbose logging disabled",
-          "command": "<%= config.bin %> <%= command.id %> --no-logger"
-        },
-        {
-          "description": "Start proxy with DevTools-style UI on the same port",
-          "command": "<%= config.bin %> <%= command.id %> --ui"
-        }
-      ],
-      "flags": {
-        "port": {
-          "char": "p",
-          "description": "Port for the proxy server",
-          "name": "port",
-          "default": 4320,
-          "hasDynamicHelp": false,
-          "multiple": false,
-          "type": "option"
-        },
-        "host": {
-          "description": "Host/interface to bind",
-          "name": "host",
-          "default": "127.0.0.1",
-          "hasDynamicHelp": false,
-          "multiple": false,
-          "type": "option"
-        },
-        "access-key": {
-          "char": "k",
-          "description": "Access key for proxy authentication (overrides config file)",
-          "name": "access-key",
-          "hasDynamicHelp": false,
-          "multiple": false,
-          "type": "option"
-        },
-        "logger": {
-          "description": "Enable request logging",
-          "name": "logger",
-          "allowNo": true,
-          "type": "boolean"
-        },
-        "verbose": {
-          "char": "v",
-          "description": "Enable verbose logging (full request/response bodies)",
-          "name": "verbose",
-          "allowNo": false,
-          "type": "boolean"
-        },
-        "ui": {
-          "description": "Serve DevTools-style proxy UI on the same host/port",
-          "name": "ui",
-          "allowNo": false,
-          "type": "boolean"
-        }
-      },
-      "hasDynamicHelp": false,
-      "hiddenAliases": [],
-      "id": "proxy",
-      "pluginAlias": "xling",
-      "pluginName": "xling",
-      "pluginType": "core",
-      "strict": true,
-      "summary": "Start an OpenAI-compatible proxy server with load balancing and key rotation",
-      "enableJsonFlag": false,
-      "isESM": true,
-      "relativePath": [
-        "dist",
-        "commands",
-        "proxy",
-        "index.js"
-      ]
-    },
-    "version": {
-      "aliases": [],
-      "args": {},
-      "description": "Displays the version from package.json.",
-      "examples": [
-        {
-          "description": "Print the installed CLI version",
-          "command": "<%= config.bin %> <%= command.id %>"
-        },
-        {
-          "description": "Shortcut using the built-in flag",
-          "command": "<%= config.bin %> --version"
-        }
-      ],
-      "flags": {},
-      "hasDynamicHelp": false,
-      "hiddenAliases": [],
-      "id": "version",
-      "pluginAlias": "xling",
-      "pluginName": "xling",
-      "pluginType": "core",
-      "strict": true,
-      "summary": "Show the current xling version",
-      "enableJsonFlag": false,
-      "isESM": true,
-      "relativePath": [
-        "dist",
-        "commands",
-        "version",
-        "index.js"
-      ]
-    },
-    "sx": {
-      "aliases": [],
-      "args": {
-        "name": {
-          "description": "Shortcut name to execute",
-          "name": "name",
-          "required": false
-        }
-      },
-      "description": "\n    Execute predefined command shortcuts configured in ~/.claude/xling.json.\n\n    Shortcuts allow you to create custom aliases for frequently used xling commands\n    with pre-configured arguments. This makes it easy to run complex commands without\n    having to remember long argument lists.\n\n    Use --list to see all available shortcuts.\n\n    Pass additional arguments after the shortcut name to append them to the\n    configured arguments.\n\n    Configuration example in ~/.claude/xling.json:\n    {\n      \"shortcuts\": {\n        \"lc\": {\n          \"command\": \"x\",\n          \"args\": [\"-t\", \"claude\", \"-c\"],\n          \"description\": \"Launch Claude and continue\"\n        },\n        \"gs\": {\n          \"command\": \"settings:list\",\n          \"args\": [\"--tool\", \"codex\"],\n          \"description\": \"List Codex settings\"\n        }\n      }\n    }\n\n    Examples:\n      $ xling sx lc                    # Run shortcut \"lc\"\n      $ xling sx --list                # List all shortcuts\n      $ xling sx lc -- --no-yolo       # Run \"lc\" with extra args\n  ",
-      "examples": [
-        {
-          "description": "List all available shortcuts",
-          "command": "<%= config.bin %> <%= command.id %> --list"
-        },
-        {
-          "description": "Execute a shortcut",
-          "command": "<%= config.bin %> <%= command.id %> lc"
-        },
-        {
-          "description": "Execute shortcut with additional arguments",
-          "command": "<%= config.bin %> <%= command.id %> lc -- --no-yolo"
-        }
-      ],
-      "flags": {
-        "list": {
-          "char": "l",
-          "description": "List all available shortcuts",
-          "name": "list",
-          "allowNo": false,
-          "type": "boolean"
-        }
-      },
-      "hasDynamicHelp": false,
-      "hiddenAliases": [],
-      "id": "sx",
-      "pluginAlias": "xling",
-      "pluginName": "xling",
-      "pluginType": "core",
-      "strict": false,
-      "summary": "Shortcut eXecute - run predefined command shortcuts",
-      "enableJsonFlag": false,
-      "isESM": true,
-      "relativePath": [
-        "dist",
-        "commands",
-        "sx",
-        "index.js"
-      ]
-    },
     "git": {
       "aliases": [],
       "args": {},
@@ -1917,6 +1746,88 @@
         "sync.js"
       ]
     },
+    "sx": {
+      "aliases": [],
+      "args": {
+        "name": {
+          "description": "Shortcut name to execute",
+          "name": "name",
+          "required": false
+        }
+      },
+      "description": "\n    Execute predefined command shortcuts configured in ~/.claude/xling.json.\n\n    Shortcuts allow you to create custom aliases for frequently used xling commands\n    with pre-configured arguments. This makes it easy to run complex commands without\n    having to remember long argument lists.\n\n    Use --list to see all available shortcuts.\n\n    Pass additional arguments after the shortcut name to append them to the\n    configured arguments.\n\n    Configuration example in ~/.claude/xling.json:\n    {\n      \"shortcuts\": {\n        \"lc\": {\n          \"command\": \"x\",\n          \"args\": [\"-t\", \"claude\", \"-c\"],\n          \"description\": \"Launch Claude and continue\"\n        },\n        \"gs\": {\n          \"command\": \"settings:list\",\n          \"args\": [\"--tool\", \"codex\"],\n          \"description\": \"List Codex settings\"\n        }\n      }\n    }\n\n    Examples:\n      $ xling sx lc                    # Run shortcut \"lc\"\n      $ xling sx --list                # List all shortcuts\n      $ xling sx lc -- --no-yolo       # Run \"lc\" with extra args\n  ",
+      "examples": [
+        {
+          "description": "List all available shortcuts",
+          "command": "<%= config.bin %> <%= command.id %> --list"
+        },
+        {
+          "description": "Execute a shortcut",
+          "command": "<%= config.bin %> <%= command.id %> lc"
+        },
+        {
+          "description": "Execute shortcut with additional arguments",
+          "command": "<%= config.bin %> <%= command.id %> lc -- --no-yolo"
+        }
+      ],
+      "flags": {
+        "list": {
+          "char": "l",
+          "description": "List all available shortcuts",
+          "name": "list",
+          "allowNo": false,
+          "type": "boolean"
+        }
+      },
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "sx",
+      "pluginAlias": "xling",
+      "pluginName": "xling",
+      "pluginType": "core",
+      "strict": false,
+      "summary": "Shortcut eXecute - run predefined command shortcuts",
+      "enableJsonFlag": false,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "commands",
+        "sx",
+        "index.js"
+      ]
+    },
+    "version": {
+      "aliases": [],
+      "args": {},
+      "description": "Displays the version from package.json.",
+      "examples": [
+        {
+          "description": "Print the installed CLI version",
+          "command": "<%= config.bin %> <%= command.id %>"
+        },
+        {
+          "description": "Shortcut using the built-in flag",
+          "command": "<%= config.bin %> --version"
+        }
+      ],
+      "flags": {},
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "version",
+      "pluginAlias": "xling",
+      "pluginName": "xling",
+      "pluginType": "core",
+      "strict": true,
+      "summary": "Show the current xling version",
+      "enableJsonFlag": false,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "commands",
+        "version",
+        "index.js"
+      ]
+    },
     "x": {
       "aliases": [],
       "args": {},
@@ -2041,7 +1952,79 @@
         "x",
         "index.js"
       ]
+    },
+    "proxy": {
+      "aliases": [],
+      "args": {},
+      "description": "Boot a local proxy server that forwards requests to configured upstream AI providers.\n\nFeatures:\n- OpenAI Chat Completions API (/v1/chat/completions)\n- Anthropic Messages API (/v1/messages) with automatic format conversion\n- OpenAI Responses API (/responses) for Codex CLI compatibility\n- Multiple upstream providers with automatic failover\n- Load balancing strategies: round-robin, random, weighted, failover\n- API key rotation with automatic cooldown on errors\n- Model mapping and aliasing\n- Optional access key protection\n\nConfiguration is read from ~/.claude/xling.json under the 'proxy' section.",
+      "examples": [
+        {
+          "description": "Start proxy server on default port (4320)",
+          "command": "<%= config.bin %> <%= command.id %>"
+        },
+        {
+          "description": "Start on custom port with access key protection",
+          "command": "<%= config.bin %> <%= command.id %> --port 8080 --access-key my-secret-key"
+        },
+        {
+          "description": "Bind to all interfaces for external access",
+          "command": "<%= config.bin %> <%= command.id %> --host 0.0.0.0"
+        },
+        {
+          "description": "Start with verbose logging disabled",
+          "command": "<%= config.bin %> <%= command.id %> --no-logger"
+        }
+      ],
+      "flags": {
+        "port": {
+          "char": "p",
+          "description": "Port for the proxy server",
+          "name": "port",
+          "default": 4320,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "host": {
+          "description": "Host/interface to bind",
+          "name": "host",
+          "default": "127.0.0.1",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "access-key": {
+          "char": "k",
+          "description": "Access key for proxy authentication (overrides config file)",
+          "name": "access-key",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "logger": {
+          "description": "Enable request logging",
+          "name": "logger",
+          "allowNo": true,
+          "type": "boolean"
+        }
+      },
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "proxy",
+      "pluginAlias": "xling",
+      "pluginName": "xling",
+      "pluginType": "core",
+      "strict": true,
+      "summary": "Start an OpenAI-compatible proxy server with load balancing and key rotation",
+      "enableJsonFlag": false,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "commands",
+        "proxy",
+        "index.js"
+      ]
     }
   },
-  "version": "0.9.8"
+  "version": "0.10.0"
 }

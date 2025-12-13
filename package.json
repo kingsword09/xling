@@ -1,6 +1,6 @@
 {
   "name": "xling",
-  "version": "0.9.8",
+  "version": "0.10.0",
   "description": "Unified CLI for AI tools: settings management, API proxy with load balancing, multi-model discussions",
   "homepage": "https://github.com/kingsword09/xling/tree/main#readme",
   "bugs": {
@@ -22,6 +22,7 @@
     "build": "tsdown && bun run build:ui",
     "dev": "tsdown --watch",
     "manifest": "bunx oclif manifest",
+    "schema": "bun run ./scripts/generate-schema.ts",
     "build:ui": "vite build",
     "test": "vitest",
     "test:watch": "vitest --watch",
