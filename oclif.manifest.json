@@ -1843,56 +1843,6 @@
         "sync.js"
       ]
     },
-    "sx": {
-      "aliases": [],
-      "args": {
-        "name": {
-          "description": "Shortcut name to execute",
-          "name": "name",
-          "required": false
-        }
-      },
-      "description": "\n    Execute predefined command shortcuts configured in ~/.claude/xling.json.\n\n    Shortcuts allow you to create custom aliases for frequently used xling commands\n    with pre-configured arguments. This makes it easy to run complex commands without\n    having to remember long argument lists.\n\n    Use --list to see all available shortcuts.\n\n    Pass additional arguments after the shortcut name to append them to the\n    configured arguments.\n\n    Configuration example in ~/.claude/xling.json:\n    {\n      \"shortcuts\": {\n        \"lc\": {\n          \"command\": \"x\",\n          \"args\": [\"-t\", \"claude\", \"-c\"],\n          \"description\": \"Launch Claude and continue\"\n        },\n        \"gs\": {\n          \"command\": \"settings:list\",\n          \"args\": [\"--tool\", \"codex\"],\n          \"description\": \"List Codex settings\"\n        }\n      }\n    }\n\n    Examples:\n      $ xling sx lc                    # Run shortcut \"lc\"\n      $ xling sx --list                # List all shortcuts\n      $ xling sx lc -- --no-yolo       # Run \"lc\" with extra args\n  ",
-      "examples": [
-        {
-          "description": "List all available shortcuts",
-          "command": "<%= config.bin %> <%= command.id %> --list"
-        },
-        {
-          "description": "Execute a shortcut",
-          "command": "<%= config.bin %> <%= command.id %> lc"
-        },
-        {
-          "description": "Execute shortcut with additional arguments",
-          "command": "<%= config.bin %> <%= command.id %> lc -- --no-yolo"
-        }
-      ],
-      "flags": {
-        "list": {
-          "char": "l",
-          "description": "List all available shortcuts",
-          "name": "list",
-          "allowNo": false,
-          "type": "boolean"
-        }
-      },
-      "hasDynamicHelp": false,
-      "hiddenAliases": [],
-      "id": "sx",
-      "pluginAlias": "xling",
-      "pluginName": "xling",
-      "pluginType": "core",
-      "strict": false,
-      "summary": "Shortcut eXecute - run predefined command shortcuts",
-      "enableJsonFlag": false,
-      "isESM": true,
-      "relativePath": [
-        "dist",
-        "commands",
-        "sx",
-        "index.js"
-      ]
-    },
     "version": {
       "aliases": [],
       "args": {},
@@ -2049,7 +1999,57 @@
         "x",
         "index.js"
       ]
+    },
+    "sx": {
+      "aliases": [],
+      "args": {
+        "name": {
+          "description": "Shortcut name to execute",
+          "name": "name",
+          "required": false
+        }
+      },
+      "description": "\n    Execute predefined command shortcuts configured in ~/.claude/xling.json.\n\n    Shortcuts allow you to create custom aliases for frequently used xling commands\n    with pre-configured arguments. This makes it easy to run complex commands without\n    having to remember long argument lists.\n\n    Use --list to see all available shortcuts.\n\n    Pass additional arguments after the shortcut name to append them to the\n    configured arguments.\n\n    Configuration example in ~/.claude/xling.json:\n    {\n      \"shortcuts\": {\n        \"lc\": {\n          \"command\": \"x\",\n          \"args\": [\"-t\", \"claude\", \"-c\"],\n          \"description\": \"Launch Claude and continue\"\n        },\n        \"gs\": {\n          \"command\": \"settings:list\",\n          \"args\": [\"--tool\", \"codex\"],\n          \"description\": \"List Codex settings\"\n        }\n      }\n    }\n\n    Examples:\n      $ xling sx lc                    # Run shortcut \"lc\"\n      $ xling sx --list                # List all shortcuts\n      $ xling sx lc -- --no-yolo       # Run \"lc\" with extra args\n  ",
+      "examples": [
+        {
+          "description": "List all available shortcuts",
+          "command": "<%= config.bin %> <%= command.id %> --list"
+        },
+        {
+          "description": "Execute a shortcut",
+          "command": "<%= config.bin %> <%= command.id %> lc"
+        },
+        {
+          "description": "Execute shortcut with additional arguments",
+          "command": "<%= config.bin %> <%= command.id %> lc -- --no-yolo"
+        }
+      ],
+      "flags": {
+        "list": {
+          "char": "l",
+          "description": "List all available shortcuts",
+          "name": "list",
+          "allowNo": false,
+          "type": "boolean"
+        }
+      },
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "sx",
+      "pluginAlias": "xling",
+      "pluginName": "xling",
+      "pluginType": "core",
+      "strict": false,
+      "summary": "Shortcut eXecute - run predefined command shortcuts",
+      "enableJsonFlag": false,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "commands",
+        "sx",
+        "index.js"
+      ]
     }
   },
-  "version": "0.10.1"
+  "version": "0.11.0"
 }
