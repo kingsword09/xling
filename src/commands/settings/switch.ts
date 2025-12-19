@@ -239,65 +239,24 @@ export default class SettingsSwitch extends Command {
 
         const index = Number.parseInt(answer, 10);
         if (Number.isInteger(index) && index >= 1 && index <= choices.length) {
-          const selected = choices[index - 1];
-          // Extract the actual name from display format
-          if (tool === "claude") {
-            return this.#extractClaudeVariantName(selected);
-          }
-          if (tool === "codex") {
-            return this.#extractCodexProfileName(selected);
-          }
-          if (tool === "xling") {
-            return this.#extractXlingModelName(selected);
-          }
-          return selected;
+          return this.#extractName(tool, choices[index - 1]);
         }
 
+        // Try exact match with display name
         const exactMatch = choices.find(
           (name) => name.toLowerCase() === answer,
         );
         if (exactMatch) {
-          if (tool === "claude") {
-            return this.#extractClaudeVariantName(exactMatch);
-          }
-          if (tool === "codex") {
-            return this.#extractCodexProfileName(exactMatch);
-          }
-          if (tool === "xling") {
-            return this.#extractXlingModelName(exactMatch);
-          }
-          return exactMatch;
+          return this.#extractName(tool, exactMatch);
         }
 
-        // Also try matching just the profile/model name (without prefix)
-        if (tool === "claude") {
-          const nameMatch = choices.find((choice) => {
-            const extracted = this.#extractClaudeVariantName(choice);
-            return extracted.toLowerCase() === answer;
-          });
-          if (nameMatch) {
-            return this.#extractClaudeVariantName(nameMatch);
-          }
-        }
-
-        if (tool === "codex") {
-          const nameMatch = choices.find((choice) => {
-            const extracted = this.#extractCodexProfileName(choice);
-            return extracted.toLowerCase() === answer;
-          });
-          if (nameMatch) {
-            return this.#extractCodexProfileName(nameMatch);
-          }
-        }
-
-        if (tool === "xling") {
-          const nameMatch = choices.find((choice) => {
-            const extracted = this.#extractXlingModelName(choice);
-            return extracted.toLowerCase() === answer;
-          });
-          if (nameMatch) {
-            return this.#extractXlingModelName(nameMatch);
-          }
+        // Try matching just the extracted name (without prefix/suffix)
+        const nameMatch = choices.find((choice) => {
+          const extracted = this.#extractName(tool, choice);
+          return extracted.toLowerCase() === answer;
+        });
+        if (nameMatch) {
+          return this.#extractName(tool, nameMatch);
         }
 
         this.log("Invalid selection. Please try again.");
@@ -390,34 +349,32 @@ export default class SettingsSwitch extends Command {
   }
 
   /**
-   * Extract variant name from claude display format
-   * e.g., "hxi (current)" -> "hxi"
+   * Remove (current) suffix from display name
    */
-  #extractClaudeVariantName(displayName: string): string {
+  #stripCurrentSuffix(displayName: string): string {
     return displayName.replace(/ \(current\)$/, "");
   }
 
   /**
-   * Extract the actual profile name from the display format
-   * e.g., "[auth] personal (current)" -> "personal"
+   * Extract the actual name from tool-specific display format
    */
-  #extractCodexProfileName(displayName: string): string {
-    // Remove (current) suffix if present
-    const cleaned = displayName.replace(/ \(current\)$/, "");
-    const match = cleaned.match(/^\[(auth|provider)\]\s+(.+)$/);
-    return match ? match[2] : cleaned;
-  }
+  #extractName(tool: ToolId, displayName: string): string {
+    const cleaned = this.#stripCurrentSuffix(displayName);
 
-  /**
-   * Extract model name from xling display format
-   * e.g., "[anthropic] claude-sonnet-4 (current)" -> "claude-sonnet-4"
-   */
-  #extractXlingModelName(displayName: string): string {
-    // Remove (current) suffix if present
-    const cleaned = displayName.replace(/ \(current\)$/, "");
-    // Extract model from "[provider] model" format
-    const match = cleaned.match(/^\[.+?\]\s+(.+)$/);
-    return match ? match[1] : cleaned;
+    switch (tool) {
+      case "claude":
+        return cleaned;
+      case "codex": {
+        const codexMatch = cleaned.match(/^\[(auth|provider)\]\s+(.+)$/);
+        return codexMatch ? codexMatch[2] : cleaned;
+      }
+      case "xling": {
+        const xlingMatch = cleaned.match(/^\[.+?\]\s+(.+)$/);
+        return xlingMatch ? xlingMatch[1] : cleaned;
+      }
+      default:
+        return cleaned;
+    }
   }
 
   async #promptClaudeAction(): Promise<"overwrite" | "backup" | "cancel"> {
