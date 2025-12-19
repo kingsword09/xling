@@ -7,6 +7,7 @@ import { Args, Command, Flags, Interfaces } from "@oclif/core";
 import readline from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
 import { SettingsDispatcher } from "@/services/settings/dispatcher.ts";
+import { ClaudeAdapter } from "@/services/settings/adapters/claude.ts";
 import { CodexAdapter } from "@/services/settings/adapters/codex.ts";
 import { XlingAdapter } from "@/services/settings/adapters/xling.ts";
 import { formatJson } from "@/utils/format.ts";
@@ -240,6 +241,9 @@ export default class SettingsSwitch extends Command {
         if (Number.isInteger(index) && index >= 1 && index <= choices.length) {
           const selected = choices[index - 1];
           // Extract the actual name from display format
+          if (tool === "claude") {
+            return this.#extractClaudeVariantName(selected);
+          }
           if (tool === "codex") {
             return this.#extractCodexProfileName(selected);
           }
@@ -253,6 +257,9 @@ export default class SettingsSwitch extends Command {
           (name) => name.toLowerCase() === answer,
         );
         if (exactMatch) {
+          if (tool === "claude") {
+            return this.#extractClaudeVariantName(exactMatch);
+          }
           if (tool === "codex") {
             return this.#extractCodexProfileName(exactMatch);
           }
@@ -263,6 +270,16 @@ export default class SettingsSwitch extends Command {
         }
 
         // Also try matching just the profile/model name (without prefix)
+        if (tool === "claude") {
+          const nameMatch = choices.find((choice) => {
+            const extracted = this.#extractClaudeVariantName(choice);
+            return extracted.toLowerCase() === answer;
+          });
+          if (nameMatch) {
+            return this.#extractClaudeVariantName(nameMatch);
+          }
+        }
+
         if (tool === "codex") {
           const nameMatch = choices.find((choice) => {
             const extracted = this.#extractCodexProfileName(choice);
@@ -304,29 +321,46 @@ export default class SettingsSwitch extends Command {
       return [];
     }
 
+    // Find current variant by comparing content
+    const adapter = new ClaudeAdapter();
+    const currentVariant = adapter.getCurrentVariant(scope);
+
+    // Show non-active variants with (current) marker if content matches
     return listResult.data.files
-      .filter((file: SettingsFileEntry) => !file.active)
-      .map((file: SettingsFileEntry) => file.variant)
-      .filter(Boolean);
+      .filter((file: SettingsFileEntry) => !file.active && file.variant)
+      .map((file: SettingsFileEntry) =>
+        file.variant === currentVariant
+          ? `${file.variant} (current)`
+          : file.variant,
+      );
   }
 
   async #listCodexProfiles(scope: Scope): Promise<string[]> {
     const adapter = new CodexAdapter();
     const { providers, authProfiles } = adapter.getAllSwitchableProfiles(scope);
 
+    // Get current active profile/provider info
+    const listData = await adapter.list(scope);
+    const entries = listData.type === "entries" ? listData.entries : {};
+    const currentAuthProfile = entries.current_auth_profile as string | null;
+    const currentProvider = entries.current_provider as string | null;
+    const currentProfile = entries.current_profile as string | null;
+
     const choices: string[] = [];
 
     // Auth profiles first (with prefix for clarity)
     if (authProfiles.length > 0) {
       for (const name of authProfiles) {
-        choices.push(`[auth] ${name}`);
+        const isCurrent = name === currentAuthProfile;
+        choices.push(`[auth] ${name}${isCurrent ? " (current)" : ""}`);
       }
     }
 
-    // Then providers
+    // Then providers/profiles
     if (providers.length > 0) {
       for (const name of providers) {
-        choices.push(`[provider] ${name}`);
+        const isCurrent = name === currentProvider || name === currentProfile;
+        choices.push(`[provider] ${name}${isCurrent ? " (current)" : ""}`);
       }
     }
 
@@ -356,12 +390,22 @@ export default class SettingsSwitch extends Command {
   }
 
   /**
+   * Extract variant name from claude display format
+   * e.g., "hxi (current)" -> "hxi"
+   */
+  #extractClaudeVariantName(displayName: string): string {
+    return displayName.replace(/ \(current\)$/, "");
+  }
+
+  /**
    * Extract the actual profile name from the display format
-   * e.g., "[auth] personal" -> "personal"
+   * e.g., "[auth] personal (current)" -> "personal"
    */
   #extractCodexProfileName(displayName: string): string {
-    const match = displayName.match(/^\[(auth|provider)\]\s+(.+)$/);
-    return match ? match[2] : displayName;
+    // Remove (current) suffix if present
+    const cleaned = displayName.replace(/ \(current\)$/, "");
+    const match = cleaned.match(/^\[(auth|provider)\]\s+(.+)$/);
+    return match ? match[2] : cleaned;
   }
 
   /**

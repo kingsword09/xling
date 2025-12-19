@@ -245,6 +245,48 @@ export class ClaudeAdapter extends BaseAdapter {
     return /^settings[._-].+\.json$/.test(filename);
   }
 
+  /**
+   * Find which variant matches the current settings.json by comparing content
+   * Returns the variant name if found, null otherwise
+   */
+  getCurrentVariant(scope: Scope): string | null {
+    const activePath = fsStore.resolveHome(this.validateAndResolvePath(scope));
+    const directory = path.dirname(activePath);
+
+    if (!fs.existsSync(activePath)) {
+      return null;
+    }
+
+    let currentContent: string;
+    try {
+      currentContent = fs.readFileSync(activePath, "utf-8");
+    } catch {
+      return null;
+    }
+
+    if (!fs.existsSync(directory)) {
+      return null;
+    }
+
+    const entries = fs.readdirSync(directory, { withFileTypes: true });
+    for (const entry of entries) {
+      if (!entry.isFile()) continue;
+      if (!this.#isSettingsFile(entry.name)) continue;
+
+      const variantPath = path.join(directory, entry.name);
+      try {
+        const variantContent = fs.readFileSync(variantPath, "utf-8");
+        if (currentContent === variantContent) {
+          return this.#extractVariant(variantPath);
+        }
+      } catch {
+        continue;
+      }
+    }
+
+    return null;
+  }
+
   #sortFiles(files: SettingsFileEntry[]): SettingsFileEntry[] {
     return files.sort((a, b) => {
       if (a.active && !b.active) return -1;
