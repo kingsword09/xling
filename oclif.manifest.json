@@ -1087,6 +1087,95 @@
         "wts.js"
       ]
     },
+    "proxy": {
+      "aliases": [],
+      "args": {},
+      "description": "Boot a local proxy server that forwards requests to configured upstream AI providers.\n\nFeatures:\n- OpenAI Chat Completions API (/v1/chat/completions)\n- Anthropic Messages API (/v1/messages) with automatic format conversion\n- OpenAI Responses API (/responses) for Codex CLI compatibility\n- Multiple upstream providers with automatic failover\n- Load balancing strategies: round-robin, random, weighted, failover\n- API key rotation with automatic cooldown on errors\n- Model mapping and aliasing\n- Optional access key protection\n- Optional DevTools-style UI on the same port (pass --ui)\n\nConfiguration is read from ~/.claude/xling.json under the 'proxy' section.",
+      "examples": [
+        {
+          "description": "Start proxy server on default port (4320)",
+          "command": "<%= config.bin %> <%= command.id %>"
+        },
+        {
+          "description": "Start on custom port with access key protection",
+          "command": "<%= config.bin %> <%= command.id %> --port 8080 --access-key my-secret-key"
+        },
+        {
+          "description": "Bind to all interfaces for external access",
+          "command": "<%= config.bin %> <%= command.id %> --host 0.0.0.0"
+        },
+        {
+          "description": "Start with verbose logging disabled",
+          "command": "<%= config.bin %> <%= command.id %> --no-logger"
+        },
+        {
+          "description": "Start proxy with DevTools-style UI on the same port",
+          "command": "<%= config.bin %> <%= command.id %> --ui"
+        }
+      ],
+      "flags": {
+        "port": {
+          "char": "p",
+          "description": "Port for the proxy server",
+          "name": "port",
+          "default": 4320,
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "host": {
+          "description": "Host/interface to bind",
+          "name": "host",
+          "default": "127.0.0.1",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "access-key": {
+          "char": "k",
+          "description": "Access key for proxy authentication (overrides config file)",
+          "name": "access-key",
+          "hasDynamicHelp": false,
+          "multiple": false,
+          "type": "option"
+        },
+        "logger": {
+          "description": "Enable request logging",
+          "name": "logger",
+          "allowNo": true,
+          "type": "boolean"
+        },
+        "verbose": {
+          "char": "v",
+          "description": "Enable verbose logging (full request/response bodies)",
+          "name": "verbose",
+          "allowNo": false,
+          "type": "boolean"
+        },
+        "ui": {
+          "description": "Serve DevTools-style proxy UI on the same host/port",
+          "name": "ui",
+          "allowNo": false,
+          "type": "boolean"
+        }
+      },
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "proxy",
+      "pluginAlias": "xling",
+      "pluginName": "xling",
+      "pluginType": "core",
+      "strict": true,
+      "summary": "Start an OpenAI-compatible proxy server with load balancing and key rotation",
+      "enableJsonFlag": false,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "commands",
+        "proxy",
+        "index.js"
+      ]
+    },
     "settings:auth": {
       "aliases": [],
       "args": {},
@@ -1567,7 +1656,7 @@
           "required": false
         }
       },
-      "description": "\n    Switch to a different profile configuration for Codex\n    or activate a specific settings.<variant>.json for Claude.\n\n    For Codex, you can switch between:\n    - Auth profiles (saved login credentials)\n    - Model providers (API endpoints)\n    - Named profiles (from config.toml)\n  ",
+      "description": "\n    Switch to a different profile configuration for Codex,\n    activate a specific settings.<variant>.json for Claude,\n    or switch the default model for Xling prompt router.\n\n    For Codex, you can switch between:\n    - Auth profiles (saved login credentials)\n    - Model providers (API endpoints)\n    - Named profiles (from config.toml)\n\n    For Xling, you can switch between any model from configured providers.\n    Run without arguments for interactive selection.\n  ",
       "examples": [
         {
           "description": "Switch Codex to an auth profile (saved login)",
@@ -1592,6 +1681,14 @@
         {
           "description": "Keep a backup while switching Claude settings",
           "command": "<%= config.bin %> <%= command.id %> stable --tool claude --backup"
+        },
+        {
+          "description": "Interactive model selection for Xling",
+          "command": "<%= config.bin %> <%= command.id %> --tool xling"
+        },
+        {
+          "description": "Switch Xling default model directly",
+          "command": "<%= config.bin %> <%= command.id %> claude-sonnet-4-20250514 --tool xling"
         }
       ],
       "flags": {
@@ -1952,79 +2049,7 @@
         "x",
         "index.js"
       ]
-    },
-    "proxy": {
-      "aliases": [],
-      "args": {},
-      "description": "Boot a local proxy server that forwards requests to configured upstream AI providers.\n\nFeatures:\n- OpenAI Chat Completions API (/v1/chat/completions)\n- Anthropic Messages API (/v1/messages) with automatic format conversion\n- OpenAI Responses API (/responses) for Codex CLI compatibility\n- Multiple upstream providers with automatic failover\n- Load balancing strategies: round-robin, random, weighted, failover\n- API key rotation with automatic cooldown on errors\n- Model mapping and aliasing\n- Optional access key protection\n\nConfiguration is read from ~/.claude/xling.json under the 'proxy' section.",
-      "examples": [
-        {
-          "description": "Start proxy server on default port (4320)",
-          "command": "<%= config.bin %> <%= command.id %>"
-        },
-        {
-          "description": "Start on custom port with access key protection",
-          "command": "<%= config.bin %> <%= command.id %> --port 8080 --access-key my-secret-key"
-        },
-        {
-          "description": "Bind to all interfaces for external access",
-          "command": "<%= config.bin %> <%= command.id %> --host 0.0.0.0"
-        },
-        {
-          "description": "Start with verbose logging disabled",
-          "command": "<%= config.bin %> <%= command.id %> --no-logger"
-        }
-      ],
-      "flags": {
-        "port": {
-          "char": "p",
-          "description": "Port for the proxy server",
-          "name": "port",
-          "default": 4320,
-          "hasDynamicHelp": false,
-          "multiple": false,
-          "type": "option"
-        },
-        "host": {
-          "description": "Host/interface to bind",
-          "name": "host",
-          "default": "127.0.0.1",
-          "hasDynamicHelp": false,
-          "multiple": false,
-          "type": "option"
-        },
-        "access-key": {
-          "char": "k",
-          "description": "Access key for proxy authentication (overrides config file)",
-          "name": "access-key",
-          "hasDynamicHelp": false,
-          "multiple": false,
-          "type": "option"
-        },
-        "logger": {
-          "description": "Enable request logging",
-          "name": "logger",
-          "allowNo": true,
-          "type": "boolean"
-        }
-      },
-      "hasDynamicHelp": false,
-      "hiddenAliases": [],
-      "id": "proxy",
-      "pluginAlias": "xling",
-      "pluginName": "xling",
-      "pluginType": "core",
-      "strict": true,
-      "summary": "Start an OpenAI-compatible proxy server with load balancing and key rotation",
-      "enableJsonFlag": false,
-      "isESM": true,
-      "relativePath": [
-        "dist",
-        "commands",
-        "proxy",
-        "index.js"
-      ]
     }
   },
-  "version": "0.10.0"
+  "version": "0.10.1"
 }

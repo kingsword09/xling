@@ -1,6 +1,6 @@
 {
   "name": "xling",
-  "version": "0.10.0",
+  "version": "0.10.1",
   "description": "Unified CLI for AI tools: settings management, API proxy with load balancing, multi-model discussions",
   "homepage": "https://github.com/kingsword09/xling/tree/main#readme",
   "bugs": {
