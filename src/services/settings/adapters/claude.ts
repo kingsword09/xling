@@ -253,30 +253,25 @@ export class ClaudeAdapter extends BaseAdapter {
     const activePath = fsStore.resolveHome(this.validateAndResolvePath(scope));
     const directory = path.dirname(activePath);
 
-    if (!fs.existsSync(activePath)) {
+    if (!fs.existsSync(activePath) || !fs.existsSync(directory)) {
       return null;
     }
 
-    let currentContent: string;
+    let currentConfig: ConfigObject;
     try {
-      currentContent = fs.readFileSync(activePath, "utf-8");
+      currentConfig = this.readConfig(activePath);
     } catch {
-      return null;
-    }
-
-    if (!fs.existsSync(directory)) {
       return null;
     }
 
     const entries = fs.readdirSync(directory, { withFileTypes: true });
     for (const entry of entries) {
-      if (!entry.isFile()) continue;
-      if (!this.#isSettingsFile(entry.name)) continue;
+      if (!entry.isFile() || !this.#isSettingsFile(entry.name)) continue;
 
       const variantPath = path.join(directory, entry.name);
       try {
-        const variantContent = fs.readFileSync(variantPath, "utf-8");
-        if (currentContent === variantContent) {
+        const variantConfig = this.readConfig(variantPath);
+        if (this.#deepEqual(currentConfig, variantConfig)) {
           return this.#extractVariant(variantPath);
         }
       } catch {
@@ -285,6 +280,13 @@ export class ClaudeAdapter extends BaseAdapter {
     }
 
     return null;
+  }
+
+  /**
+   * Deep equality check for config objects
+   */
+  #deepEqual(a: ConfigObject, b: ConfigObject): boolean {
+    return JSON.stringify(a) === JSON.stringify(b);
   }
 
   #sortFiles(files: SettingsFileEntry[]): SettingsFileEntry[] {
