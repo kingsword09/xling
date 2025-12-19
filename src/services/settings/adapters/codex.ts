@@ -695,10 +695,14 @@ export class CodexAdapter extends BaseAdapter {
       return "default";
     }
 
-    let currentAuthContent: string;
+    let currentAuth: ConfigObject | null;
     try {
-      currentAuthContent = fsStore.readFile(AUTH_FILE_PATH);
+      currentAuth = fsStore.readJSON(AUTH_FILE_PATH);
     } catch {
+      return "default";
+    }
+
+    if (!currentAuth) {
       return "default";
     }
 
@@ -706,17 +710,42 @@ export class CodexAdapter extends BaseAdapter {
     for (const profileName of profiles) {
       const profilePath = `${AUTH_PROFILES_DIR}/${profileName}.json`;
       try {
-        const profileContent = fsStore.readFile(profilePath);
-        if (currentAuthContent === profileContent) {
+        const profileAuth = fsStore.readJSON(profilePath);
+        if (this.#deepEqual(currentAuth, profileAuth)) {
           return profileName;
         }
       } catch {
-        // Skip profiles that can't be read
         continue;
       }
     }
 
     return "default";
+  }
+
+  /**
+   * Deep equality check with stable key ordering
+   */
+  #deepEqual(a: ConfigObject, b: ConfigObject): boolean {
+    return this.#stableStringify(a) === this.#stableStringify(b);
+  }
+
+  #stableStringify(obj: unknown): string {
+    if (obj === null || typeof obj !== "object") {
+      return JSON.stringify(obj);
+    }
+    if (Array.isArray(obj)) {
+      return (
+        "[" + obj.map((item) => this.#stableStringify(item)).join(",") + "]"
+      );
+    }
+    const keys = Object.keys(obj as Record<string, unknown>).sort();
+    const parts = keys.map(
+      (key) =>
+        JSON.stringify(key) +
+        ":" +
+        this.#stableStringify((obj as Record<string, unknown>)[key]),
+    );
+    return "{" + parts.join(",") + "}";
   }
 }
 

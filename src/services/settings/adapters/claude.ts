@@ -284,9 +284,32 @@ export class ClaudeAdapter extends BaseAdapter {
 
   /**
    * Deep equality check for config objects
+   * Handles different key order by sorting keys recursively
    */
   #deepEqual(a: ConfigObject, b: ConfigObject): boolean {
-    return JSON.stringify(a) === JSON.stringify(b);
+    return this.#stableStringify(a) === this.#stableStringify(b);
+  }
+
+  /**
+   * Stable JSON stringify with sorted keys
+   */
+  #stableStringify(obj: unknown): string {
+    if (obj === null || typeof obj !== "object") {
+      return JSON.stringify(obj);
+    }
+    if (Array.isArray(obj)) {
+      return (
+        "[" + obj.map((item) => this.#stableStringify(item)).join(",") + "]"
+      );
+    }
+    const keys = Object.keys(obj as Record<string, unknown>).sort();
+    const parts = keys.map(
+      (key) =>
+        JSON.stringify(key) +
+        ":" +
+        this.#stableStringify((obj as Record<string, unknown>)[key]),
+    );
+    return "{" + parts.join(",") + "}";
   }
 
   #sortFiles(files: SettingsFileEntry[]): SettingsFileEntry[] {
