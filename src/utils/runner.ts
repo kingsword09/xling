@@ -207,9 +207,7 @@ export async function getExecutableVersion(
 
     launch().catch((error) => {
       reject(
-        error instanceof Error
-          ? error
-          : new Error("Failed to get version"),
+        error instanceof Error ? error : new Error("Failed to get version"),
       );
     });
   });
