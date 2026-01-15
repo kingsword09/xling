@@ -4,7 +4,55 @@
  */
 
 import { spawn } from "node:child_process";
+import * as path from "node:path";
 import type { LaunchCommandSpec } from "@/domain/types.ts";
+
+/**
+ * Pick a spawnable Windows executable from `where <name>` output.
+ *
+ * On Windows, package managers often generate multiple shims:
+ * - `<name>` (no extension) for Git Bash/MSYS
+ * - `<name>.cmd` for cmd.exe
+ * - or a real `<name>.exe`
+ *
+ * Bun's `child_process.spawn()` does not reliably resolve PATHEXT shims when
+ * you pass the bare command name (e.g. `codex`), so we prefer explicit paths.
+ */
+export function selectWindowsWhereCandidate(
+  whereLines: readonly string[],
+): string | null {
+  const candidates = whereLines.map((l) => l.trim()).filter(Boolean);
+  if (candidates.length === 0) return null;
+
+  // Prefer real executables first.
+  const preferredExts = [".exe", ".com", ".cmd", ".bat"];
+  for (const ext of preferredExts) {
+    const match = candidates.find((p) => p.toLowerCase().endsWith(ext));
+    if (match) return match;
+  }
+
+  // Fall back to the first candidate if we couldn't identify a known shim.
+  return candidates[0] ?? null;
+}
+
+async function resolveExecutableForSpawn(executable: string): Promise<string> {
+  if (process.platform !== "win32") return executable;
+
+  // If the user provides an explicit path or extension, don't rewrite it.
+  if (path.isAbsolute(executable) || path.extname(executable)) {
+    return executable;
+  }
+
+  // Use `where` to resolve to a spawnable shim (e.g. `codex.cmd`).
+  const result = await runCommand("where", [executable], {
+    silent: true,
+    throwOnError: false,
+  });
+
+  if (!result.success || !result.stdout) return executable;
+  const lines = result.stdout.split(/\r?\n/);
+  return selectWindowsWhereCandidate(lines) ?? executable;
+}
 
 export interface SpawnOptions {
   cwd?: string;
@@ -47,8 +95,10 @@ export async function spawnProcess(
     ...options?.env,
   };
 
+  const executable = await resolveExecutableForSpawn(spec.executable);
+
   // 3. Spawn the child process
-  const child = spawn(spec.executable, args, {
+  const child = spawn(executable, args, {
     cwd: options?.cwd ?? process.cwd(),
     env,
     stdio: "inherit", // reuse parent stdio to keep UX consistent
@@ -56,7 +106,10 @@ export async function spawnProcess(
   });
 
   // Build a full command string for logging
-  const command = `${spec.executable} ${args.join(" ")}`;
+  const displayExecutable = executable.includes(" ")
+    ? `"${executable}"`
+    : executable;
+  const command = `${displayExecutable} ${args.join(" ")}`;
 
   // Wait for the process to spawn or fail
   return new Promise((resolve, reject) => {
@@ -86,9 +139,22 @@ export async function spawnProcess(
  * @param name Executable name to look up
  */
 export async function checkExecutable(name: string): Promise<boolean> {
+  // On Windows, `where <name>` can succeed even if the first match is a
+  // non-spawnable shim (e.g. a Git Bash script without an extension). We
+  // consider the tool available only if `where` returns a spawnable candidate.
+  if (process.platform === "win32") {
+    const result = await runCommand("where", [name], {
+      silent: true,
+      throwOnError: false,
+    });
+
+    if (!result.success || !result.stdout) return false;
+    const lines = result.stdout.split(/\r?\n/);
+    return selectWindowsWhereCandidate(lines) !== null;
+  }
+
   return new Promise((resolve) => {
-    const command = process.platform === "win32" ? "where" : "which";
-    const child = spawn(command, [name], {
+    const child = spawn("which", [name], {
       stdio: "ignore",
     });
 
@@ -109,28 +175,40 @@ export async function getExecutableVersion(
   return new Promise((resolve, reject) => {
     let output = "";
 
-    const child = spawn(executable, versionArgs, {
-      stdio: ["ignore", "pipe", "pipe"],
-    });
+    // `codex` on Windows is often a `.cmd` shim, which Bun can't resolve via
+    // PATHEXT. Reuse the same resolver as interactive spawning.
+    const launch = async (): Promise<void> => {
+      const resolved = await resolveExecutableForSpawn(executable);
 
-    child.stdout?.on("data", (data) => {
-      output += data.toString();
-    });
+      const child = spawn(resolved, versionArgs, {
+        stdio: ["ignore", "pipe", "pipe"],
+      });
 
-    child.stderr?.on("data", (data) => {
-      output += data.toString();
-    });
+      child.stdout?.on("data", (data) => {
+        output += data.toString();
+      });
 
-    child.on("error", (error) => {
-      reject(new Error(`Failed to get version: ${error.message}`));
-    });
+      child.stderr?.on("data", (data) => {
+        output += data.toString();
+      });
 
-    child.on("exit", (code) => {
-      if (code === 0) {
-        resolve(output.trim());
-      } else {
-        reject(new Error("Failed to get version"));
-      }
+      child.on("error", (error) => {
+        reject(new Error(`Failed to get version: ${error.message}`));
+      });
+
+      child.on("exit", (code) => {
+        if (code === 0) {
+          resolve(output.trim());
+        } else {
+          reject(new Error("Failed to get version"));
+        }
+      });
+    };
+
+    launch().catch((error) => {
+      reject(
+        error instanceof Error ? error : new Error("Failed to get version"),
+      );
     });
   });
 }
