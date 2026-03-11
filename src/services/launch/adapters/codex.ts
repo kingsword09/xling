@@ -7,7 +7,7 @@ import type { LaunchCommandSpec } from "@/domain/types.ts";
 
 /**
  * Applies Codex-specific behavior:
- * - Yolo mode: --dangerously-bypass-approvals-and-sandbox
+ * - Yolo mode: --yolo
  * - Resume picker: `codex resume`
  * - Continue last session: `codex resume --last`
  * - Settings: -c key=value (can be repeated)
@@ -44,9 +44,7 @@ export class CodexLaunchAdapter extends BaseLaunchAdapter {
     return {
       executable: this.executable,
       baseArgs,
-      yoloArgs: payload.yolo
-        ? ["--dangerously-bypass-approvals-and-sandbox"]
-        : undefined,
+      yoloArgs: payload.yolo ? ["--yolo"] : undefined,
     };
   }
 

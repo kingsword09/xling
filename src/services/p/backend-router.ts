@@ -65,7 +65,7 @@ function getYoloArgs(backend: CliBackend, yolo: boolean): string[] | undefined {
 
   switch (backend) {
     case "codex":
-      return ["--dangerously-bypass-approvals-and-sandbox"];
+      return ["--yolo"];
     case "gemini":
       return ["-y"];
     case "claude":
