@@ -19,7 +19,7 @@ export default class X extends Command {
 
     Yolo mode is ENABLED by default, which skips permission prompts:
     - Claude Code: --dangerously-skip-permissions
-    - Codex: --dangerously-bypass-approvals-and-sandbox
+    - Codex: --yolo
     - Gemini CLI: -y
 
     Resume options:

@@ -15,7 +15,7 @@ xling x [FLAGS] [-- ...args forwarded to tool]
 | Flag | Description |
 | ---- | ----------- |
 | `-t, --tool <claude|codex|gemini>` | Target tool (defaults to `claude`). |
-| `--no-yolo` | Disable yolo mode. When omitted, the command passes Claude's `--dangerously-skip-permissions`, Codex's `--dangerously-bypass-approvals-and-sandbox`, or Gemini's `-y`. |
+| `--no-yolo` | Disable yolo mode. When omitted, the command passes Claude's `--dangerously-skip-permissions`, Codex's `--yolo`, or Gemini's `-y`. |
 | `-c, --continue` | Resume the most recent session (`claude -c` / `codex resume --last`). Mutually exclusive with `--resume`. |
 | `-r, --resume` | Show the session picker (`claude -r` / `codex resume`). Mutually exclusive with `--continue`. |
 | `-C, --cwd <dir>` | Run the tool from a different working directory. |

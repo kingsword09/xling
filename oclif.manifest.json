@@ -1843,42 +1843,10 @@
         "sync.js"
       ]
     },
-    "version": {
-      "aliases": [],
-      "args": {},
-      "description": "Displays the version from package.json.",
-      "examples": [
-        {
-          "description": "Print the installed CLI version",
-          "command": "<%= config.bin %> <%= command.id %>"
-        },
-        {
-          "description": "Shortcut using the built-in flag",
-          "command": "<%= config.bin %> --version"
-        }
-      ],
-      "flags": {},
-      "hasDynamicHelp": false,
-      "hiddenAliases": [],
-      "id": "version",
-      "pluginAlias": "xling",
-      "pluginName": "xling",
-      "pluginType": "core",
-      "strict": true,
-      "summary": "Show the current xling version",
-      "enableJsonFlag": false,
-      "isESM": true,
-      "relativePath": [
-        "dist",
-        "commands",
-        "version",
-        "index.js"
-      ]
-    },
     "x": {
       "aliases": [],
       "args": {},
-      "description": "\n    Quick launcher for Claude Code, Codex, or Gemini CLI with yolo mode enabled by default.\n\n    Just run \"xling x\" to start Claude Code instantly!\n\n    Claude Code is launched by default. Use --tool flag to launch other tools.\n\n    Yolo mode is ENABLED by default, which skips permission prompts:\n    - Claude Code: --dangerously-skip-permissions\n    - Codex: --dangerously-bypass-approvals-and-sandbox\n    - Gemini CLI: -y\n\n    Resume options:\n    - Use -c/--continue to continue the last conversation/session\n    - Use -r/--resume to show a list of conversations/sessions to resume\n\n    Pass additional arguments after -- to forward them to the tool.\n\n    Examples:\n      $ xling x                          # Start Claude Code (fastest way!)\n      $ xling x -c                       # Continue last Claude conversation\n      $ xling x -r                       # Resume a Claude conversation (list)\n      $ xling x -s hxi                   # Start Claude with hxi settings variant\n      $ xling x -t codex -c              # Continue last Codex session\n      $ xling x -t codex -s oss          # Start Codex with oss profile\n      $ xling x --tool codex             # Start Codex\n      $ xling x -t gemini                # Start Gemini CLI\n      $ xling x -t gemini -c             # Resume latest Gemini session\n      $ xling x --no-yolo                # Start Claude without yolo\n      $ xling x -- chat \"Hello\"          # Start Claude with arguments\n      $ xling x -t codex -C /path        # Start Codex in specific directory\n  ",
+      "description": "\n    Quick launcher for Claude Code, Codex, or Gemini CLI with yolo mode enabled by default.\n\n    Just run \"xling x\" to start Claude Code instantly!\n\n    Claude Code is launched by default. Use --tool flag to launch other tools.\n\n    Yolo mode is ENABLED by default, which skips permission prompts:\n    - Claude Code: --dangerously-skip-permissions\n    - Codex: --yolo\n    - Gemini CLI: -y\n\n    Resume options:\n    - Use -c/--continue to continue the last conversation/session\n    - Use -r/--resume to show a list of conversations/sessions to resume\n\n    Pass additional arguments after -- to forward them to the tool.\n\n    Examples:\n      $ xling x                          # Start Claude Code (fastest way!)\n      $ xling x -c                       # Continue last Claude conversation\n      $ xling x -r                       # Resume a Claude conversation (list)\n      $ xling x -s hxi                   # Start Claude with hxi settings variant\n      $ xling x -t codex -c              # Continue last Codex session\n      $ xling x -t codex -s oss          # Start Codex with oss profile\n      $ xling x --tool codex             # Start Codex\n      $ xling x -t gemini                # Start Gemini CLI\n      $ xling x -t gemini -c             # Resume latest Gemini session\n      $ xling x --no-yolo                # Start Claude without yolo\n      $ xling x -- chat \"Hello\"          # Start Claude with arguments\n      $ xling x -t codex -C /path        # Start Codex in specific directory\n  ",
       "examples": [
         {
           "description": "Start Claude Code instantly (default)",
@@ -2049,7 +2017,39 @@
         "sx",
         "index.js"
       ]
+    },
+    "version": {
+      "aliases": [],
+      "args": {},
+      "description": "Displays the version from package.json.",
+      "examples": [
+        {
+          "description": "Print the installed CLI version",
+          "command": "<%= config.bin %> <%= command.id %>"
+        },
+        {
+          "description": "Shortcut using the built-in flag",
+          "command": "<%= config.bin %> --version"
+        }
+      ],
+      "flags": {},
+      "hasDynamicHelp": false,
+      "hiddenAliases": [],
+      "id": "version",
+      "pluginAlias": "xling",
+      "pluginName": "xling",
+      "pluginType": "core",
+      "strict": true,
+      "summary": "Show the current xling version",
+      "enableJsonFlag": false,
+      "isESM": true,
+      "relativePath": [
+        "dist",
+        "commands",
+        "version",
+        "index.js"
+      ]
     }
   },
-  "version": "0.11.0"
+  "version": "0.11.1"
 }

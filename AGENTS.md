@@ -57,7 +57,7 @@ xling/
 Adapters isolate every external tool:
 
 - **Settings adapters**: `BaseAdapter`, `ClaudeAdapter` (JSON), `CodexAdapter` (TOML with profiles), `GeminiAdapter` (JSON).
-- **Launch adapters**: `BaseLaunchAdapter`, plus Claude (`--dangerously-skip-permissions`) and Codex (`--dangerously-bypass-approvals-and-sandbox`) implementations.
+- **Launch adapters**: `BaseLaunchAdapter`, plus Claude (`--dangerously-skip-permissions`) and Codex (`--yolo`) implementations.
 
 ### Dispatchers
 
